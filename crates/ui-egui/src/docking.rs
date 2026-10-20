@@ -92,26 +92,19 @@ impl Default for Workspace {
     fn default() -> Self {
         Self {
             layout: Layout {
+                // Cubase-style Project Zone: one Inspector and the existing
+                // timeline's own track headers, not a second duplicate Tracks list.
+                // The Lower Zone is opened on demand, leaving the timeline tall.
                 root: Some(split(
-                    SplitAxis::Vertical,
-                    SplitSize::FixedSecond(295.0 + MIDI_TAB_HEIGHT),
+                    SplitAxis::Horizontal,
+                    SplitSize::FixedFirst(222.0),
+                    tabs(Panel::Inspector),
                     split(
                         SplitAxis::Horizontal,
-                        SplitSize::FixedFirst(402.0),
-                        split(
-                            SplitAxis::Horizontal,
-                            SplitSize::FixedFirst(202.0),
-                            tabs(Panel::Inspector),
-                            tabs(Panel::Tracks),
-                        ),
-                        split(
-                            SplitAxis::Horizontal,
-                            SplitSize::FixedSecond(270.0),
-                            tabs(Panel::Canvas),
-                            Node::Tabs { panels: vec![Panel::Browser, Panel::Clips], active: 0 },
-                        ),
+                        SplitSize::FixedSecond(260.0),
+                        tabs(Panel::Canvas),
+                        Node::Tabs { panels: vec![Panel::Browser, Panel::Clips], active: 0 },
                     ),
-                    Node::Tabs { panels: vec![Panel::MixConsole, Panel::Midi], active: 0 },
                 )),
                 floating: vec![
                     craft_ui::docking::Floating { panels: vec![Panel::Memory], active: 0, rect: [160.0, 120.0, 480.0, 280.0] },
@@ -373,6 +366,13 @@ fn command_for(app: &mut crate::SoundApp, reset: bool, params: &Value, edit: boo
         workspace.validate_mix()?;
     }
     if reset {
+        if edit {
+            // Reset means restore the ORVIA Project layout, not resurrect the old
+            // standalone Tracks list or a forced-height lower dock.
+            app.ui.show_tracks_list = false;
+            app.ui.show_midi_editor = false;
+            app.ui.show_clip_list = true;
+        }
         workspace = if edit { Workspace::default() } else { mix_default() };
         sync(&mut workspace, app, edit)?;
     } else {
@@ -514,9 +514,27 @@ mod orvia_layout_tests {
     fn edit_workspace_has_inspector_timeline_and_clip_browser() {
         let workspace = Workspace::default();
         assert!(workspace.validate().is_ok());
-        for panel in [Panel::Inspector, Panel::Tracks, Panel::Canvas, Panel::Browser, Panel::MixConsole, Panel::Clips, Panel::Midi] {
+        for panel in [Panel::Inspector, Panel::Canvas, Panel::Browser, Panel::Clips] {
             assert!(workspace.layout.contains(&panel));
         }
+        assert!(!workspace.layout.contains(&Panel::Tracks), "Timeline already owns track headers");
+        assert!(!workspace.layout.contains(&Panel::MixConsole), "Lower Zone starts closed");
+        assert!(!workspace.layout.contains(&Panel::Midi), "Key Editor starts closed");
+    }
+
+    #[test]
+    fn lower_zone_opens_and_closes_without_covering_timeline_permanently() {
+        let mut workspace = Workspace::default();
+        assert!(workspace.set_visible(Panel::MixConsole, true).is_ok());
+        assert!(workspace.layout.contains(&Panel::MixConsole));
+        assert!(workspace.set_visible(Panel::MixConsole, false).is_ok());
+        assert!(!workspace.layout.contains(&Panel::MixConsole));
+        assert!(workspace.layout.contains(&Panel::Canvas));
+        assert!(workspace.set_visible(Panel::Midi, true).is_ok());
+        assert!(workspace.layout.contains(&Panel::Midi));
+        assert!(workspace.set_visible(Panel::Midi, false).is_ok());
+        assert!(workspace.validate().is_ok());
+        assert!(!workspace.layout.contains(&Panel::Tracks));
     }
 
     #[test]
