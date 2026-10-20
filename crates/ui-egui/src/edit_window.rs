@@ -158,28 +158,52 @@ fn dock_tabs(app: &mut SoundApp, ui: &mut Ui) {
     let t = Tokens::current();
     let r = ui.max_rect();
     let mut x = r.min.x + 10.0;
-    for (label, on, id) in [
-        ("MIXCONSOLE", true, "ui.dock"),
-        ("KEY EDITOR", app.ui.show_midi_editor, "window.midi_editor"),
-        ("MEMORY LOCATIONS", app.ui.show_memory_locations, "window.memory_locations"),
-        ("UNDO HISTORY", app.ui.show_undo_history, "window.undo_history"),
-    ] {
+    let console_open = app.ui.docking.layout.contains(&crate::docking::Panel::MixConsole);
+    let key_open = app.ui.docking.layout.contains(&crate::docking::Panel::Midi);
+    for (label, on) in [("MIXCONSOLE", console_open), ("KEY EDITOR", key_open)] {
         let g = ui.painter().layout_no_wrap(label.to_string(), bold(10.5), if on { Color32::WHITE } else { t.text_dim });
         let tr = Rect::from_min_size(pos2(x, r.min.y + 2.0), vec2(g.size().x + 16.0, r.height() - 4.0));
         if on {
             ui.painter().rect_filled(tr, 3.0, t.accent_dark);
         }
         ui.painter().galley(pos2(tr.min.x + 8.0, tr.center().y - g.size().y * 0.5), g, Color32::WHITE);
-        if ui.interact(tr, ui.id().with(("dock", label)), Sense::click()).clicked() {
-            if label == "MIXCONSOLE" || (label == "KEY EDITOR" && on) {
-                let panel = if label == "MIXCONSOLE" { "mixConsole" } else { "midi" };
-                let _ = app.run("ui.dock", json!({"operation": "activate", "panel": panel}));
+        if ui.interact(tr, ui.id().with(("lower-zone", label)), Sense::click()).clicked() {
+            let (panel, other) = if label == "MIXCONSOLE" { ("mixConsole", "midi") } else { ("midi", "mixConsole") };
+            if on {
+                let _ = app.run("ui.dock", json!({"operation": "close", "panel": panel}));
             } else {
-                let _ = app.run(id, json!({}));
+                // The two editors share one Lower Zone. Close the previous
+                // view before opening the next rather than stacking two
+                // empty half-height regions over the timeline.
+                if console_open || key_open {
+                    let _ = app.run("ui.dock", json!({"operation": "close", "panel": other}));
+                }
+                let _ = app.run("ui.dock", json!({"operation": "open", "panel": panel}));
             }
         }
         x = tr.max.x + 6.0;
     }
+    x += 12.0;
+    for (label, on, command) in [
+        ("MEMORY LOCATIONS", app.ui.show_memory_locations, "window.memory_locations"),
+        ("UNDO HISTORY", app.ui.show_undo_history, "window.undo_history"),
+    ] {
+        let g = ui.painter().layout_no_wrap(label.to_string(), bold(10.0), if on { Color32::WHITE } else { t.text_dim });
+        let tr = Rect::from_min_size(pos2(x, r.min.y + 2.0), vec2(g.size().x + 12.0, r.height() - 4.0));
+        if on {
+            ui.painter().rect_filled(tr, 2.0, t.accent_dark);
+        }
+        ui.painter().galley(pos2(tr.min.x + 6.0, tr.center().y - g.size().y * 0.5), g, Color32::WHITE);
+        if ui.interact(tr, ui.id().with(("dock-aux", label)), Sense::click()).clicked() {
+            let _ = app.run(command, json!({}));
+        }
+        x = tr.max.x + 4.0;
+    }
+    let reset_rect = Rect::from_min_size(pos2(r.max.x - 106.0, r.min.y + 2.0), vec2(98.0, r.height() - 4.0));
+    if ui.interact(reset_rect, ui.id().with("orvia-layout-reset"), Sense::click()).clicked() {
+        let _ = app.run("ui.dock.reset", json!({}));
+    }
+    ui.painter().text(reset_rect.center(), Align2::CENTER_CENTER, "RESET LAYOUT", bold(9.5), t.text_dim);
 }
 
 fn status_bar(app: &mut SoundApp, ui: &mut Ui) {
