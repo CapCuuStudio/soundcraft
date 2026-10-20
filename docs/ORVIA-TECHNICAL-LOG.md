@@ -81,3 +81,15 @@
 **Tình trạng chưa xong:** Kết nối GitHub hiện **không có action fork hay create repository**. Vì vậy CHƯA fork Zrythm, CHƯA sửa native source, CHƯA có Windows build, screenshot, video hay installer, CHƯA kiểm thử VST3/Kontakt. Cần chủ dự án tạo fork Zrythm qua GitHub GUI một lần hoặc cung cấp repo đã fork thì mới thao tác mã native. **Không tự dùng GitHub Actions tính quota**, không CMD trên PC người dùng, không dịch vụ trả phí, không TinyFish.
 **Bảo toàn:** Không merge/sửa `main` hay sản phẩm LUNOR production; SoundCraft giữ nguyên làm dự phòng. Không xóa trang preview trước khi người dùng cho phép.
 **Việc tiếp:** Theo dõi Cloudflare Pages cho PR #5; cho người dùng URL confirmed để theo dõi; tạo Zrythm fork độc lập, pin baseline commit, dựng Windows native build khi có môi trường được duyệt.
+
+## Trang Preview chuyển sang xem giao diện thật — phản hồi trực tiếp của chủ dự án (20/10/2026)
+
+**Phản hồi:** Người dùng mở https://960193e3.orvia-daw-preview.pages.dev và phàn nàn website chỉ toàn báo cáo tiến độ, không có giao diện phần mềm để xem. Người dùng đã nhiều lần yêu cầu **xem giao diện thực tế để nghiệm thu**, còn web chỉ là phương tiện tạm.
+
+**Đã đọc trước khi sửa:** nhật ký chung LUNOR MUSIC trên Google Drive và log ORVIA, trạng thái build Windows `Gamevalentine/zrythm` run #39437210753, `preview/orvia-progress/index.html`/status.json và Cloudflare PR #5. Build Windows vẫn đang chạy Conan, chưa có bằng chứng file `.exe` hoặc screenshot ORVIA native.
+
+**Sửa trong nhánh preview riêng:** commit `9f005c4638f8ba323e7e06147e8a70d2be4f5bb9` thay trang báo cáo bằng **gallery ảnh chụp thực tế Zrythm v2**, có phóng to, ảnh trước/sau, hỗ trợ bàn phím và mobile. Ảnh nền tảng lấy từ Zrythm Forum chính thức: [alpha.5 30/09/2026](https://forum.zrythm.org/t/zrythm-v2-0-0-alpha-5-released/602), [alpha.6 04/10/2026](https://forum.zrythm.org/t/zrythm-v2-0-0-alpha-6-released/603); đường dẫn ảnh thật tải trực tiếp từ forum.zrythm.org, **không thay nhãn ảnh upstream thành ORVIA**. Khi `status.json.screenshots` có mục `verified:true,origin:native-windows` và HTTPS URL thì hiển thị ảnh ORVIA native thực trước ảnh gốc. Trạng thái build chuyển vào mục details cuối trang, mặc định thu gọn.
+
+**Kiểm thử:** GitHub source đã lưu, xem xét URL ảnh qua công cụ web; Cloudflare Pages bot PR #5 đã xác nhận **Deploy successful** đúng commit `9f005c4` tại **https://4b1ea6cc.orvia-daw-preview.pages.dev**. Đây là kết quả build trang theo dõi UI, **không chứng minh máy Windows chạy thành công hoặc ảnh bản ORVIA đã đổi thương hiệu**. Chưa có kiểm thử trình duyệt trực quan độc lập đối với hotlink ảnh ngoài; cần chủ dự án mở URL và nghiệm thu gallery.
+
+**Không thay đổi:** mã nguồn native Zrythm, audio engine, build workflow, `master`, production. Việc tiếp: chờ Windows build, thu ảnh/video bản thật, cập nhật gallery; trang web sẽ chỉ bị gỡ sau khi chủ dự án đồng ý.
