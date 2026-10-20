@@ -34,7 +34,7 @@
 <section class="panel">
 <h2>Bằng chứng bản desktop</h2>
 <div class="evidence"><div><strong>Chưa có bản Windows đã xác minh</strong><p>Sẽ xuất hiện ảnh chụp màn hình, video kiểm thử, log build và file cài đặt khi thực sự tạo được.</p></div></div>
-<div class="update" id="build">Windows build: chưa chạy · Installer: chưa có</div>
+<div class="update" id="build">Windows build: chưa chạy · Installer: chưa có</div><div class="footlinks"><a id="buildLink" href="#" target="_blank" rel="noopener noreferrer" hidden>Xem log build Windows ↗</a></div>
 </section>
 <div class="spacer"></div>
 <section class="panel">
@@ -76,6 +76,7 @@ h3.appendChild(state);detail.className='itemdesc';detail.textContent=m.detail;bo
 const done=document.querySelector('#completed');done.replaceChildren();
 for(const value of d.completed){const li=document.createElement('li');li.textContent=value;done.appendChild(li);}
 document.querySelector('#build').textContent='Windows build: '+d.windows_native_build+' · Installer: '+(d.installer_url?'có bản thử nghiệm':'chưa có');
+const link=document.querySelector('#buildLink'); if(typeof d.build_url==='string' && /^https:\/\/github\.com\/Gamevalentine\/zrythm\/actions\/runs\/\d+$/.test(d.build_url)){link.href=d.build_url; link.hidden=false;}
 }catch(error){document.querySelector('#build').textContent='Chưa đọc được cập nhật; xem nhánh GitHub để xác minh.';}})();
 </script>
 </body>
