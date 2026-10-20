@@ -450,7 +450,7 @@ pub fn show(app: &mut crate::SoundApp, ui: &mut egui::Ui, window: crate::MainWin
             }
             Panel::Inspector => crate::panels::orvia_inspector(app, ui),
             Panel::Browser => crate::panels::orvia_browser(app, ui),
-            Panel::MixConsole => crate::mix_window::content(app, ui),
+            Panel::MixConsole => crate::panels::orvia_lower_mixer(app, ui),
             Panel::Tracks => crate::panels::tracks_and_groups(app, ui),
             Panel::Clips => crate::panels::clip_list(app, ui),
             Panel::Midi => {
