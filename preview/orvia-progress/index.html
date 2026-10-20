@@ -1,0 +1,80 @@
+<!doctype html>
+<html lang="vi">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<meta name="theme-color" content="#0c1020">
+<title>ORVIA | Trung tâm theo dõi Desktop</title>
+<style>
+:root{color-scheme:dark;--bg:#090d17;--surface:#111829;--surface2:#172134;--border:#28364c;--muted:#a3b2c8;--ink:#f0f5ff;--blue:#78a8ff;--teal:#68d6ca;--gold:#e7c17d}*{box-sizing:border-box}body{margin:0;background:radial-gradient(ellipse at 70% -40%,#20395c 0%,transparent 55%),var(--bg);font:15px/1.6 system-ui,-apple-system,"Segoe UI",sans-serif;color:var(--ink)}a{color:#9bc1ff;text-decoration:none}a:hover{text-decoration:underline}.wrap{max-width:1160px;margin:auto;padding:32px 22px 70px}header{display:flex;align-items:center;justify-content:space-between;gap:20px;border-bottom:1px solid var(--border);padding-bottom:24px}.logo{font-size:24px;letter-spacing:.18em;font-weight:800}.logo span{color:var(--blue)}.minor{font-size:12px;font-weight:600;color:var(--muted);letter-spacing:.12em;text-transform:uppercase}.pill{border:1px solid #3f6178;background:#152538;color:#a3e7e1;padding:7px 12px;border-radius:100px;font-size:12px;font-weight:700}.intro{padding:60px 0 35px}.eyebrow{font-size:12px;letter-spacing:.2em;text-transform:uppercase;color:var(--teal);font-weight:700}h1{font-size:clamp(35px,5vw,64px);letter-spacing:-.04em;line-height:1.08;margin:15px 0 20px;max-width:850px}h1 em{font-style:normal;color:var(--blue)}p{color:var(--muted);margin:0;max-width:830px}.meta{display:flex;gap:10px;flex-wrap:wrap;margin-top:25px}.chip{border:1px solid var(--border);background:#131d2d;padding:7px 12px;border-radius:8px;font-size:13px;color:#c6d4e5}.layout{display:grid;grid-template-columns:minmax(0,1.45fr) minmax(290px,1fr);gap:20px}.panel{background:linear-gradient(145deg,rgba(24,34,53,.96),rgba(14,21,35,.94));border:1px solid var(--border);border-radius:16px;padding:24px;min-width:0;box-shadow:0 14px 40px #0002}.panel h2{font-size:18px;margin:0 0 18px;letter-spacing:-.02em}.panel h3{font-size:14px;margin:0}.items{margin:0;padding:0;list-style:none}.items li{padding:16px 0;border-top:1px solid var(--border);display:flex;gap:14px}.items li:first-child{border-top:0}.num{width:40px;min-width:40px;height:40px;border-radius:10px;background:#213652;color:#adccff;display:grid;place-items:center;font-size:12px;font-weight:750}.itemdesc{font-size:13px;color:var(--muted);margin-top:3px}.state{font-size:11px;letter-spacing:.08em;text-transform:uppercase;color:var(--gold)}.done li{font-size:14px;padding:10px 0}.done li:before{content:"✓";color:var(--teal);margin-right:12px;font-weight:900}.evidence{display:grid;place-items:center;text-align:center;min-height:202px;border:1px dashed #465b75;background:linear-gradient(140deg,#101928,#1b2a3d);border-radius:12px;padding:20px}.evidence strong{font-size:18px}.evidence p{font-size:13px;margin-top:7px}.footer{border-top:1px solid var(--border);margin-top:24px;padding-top:23px;font-size:13px;color:var(--muted)}.footlinks{display:flex;gap:16px;flex-wrap:wrap;margin-top:12px}.spacer{height:20px}.update{font-size:12px;color:var(--muted);margin-top:14px}.note{font-size:12px;color:#b7c7d9;margin-top:16px;background:#152435;padding:12px 14px;border-left:3px solid #6fa9e9;border-radius:5px}@media(max-width:810px){.layout{grid-template-columns:1fr}.intro{padding-top:42px}header{align-items:start}h1{font-size:36px}.panel{padding:18px}.wrap{padding:20px 14px 45px}}
+</style>
+</head>
+<body>
+<div class="wrap">
+<header>
+<div><div class="logo">OR<span>VIA</span></div><div class="minor">LUNOR MUSIC · DESKTOP DEVELOPMENT</div></div>
+<div class="pill">TRANG THEO DÕI TẠM</div>
+</header>
+<section class="intro">
+<div class="eyebrow">WINDOWS DESKTOP / ZRYTHM RESEARCH</div>
+<h1>Xây dựng DAW thật.<br><em>Theo dõi minh bạch.</em></h1>
+<p>ORVIA được phát triển theo hướng ứng dụng Windows thực, nghiên cứu sử dụng mã nguồn mở Zrythm. Trang này chỉ tổng hợp tiến độ và bằng chứng kiểm thử. Nó <b>không</b> phải một phiên bản web của DAW và không có giao diện mô phỏng giả.</p>
+<div class="meta"><span class="chip">Mục tiêu: Windows 10/11</span><span class="chip" id="phase">Giai đoạn: chuẩn bị</span><span class="chip" id="last">Cập nhật: 20/10/2026</span></div>
+</section>
+<div class="layout">
+<section class="panel">
+<h2>Lộ trình phát triển</h2>
+<ol class="items" id="milestones">
+<li><div class="num">S0</div><div><h3>Fork độc lập &amp; pháp lý <span class="state">Chưa hoàn thành</span></h3><div class="itemdesc">Đang chuẩn bị repository Zrythm.</div></div></li>
+<li><div class="num">S1</div><div><h3>Windows baseline <span class="state">Chưa chạy</span></h3><div class="itemdesc">Chưa có chứng cứ native build.</div></div></li>
+</ol>
+<div class="note">Chỉ ghi «đã hoàn thành» khi có mã nguồn/commit hoặc log/ảnh chụp từ phần mềm chạy thật. Không tự chuyển mốc theo lịch.</div>
+</section>
+<div>
+<section class="panel">
+<h2>Bằng chứng bản desktop</h2>
+<div class="evidence"><div><strong>Chưa có bản Windows đã xác minh</strong><p>Sẽ xuất hiện ảnh chụp màn hình, video kiểm thử, log build và file cài đặt khi thực sự tạo được.</p></div></div>
+<div class="update" id="build">Windows build: chưa chạy · Installer: chưa có</div>
+</section>
+<div class="spacer"></div>
+<section class="panel">
+<h2>Phần đã xác minh</h2>
+<ul class="items done" id="completed">
+<li>Đã đọc mã nguồn, giấy phép và tài liệu upstream</li>
+<li>Đã chốt hướng Windows desktop</li>
+</ul>
+</section>
+</div>
+</div>
+<div class="spacer"></div>
+<section class="panel">
+<h2>Quy tắc phát triển</h2>
+<p>Không xóa SoundCraft dự phòng, không sửa production, không dùng phí hoặc GitHub Actions nếu chưa được đồng ý, không yêu cầu CMD trên máy bạn. Giấy phép AGPL và thương hiệu Zrythm phải được tuân thủ khi chuyển sang ORVIA.</p>
+<div class="footlinks">
+<a href="https://github.com/zrythm/zrythm" target="_blank" rel="noopener noreferrer">Nguồn Zrythm ↗</a>
+<a href="https://github.com/CapCuuStudio/soundcraft/blob/feature/orvia-zrythm-desktop-transition/docs/ORVIA-ZRYTHM-DESKTOP-PLAN.md" target="_blank" rel="noopener noreferrer">Kế hoạch kỹ thuật ↗</a>
+<a href="https://github.com/CapCuuStudio/soundcraft/tree/feature/orvia-zrythm-desktop-transition" target="_blank" rel="noopener noreferrer">Nhánh theo dõi ↗</a>
+</div>
+</section>
+<footer class="footer">© ORVIA / LUNOR MUSIC — Trang theo dõi độc lập, không liên kết hay được bảo trợ bởi dự án Zrythm. Khi ORVIA desktop được nghiệm thu, trang web này có thể gỡ bỏ.</footer>
+</div>
+<script>
+(async()=>{try{
+const res=await fetch('./status.json',{cache:'no-store'});if(!res.ok)throw new Error('status unavailable');
+const d=await res.json();
+const phase=document.querySelector('#phase'), last=document.querySelector('#last');
+phase.textContent='Giai đoạn: '+d.phase;last.textContent='Cập nhật: '+d.updated_at;
+const list=document.querySelector('#milestones');
+list.replaceChildren();
+for(const [i,m] of d.milestones.entries()){
+const li=document.createElement('li'),num=document.createElement('div'),body=document.createElement('div'),h3=document.createElement('h3'),state=document.createElement('span'),detail=document.createElement('div');
+num.className='num';num.textContent='S'+i;h3.textContent=m.name+' ';state.className='state';state.textContent=m.state==='done'?'Đã xác minh':m.state==='progress'?'Đang triển khai':'Chưa hoàn thành';
+h3.appendChild(state);detail.className='itemdesc';detail.textContent=m.detail;body.append(h3,detail);li.append(num,body);list.appendChild(li);
+}
+const done=document.querySelector('#completed');done.replaceChildren();
+for(const value of d.completed){const li=document.createElement('li');li.textContent=value;done.appendChild(li);}
+document.querySelector('#build').textContent='Windows build: '+d.windows_native_build+' · Installer: '+(d.installer_url?'có bản thử nghiệm':'chưa có');
+}catch(error){document.querySelector('#build').textContent='Chưa đọc được cập nhật; xem nhánh GitHub để xác minh.';}})();
+</script>
+</body>
+</html>
