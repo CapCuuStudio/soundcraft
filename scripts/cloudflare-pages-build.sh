@@ -21,6 +21,7 @@ if ! command -v rustup >/dev/null 2>&1; then
   sh /tmp/orvia-rustup-init.sh -y --profile minimal --default-toolchain "$RUST_TOOLCHAIN"
 fi
 rustup toolchain install "$RUST_TOOLCHAIN" --profile minimal --target wasm32-unknown-unknown
+export RUSTUP_TOOLCHAIN="$RUST_TOOLCHAIN"
 
 if ! command -v trunk >/dev/null 2>&1; then
   echo "[ORVIA] Installing pinned Trunk $TRUNK_VERSION."
