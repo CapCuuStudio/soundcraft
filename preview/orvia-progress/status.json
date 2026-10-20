@@ -3,14 +3,14 @@
   "platform": "Windows 10/11",
   "approach": "Zrythm upstream (đang nghiên cứu chuyển nền tảng)",
   "updated_at": "2026-10-20",
-  "phase": "S0 · Đã có fork Zrythm, chờ Windows baseline",
-  "overall_status": "Đang kiểm tra nền tảng native",
+  "phase": "S1 · Biên dịch Zrythm Windows lần đầu",
+  "overall_status": "Build Windows đang chạy trên GitHub",
   "website_role": "Trang theo dõi tạm thời, không phải DAW chạy trên web",
   "repository": "https://github.com/Gamevalentine/zrythm",
   "upstream": "https://github.com/zrythm/zrythm",
   "pull_request": "https://github.com/Gamevalentine/zrythm/pull/1",
-  "build_url": null,
-  "windows_native_build": "Chưa chạy",
+  "build_url": "https://github.com/Gamevalentine/zrythm/actions/runs/39437210753",
+  "windows_native_build": "Đang chạy · GitHub Actions run #39437210753 (chưa có kết quả)",
   "screenshots": [],
   "videos": [],
   "installer_url": null,
@@ -20,7 +20,8 @@
     "Kiểm tra giấy phép AGPL và chính sách thương hiệu Zrythm",
     "Chuẩn bị kế hoạch QA và trang giám sát tạm",
     "Đã tạo fork Zrythm độc lập trong Gamevalentine/zrythm (master giữ nguyên)",
-    "Đã tạo nhánh native feature/orvia-desktop-foundation và Draft PR #1"
+    "Đã tạo nhánh native feature/orvia-desktop-foundation và Draft PR #1",
+    "Đã kích hoạt build Zrythm Windows baseline #39437210753 trên GitHub hosted runner miễn phí của repo công khai"
   ],
   "milestones": [
     {
@@ -30,8 +31,8 @@
     },
     {
       "name": "S1 · Native Windows baseline",
-      "state": "pending",
-      "detail": "Chưa chạy Windows build, chưa có .exe hoặc ảnh/video xác minh; cần môi trường builder riêng không tốn phí."
+      "state": "progress",
+      "detail": "Windows run #39437210753 bắt đầu; đang tải source và dependencies. Chưa có .exe, audio QA hoặc screenshot chạy thật."
     },
     {
       "name": "S2 · Thương hiệu ORVIA",
