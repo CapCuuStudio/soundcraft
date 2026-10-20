@@ -143,7 +143,7 @@ impl Default for UiState {
             show_session_info: false,
             show_audio_health: false,
             show_about: false,
-            show_midi_editor: false,
+            show_midi_editor: true,
             show_universe: false,
             narrow_mix: false,
             mix_views: vec!["inserts_ae".into(), "sends_ae".into(), "io".into(), "color".into()],
