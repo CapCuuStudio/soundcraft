@@ -2221,8 +2221,13 @@ fn lane_interaction(app: &mut SoundApp, ui: &mut Ui, track: &Track, lane: Rect, 
         && let Some(c) = &hit
     {
         let _ = app.run("edit.select", json!({"clips": [c.id.0]}));
-        if eff == Tool::Grabber && matches!(c.content, ClipContent::Midi { .. }) {
-            app.ui.show_midi_editor = true;
+        if matches!(c.content, ClipContent::Midi { .. }) {
+            // Cubase-style double-click opens the actual Key Editor in
+            // the Lower Zone, not a separate floating or duplicate panel.
+            if app.ui.docking.layout.contains(&crate::docking::Panel::MixConsole) {
+                let _ = app.run("ui.dock", json!({"operation": "close", "panel": "mixConsole"}));
+            }
+            let _ = app.run("ui.dock", json!({"operation": "open", "panel": "midi"}));
         }
     }
 }
