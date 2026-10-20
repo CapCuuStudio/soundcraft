@@ -523,6 +523,21 @@ mod orvia_layout_tests {
     }
 
     #[test]
+    fn lower_zone_opens_and_closes_without_covering_timeline_permanently() {
+        let mut workspace = Workspace::default();
+        assert!(workspace.set_visible(Panel::MixConsole, true).is_ok());
+        assert!(workspace.layout.contains(&Panel::MixConsole));
+        assert!(workspace.set_visible(Panel::MixConsole, false).is_ok());
+        assert!(!workspace.layout.contains(&Panel::MixConsole));
+        assert!(workspace.layout.contains(&Panel::Canvas));
+        assert!(workspace.set_visible(Panel::Midi, true).is_ok());
+        assert!(workspace.layout.contains(&Panel::Midi));
+        assert!(workspace.set_visible(Panel::Midi, false).is_ok());
+        assert!(workspace.validate().is_ok());
+        assert!(!workspace.layout.contains(&Panel::Tracks));
+    }
+
+    #[test]
     fn mixer_keeps_its_own_layout_without_edit_only_panels() {
         let workspace = mix_default();
         assert!(workspace.validate_mix().is_ok());
