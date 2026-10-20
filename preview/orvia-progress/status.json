@@ -1,0 +1,56 @@
+{
+  "project": "ORVIA Desktop",
+  "platform": "Windows 10/11",
+  "approach": "Zrythm upstream (đang nghiên cứu chuyển nền tảng)",
+  "updated_at": "2026-10-20",
+  "phase": "Chuẩn bị nền tảng",
+  "overall_status": "Đang chuẩn bị",
+  "website_role": "Trang theo dõi tạm thời, không phải DAW chạy trên web",
+  "repository": "https://github.com/CapCuuStudio/soundcraft/tree/feature/orvia-zrythm-desktop-transition",
+  "upstream": "https://github.com/zrythm/zrythm",
+  "pull_request": null,
+  "build_url": null,
+  "windows_native_build": "Chưa chạy",
+  "screenshots": [],
+  "videos": [],
+  "installer_url": null,
+  "completed": [
+    "Đọc nhật ký kỹ thuật và quyết định sản phẩm Windows desktop",
+    "Khảo sát mã nguồn Zrythm: C++23, Qt/QML, JUCE, CMake",
+    "Kiểm tra giấy phép AGPL và chính sách thương hiệu Zrythm",
+    "Chuẩn bị kế hoạch QA và trang giám sát tạm"
+  ],
+  "milestones": [
+    {
+      "name": "S0 · Fork độc lập & giấy phép",
+      "state": "pending",
+      "detail": "Cần tạo fork Zrythm trong tài khoản chủ dự án. Chưa có repository native ORVIA."
+    },
+    {
+      "name": "S1 · Native Windows baseline",
+      "state": "pending",
+      "detail": "Chưa có build chạy thật; chưa có ảnh/video xác minh."
+    },
+    {
+      "name": "S2 · Thương hiệu ORVIA",
+      "state": "pending",
+      "detail": "Chưa sửa mã hoặc logo Zrythm."
+    },
+    {
+      "name": "S3 · MIDI / Mixer / VST3 QA",
+      "state": "pending",
+      "detail": "Cần Windows build chạy trước khi kiểm thử."
+    },
+    {
+      "name": "S4 · Windows package",
+      "state": "pending",
+      "detail": "Chỉ thực hiện sau nghiệm thu các chức năng thực."
+    }
+  ],
+  "restrictions": [
+    "Không chạy giả giao diện trên web",
+    "Không đụng SoundCraft main/production",
+    "Không tự tạo chi phí cloud/Actions",
+    "Không dùng CMD trên máy của người dùng"
+  ]
+}
