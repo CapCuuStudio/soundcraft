@@ -3,12 +3,12 @@
   "platform": "Windows 10/11",
   "approach": "Zrythm upstream (đang nghiên cứu chuyển nền tảng)",
   "updated_at": "2026-10-20",
-  "phase": "Chuẩn bị nền tảng",
-  "overall_status": "Đang chuẩn bị",
+  "phase": "S0 · Đã có fork Zrythm, chờ Windows baseline",
+  "overall_status": "Đang kiểm tra nền tảng native",
   "website_role": "Trang theo dõi tạm thời, không phải DAW chạy trên web",
-  "repository": "https://github.com/CapCuuStudio/soundcraft/tree/feature/orvia-zrythm-desktop-transition",
+  "repository": "https://github.com/Gamevalentine/zrythm",
   "upstream": "https://github.com/zrythm/zrythm",
-  "pull_request": null,
+  "pull_request": "https://github.com/Gamevalentine/zrythm/pull/1",
   "build_url": null,
   "windows_native_build": "Chưa chạy",
   "screenshots": [],
@@ -18,18 +18,20 @@
     "Đọc nhật ký kỹ thuật và quyết định sản phẩm Windows desktop",
     "Khảo sát mã nguồn Zrythm: C++23, Qt/QML, JUCE, CMake",
     "Kiểm tra giấy phép AGPL và chính sách thương hiệu Zrythm",
-    "Chuẩn bị kế hoạch QA và trang giám sát tạm"
+    "Chuẩn bị kế hoạch QA và trang giám sát tạm",
+    "Đã tạo fork Zrythm độc lập trong Gamevalentine/zrythm (master giữ nguyên)",
+    "Đã tạo nhánh native feature/orvia-desktop-foundation và Draft PR #1"
   ],
   "milestones": [
     {
       "name": "S0 · Fork độc lập & giấy phép",
-      "state": "pending",
-      "detail": "Cần tạo fork Zrythm trong tài khoản chủ dự án. Chưa có repository native ORVIA."
+      "state": "progress",
+      "detail": "Đã fork Gamevalentine/zrythm, giữ nguyên master tại 4c2d471; đã tạo nhánh ORVIA và PR #1. Chưa rà xong license từng dependency."
     },
     {
       "name": "S1 · Native Windows baseline",
       "state": "pending",
-      "detail": "Chưa có build chạy thật; chưa có ảnh/video xác minh."
+      "detail": "Chưa chạy Windows build, chưa có .exe hoặc ảnh/video xác minh; cần môi trường builder riêng không tốn phí."
     },
     {
       "name": "S2 · Thương hiệu ORVIA",
@@ -52,5 +54,7 @@
     "Không đụng SoundCraft main/production",
     "Không tự tạo chi phí cloud/Actions",
     "Không dùng CMD trên máy của người dùng"
-  ]
+  ],
+  "native_branch": "https://github.com/Gamevalentine/zrythm/tree/feature/orvia-desktop-foundation",
+  "upstream_base_sha": "4c2d47143da71ab8cb08141890e7b36fe7974312"
 }
