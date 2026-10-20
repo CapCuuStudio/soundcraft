@@ -36,7 +36,7 @@ impl Panel {
             Self::Canvas => "Project Timeline",
             Self::Inspector => "Inspector",
             Self::Tracks => "Tracks and Groups",
-            Self::Clips => "Clips",
+            Self::Clips => "Media & Clips",
             Self::Midi => "MIDI Editor",
             Self::Memory => "Memory Locations",
             Self::History => "Undo History",
