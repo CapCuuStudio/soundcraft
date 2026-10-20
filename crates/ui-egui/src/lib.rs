@@ -58,6 +58,9 @@ pub struct UiState {
     /// File › Open Recent, newest first (see `recent`).
     pub recent_sessions: Vec<String>,
     pub docking: docking::Workspace,
+    /// Upgrade saved UI layouts once, so a previous SoundCraft-style split
+    /// cannot reintroduce the duplicate track list for returning users.
+    pub orvia_layout_version: u8,
     #[serde(default = "docking::mix_default")]
     pub mix_docking: docking::Workspace,
     pub window: MainWindow,
@@ -132,9 +135,10 @@ impl Default for UiState {
         UiState {
             recent_sessions: Vec::new(),
             docking: docking::Workspace::default(),
+            orvia_layout_version: 2,
             mix_docking: docking::mix_default(),
             window: MainWindow::Edit,
-            show_tracks_list: true,
+            show_tracks_list: false,
             show_clip_list: true,
             show_transport: false,
             show_memory_locations: false,
@@ -143,7 +147,7 @@ impl Default for UiState {
             show_session_info: false,
             show_audio_health: false,
             show_about: false,
-            show_midi_editor: true,
+            show_midi_editor: false,
             show_universe: false,
             narrow_mix: false,
             mix_views: vec!["inserts_ae".into(), "sends_ae".into(), "io".into(), "color".into()],
@@ -1204,6 +1208,16 @@ impl SoundApp {
 
     /// Lay out the whole window.
     pub fn ui(&mut self, ui: &mut egui::Ui) {
+        // Saved settings from ORVIA Stage 1 used two track lists and an
+        // oversized always-open lower panel. Migrate only that UI layout;
+        // session audio, tracks and edits are not touched.
+        if self.ui.orvia_layout_version < 2 {
+            self.ui.docking = docking::Workspace::default();
+            self.ui.show_tracks_list = false;
+            self.ui.show_clip_list = true;
+            self.ui.show_midi_editor = false;
+            self.ui.orvia_layout_version = 2;
+        }
         let ctx = ui.ctx().clone();
         // The integration creates this Ui before logic resolves the current frame's palette.
         ui.set_style(ctx.global_style());
