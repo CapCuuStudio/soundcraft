@@ -159,7 +159,8 @@ fn dock_tabs(app: &mut SoundApp, ui: &mut Ui) {
     let r = ui.max_rect();
     let mut x = r.min.x + 10.0;
     for (label, on, id) in [
-        ("MIDI EDITOR", app.ui.show_midi_editor, "window.midi_editor"),
+        ("MIXCONSOLE", true, "ui.dock"),
+        ("KEY EDITOR", app.ui.show_midi_editor, "window.midi_editor"),
         ("MEMORY LOCATIONS", app.ui.show_memory_locations, "window.memory_locations"),
         ("UNDO HISTORY", app.ui.show_undo_history, "window.undo_history"),
     ] {
@@ -170,7 +171,12 @@ fn dock_tabs(app: &mut SoundApp, ui: &mut Ui) {
         }
         ui.painter().galley(pos2(tr.min.x + 8.0, tr.center().y - g.size().y * 0.5), g, Color32::WHITE);
         if ui.interact(tr, ui.id().with(("dock", label)), Sense::click()).clicked() {
-            let _ = app.run(id, json!({}));
+            if label == "MIXCONSOLE" || (label == "KEY EDITOR" && on) {
+                let panel = if label == "MIXCONSOLE" { "mixConsole" } else { "midi" };
+                let _ = app.run("ui.dock", json!({"operation": "activate", "panel": panel}));
+            } else {
+                let _ = app.run(id, json!({}));
+            }
         }
         x = tr.max.x + 6.0;
     }
