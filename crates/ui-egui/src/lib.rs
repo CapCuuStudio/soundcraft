@@ -60,6 +60,8 @@ pub struct UiState {
     pub docking: docking::Workspace,
     /// Upgrade saved UI layouts once, so a previous SoundCraft-style split
     /// cannot reintroduce the duplicate track list for returning users.
+    /// An absent field in pre-migration preferences must deserialize as 0.
+    #[serde(default)]
     pub orvia_layout_version: u8,
     #[serde(default = "docking::mix_default")]
     pub mix_docking: docking::Workspace,
