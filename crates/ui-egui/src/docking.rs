@@ -12,6 +12,8 @@ pub enum Panel {
     Canvas,
     Inspector,
     Tracks,
+    Browser,
+    MixConsole,
     Clips,
     Midi,
     Memory,
@@ -19,12 +21,14 @@ pub enum Panel {
 }
 
 impl Panel {
-    pub const ALL: &[Self] = &[Self::Canvas, Self::Inspector, Self::Tracks, Self::Clips, Self::Midi, Self::Memory, Self::History];
+    pub const ALL: &[Self] = &[Self::Canvas, Self::Inspector, Self::Tracks, Self::Browser, Self::MixConsole, Self::Clips, Self::Midi, Self::Memory, Self::History];
     pub fn id(self) -> &'static str {
         match self {
             Self::Canvas => "canvas",
             Self::Inspector => "inspector",
             Self::Tracks => "tracks",
+            Self::Browser => "browser",
+            Self::MixConsole => "mixConsole",
             Self::Clips => "clips",
             Self::Midi => "midi",
             Self::Memory => "memory",
@@ -35,7 +39,9 @@ impl Panel {
         match self {
             Self::Canvas => "Project Timeline",
             Self::Inspector => "Inspector",
-            Self::Tracks => "Tracks and Groups",
+            Self::Tracks => "Tracks",
+            Self::Browser => "VSTi / Media",
+            Self::MixConsole => "MixConsole",
             Self::Clips => "Media & Clips",
             Self::Midi => "MIDI Editor",
             Self::Memory => "Memory Locations",
@@ -47,6 +53,8 @@ impl Panel {
             Self::Canvas => Zone::Right,
             Self::Inspector => Zone::Left,
             Self::Tracks => Zone::Left,
+            Self::Browser => Zone::Right,
+            Self::MixConsole => Zone::Bottom,
             Self::Clips => Zone::Right,
             Self::Midi => Zone::Bottom,
             Self::Memory => Zone::Bottom,
@@ -86,14 +94,24 @@ impl Default for Workspace {
             layout: Layout {
                 root: Some(split(
                     SplitAxis::Vertical,
-                    SplitSize::FixedSecond(320.0 + MIDI_TAB_HEIGHT),
+                    SplitSize::FixedSecond(295.0 + MIDI_TAB_HEIGHT),
                     split(
                         SplitAxis::Horizontal,
-                        SplitSize::FixedFirst(224.0),
-                        Node::Tabs { panels: vec![Panel::Inspector, Panel::Tracks], active: 0 },
-                        split(SplitAxis::Horizontal, SplitSize::FixedSecond(256.0), tabs(Panel::Canvas), tabs(Panel::Clips)),
+                        SplitSize::FixedFirst(402.0),
+                        split(
+                            SplitAxis::Horizontal,
+                            SplitSize::FixedFirst(202.0),
+                            tabs(Panel::Inspector),
+                            tabs(Panel::Tracks),
+                        ),
+                        split(
+                            SplitAxis::Horizontal,
+                            SplitSize::FixedSecond(270.0),
+                            tabs(Panel::Canvas),
+                            Node::Tabs { panels: vec![Panel::Browser, Panel::Clips], active: 0 },
+                        ),
                     ),
-                    tabs(Panel::Midi),
+                    Node::Tabs { panels: vec![Panel::MixConsole, Panel::Midi], active: 0 },
                 )),
                 floating: vec![
                     craft_ui::docking::Floating { panels: vec![Panel::Memory], active: 0, rect: [160.0, 120.0, 480.0, 280.0] },
@@ -151,8 +169,8 @@ impl Workspace {
 
     pub fn validate_mix(&self) -> Result<(), String> {
         self.validate()?;
-        if self.layout.contains(&Panel::Clips) || self.layout.contains(&Panel::Midi) {
-            return Err("Clips and MIDI panels belong to the Edit window".into());
+        if self.layout.contains(&Panel::Clips) || self.layout.contains(&Panel::Midi) || self.layout.contains(&Panel::Browser) || self.layout.contains(&Panel::MixConsole) || self.layout.contains(&Panel::Inspector) {
+            return Err("Project-only panels belong to the Edit window".into());
         }
         Ok(())
     }
@@ -289,6 +307,8 @@ pub fn mix_default() -> Workspace {
     let _ = workspace.set_visible(Panel::Clips, false);
     let _ = workspace.set_visible(Panel::Midi, false);
     let _ = workspace.set_visible(Panel::Inspector, false);
+    let _ = workspace.set_visible(Panel::Browser, false);
+    let _ = workspace.set_visible(Panel::MixConsole, false);
     workspace
 }
 
@@ -345,8 +365,8 @@ pub(crate) fn cancel_replaced_state(app: &crate::SoundApp, next: &crate::UiState
 }
 
 fn command_for(app: &mut crate::SoundApp, reset: bool, params: &Value, edit: bool) -> Result<Value, String> {
-    if !edit && ["panel", "target"].iter().any(|field| matches!(params.get(*field).and_then(Value::as_str), Some("clips" | "midi"))) {
-        return Err("Clips and MIDI panels belong to the Edit window".into());
+    if !edit && ["panel", "target"].iter().any(|field| matches!(params.get(*field).and_then(Value::as_str), Some("clips" | "midi" | "inspector" | "browser" | "mixConsole"))) {
+        return Err("Project-only panels belong to the Edit window".into());
     }
     let mut workspace = if edit { app.ui.docking.clone() } else { app.ui.mix_docking.clone() };
     if !reset && !edit {
@@ -429,6 +449,8 @@ pub fn show(app: &mut crate::SoundApp, ui: &mut egui::Ui, window: crate::MainWin
                 }
             }
             Panel::Inspector => crate::panels::orvia_inspector(app, ui),
+            Panel::Browser => crate::panels::orvia_browser(app, ui),
+            Panel::MixConsole => crate::mix_window::content(app, ui),
             Panel::Tracks => crate::panels::tracks_and_groups(app, ui),
             Panel::Clips => crate::panels::clip_list(app, ui),
             Panel::Midi => {
@@ -471,7 +493,9 @@ pub(crate) fn minimum_body(ui: &mut egui::Ui, minimum: egui::Vec2, body: impl Fn
 fn panel_limits(panel: &Panel) -> PanelLimits {
     let (min, max_width) = match panel {
         Panel::Canvas => (egui::vec2(300.0, 240.0), 1_000_000.0),
-        Panel::Inspector => (egui::vec2(180.0, 160.0), 420.0),
+        Panel::Inspector => (egui::vec2(165.0, 160.0), 360.0),
+        Panel::Browser => (egui::vec2(200.0, 160.0), 520.0),
+        Panel::MixConsole => (egui::vec2(420.0, 180.0), 1_000_000.0),
         Panel::Tracks => (egui::vec2(140.0, 120.0), 520.0),
         Panel::Clips => (egui::vec2(180.0, 120.0), 720.0),
         Panel::Midi => (egui::vec2(420.0, 260.0), 1_000_000.0),
@@ -490,7 +514,7 @@ mod orvia_layout_tests {
     fn edit_workspace_has_inspector_timeline_and_clip_browser() {
         let workspace = Workspace::default();
         assert!(workspace.validate().is_ok());
-        for panel in [Panel::Inspector, Panel::Tracks, Panel::Canvas, Panel::Clips] {
+        for panel in [Panel::Inspector, Panel::Tracks, Panel::Canvas, Panel::Browser, Panel::MixConsole, Panel::Clips, Panel::Midi] {
             assert!(workspace.layout.contains(&panel));
         }
     }
@@ -502,5 +526,7 @@ mod orvia_layout_tests {
         assert!(!workspace.layout.contains(&Panel::Inspector));
         assert!(!workspace.layout.contains(&Panel::Midi));
         assert!(!workspace.layout.contains(&Panel::Clips));
+        assert!(!workspace.layout.contains(&Panel::Browser));
+        assert!(!workspace.layout.contains(&Panel::MixConsole));
     }
 }
