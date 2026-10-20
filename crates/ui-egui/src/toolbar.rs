@@ -31,13 +31,13 @@ pub fn show(app: &mut SoundApp, ui: &mut Ui) {
             ui.horizontal(|ui| {
                 ui.add_space(8.0);
                 ui.spacing_mut().item_spacing.x = 8.0;
-                edit_modes(app, ui);
-                zoom_group(app, ui);
-                tools(app, ui);
-                counters(app, ui);
-                grid_nudge(app, ui);
                 transport(app, ui);
+                counters(app, ui);
                 tempo_meter(app, ui);
+                edit_modes(app, ui);
+                tools(app, ui);
+                grid_nudge(app, ui);
+                zoom_group(app, ui);
                 output_meter(app, ui);
             });
         });

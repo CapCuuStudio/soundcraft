@@ -10,6 +10,7 @@ use serde_json::{Value, json};
 #[serde(rename_all = "camelCase")]
 pub enum Panel {
     Canvas,
+    Inspector,
     Tracks,
     Clips,
     Midi,
@@ -18,10 +19,11 @@ pub enum Panel {
 }
 
 impl Panel {
-    pub const ALL: &[Self] = &[Self::Canvas, Self::Tracks, Self::Clips, Self::Midi, Self::Memory, Self::History];
+    pub const ALL: &[Self] = &[Self::Canvas, Self::Inspector, Self::Tracks, Self::Clips, Self::Midi, Self::Memory, Self::History];
     pub fn id(self) -> &'static str {
         match self {
             Self::Canvas => "canvas",
+            Self::Inspector => "inspector",
             Self::Tracks => "tracks",
             Self::Clips => "clips",
             Self::Midi => "midi",
@@ -31,9 +33,10 @@ impl Panel {
     }
     fn label(self) -> &'static str {
         match self {
-            Self::Canvas => "Session",
+            Self::Canvas => "Project Timeline",
+            Self::Inspector => "Inspector",
             Self::Tracks => "Tracks and Groups",
-            Self::Clips => "Clips",
+            Self::Clips => "Media & Clips",
             Self::Midi => "MIDI Editor",
             Self::Memory => "Memory Locations",
             Self::History => "Undo History",
@@ -42,6 +45,7 @@ impl Panel {
     fn default_side(self) -> Zone {
         match self {
             Self::Canvas => Zone::Right,
+            Self::Inspector => Zone::Left,
             Self::Tracks => Zone::Left,
             Self::Clips => Zone::Right,
             Self::Midi => Zone::Bottom,
@@ -85,9 +89,9 @@ impl Default for Workspace {
                     SplitSize::FixedSecond(320.0 + MIDI_TAB_HEIGHT),
                     split(
                         SplitAxis::Horizontal,
-                        SplitSize::FixedFirst(168.0),
-                        tabs(Panel::Tracks),
-                        split(SplitAxis::Horizontal, SplitSize::FixedSecond(230.0), tabs(Panel::Canvas), tabs(Panel::Clips)),
+                        SplitSize::FixedFirst(224.0),
+                        Node::Tabs { panels: vec![Panel::Inspector, Panel::Tracks], active: 0 },
+                        split(SplitAxis::Horizontal, SplitSize::FixedSecond(256.0), tabs(Panel::Canvas), tabs(Panel::Clips)),
                     ),
                     tabs(Panel::Midi),
                 )),
@@ -284,6 +288,7 @@ pub fn mix_default() -> Workspace {
     let mut workspace = Workspace::default();
     let _ = workspace.set_visible(Panel::Clips, false);
     let _ = workspace.set_visible(Panel::Midi, false);
+    let _ = workspace.set_visible(Panel::Inspector, false);
     workspace
 }
 
@@ -423,6 +428,7 @@ pub fn show(app: &mut crate::SoundApp, ui: &mut egui::Ui, window: crate::MainWin
                     crate::mix_window::content(app, ui);
                 }
             }
+            Panel::Inspector => crate::panels::orvia_inspector(app, ui),
             Panel::Tracks => crate::panels::tracks_and_groups(app, ui),
             Panel::Clips => crate::panels::clip_list(app, ui),
             Panel::Midi => {
@@ -465,6 +471,7 @@ pub(crate) fn minimum_body(ui: &mut egui::Ui, minimum: egui::Vec2, body: impl Fn
 fn panel_limits(panel: &Panel) -> PanelLimits {
     let (min, max_width) = match panel {
         Panel::Canvas => (egui::vec2(300.0, 240.0), 1_000_000.0),
+        Panel::Inspector => (egui::vec2(180.0, 160.0), 420.0),
         Panel::Tracks => (egui::vec2(140.0, 120.0), 520.0),
         Panel::Clips => (egui::vec2(180.0, 120.0), 720.0),
         Panel::Midi => (egui::vec2(420.0, 260.0), 1_000_000.0),
@@ -472,4 +479,28 @@ fn panel_limits(panel: &Panel) -> PanelLimits {
         Panel::History => (egui::vec2(200.0, 160.0), 720.0),
     };
     PanelLimits { min, max: egui::vec2(max_width, 1_000_000.0) }
+}
+
+
+#[cfg(test)]
+mod orvia_layout_tests {
+    use super::{Panel, Workspace, mix_default};
+
+    #[test]
+    fn edit_workspace_has_inspector_timeline_and_clip_browser() {
+        let workspace = Workspace::default();
+        assert!(workspace.validate().is_ok());
+        for panel in [Panel::Inspector, Panel::Tracks, Panel::Canvas, Panel::Clips] {
+            assert!(workspace.layout.contains(&panel));
+        }
+    }
+
+    #[test]
+    fn mixer_keeps_its_own_layout_without_edit_only_panels() {
+        let workspace = mix_default();
+        assert!(workspace.validate_mix().is_ok());
+        assert!(!workspace.layout.contains(&Panel::Inspector));
+        assert!(!workspace.layout.contains(&Panel::Midi));
+        assert!(!workspace.layout.contains(&Panel::Clips));
+    }
 }

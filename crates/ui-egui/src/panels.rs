@@ -36,6 +36,51 @@ fn panel_header(ui: &mut Ui, title: &str) {
     ui.painter().line_segment([pos2(r.min.x, r.max.y), pos2(r.max.x, r.max.y)], Stroke::new(1.0, t.border));
 }
 
+/// ORVIA's left zone: a real, selection-aware inspector built on existing session state.
+/// Stage 1 is intentionally read-only except for existing tested window/track commands;
+/// faders, plugin browser and routing controls come in later stages.
+pub fn orvia_inspector(app: &mut SoundApp, ui: &mut Ui) {
+    panel_header(ui, "INSPECTOR");
+    let selected = {
+        let s = app.engine.session();
+        s.tracks
+            .iter()
+            .find(|track| s.edit.selected_tracks.contains(&track.id))
+            .map(|track| (track.name.clone(), format!("{:?}", track.kind), track.color))
+    };
+    egui::ScrollArea::vertical().id_salt("orvia_inspector_scroll").show(ui, |ui| {
+        ui.add_space(8.0);
+        match selected {
+            Some((name, kind, color)) => {
+                ui.horizontal(|ui| {
+                    let (rect, _) = ui.allocate_exact_size(vec2(7.0, 27.0), Sense::hover());
+                    ui.painter().rect_filled(rect, 2.0, rgb(color));
+                    ui.vertical(|ui| {
+                        ui.label(egui::RichText::new(name).strong());
+                        ui.label(egui::RichText::new(kind).small().color(Tokens::current().text_dim));
+                    });
+                });
+            }
+            None => {
+                ui.label(egui::RichText::new("Select a track in the project").color(Tokens::current().text_dim));
+                ui.label(egui::RichText::new("Track controls appear here.").small().color(Tokens::current().text_dim));
+            }
+        }
+        ui.add_space(10.0);
+        ui.separator();
+        ui.add_space(6.0);
+        if ui.button("Open Mixer").clicked() {
+            let _ = app.run("window.mix", json!({}));
+        }
+        if ui.button("Open MIDI Editor").clicked() {
+            let _ = app.run("window.midi_editor", json!({}));
+        }
+        if ui.button("Add Track…").clicked() {
+            let _ = app.dialogs.open_for_command(&app.engine, "track.new");
+        }
+    });
+}
+
 /// The strip down the Tracks panel's right edge: the lists' scroll bars, and a clear line between
 /// the panel and the window beside it.
 const GUTTER_W: f32 = 10.0;
