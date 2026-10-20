@@ -200,6 +200,71 @@ pub fn orvia_browser(app: &mut SoundApp, ui: &mut Ui) {
     });
 }
 
+/// Compact, functional channel strips for the Cubase-inspired lower zone.
+/// Draws from the real session, and dispatches the same commands as the full mixer.
+pub fn orvia_lower_mixer(app: &mut SoundApp, ui: &mut Ui) {
+    panel_header(ui, "MIXCONSOLE");
+    let tracks: Vec<_> = app.engine.session().tracks.iter()
+        .filter(|track| !track.hidden && track.kind != soundcraft_model::TrackKind::Video)
+        .cloned().collect();
+    egui::ScrollArea::horizontal()
+        .id_salt("orvia_lower_mix_scroll")
+        .auto_shrink([false, false])
+        .show(ui, |ui| {
+            ui.horizontal_top(|ui| {
+                ui.spacing_mut().item_spacing.x = 3.0;
+                for track in &tracks {
+                    egui::Frame::NONE
+                        .fill(Tokens::current().strip_bg)
+                        .stroke(Stroke::new(1.0, Tokens::current().border))
+                        .inner_margin(egui::Margin::same(4))
+                        .show(ui, |ui| {
+                            ui.set_min_width(99.0);
+                            ui.set_max_width(116.0);
+                            ui.horizontal(|ui| {
+                                let (r, _) = ui.allocate_exact_size(vec2(6.0, 17.0), Sense::hover());
+                                ui.painter().rect_filled(r, 1.0, rgb(track.color));
+                                ui.label(egui::RichText::new(&track.name).small().strong());
+                            });
+                            ui.horizontal(|ui| {
+                                if ui.selectable_label(track.mixer.mute, "M").clicked() {
+                                    let _ = app.run("mix.mute", json!({"track": track.id.0}));
+                                }
+                                if ui.selectable_label(track.mixer.solo, "S").clicked() {
+                                    let _ = app.run("mix.solo", json!({"track": track.id.0}));
+                                }
+                            });
+                            let mut gain = track.mixer.volume_db.max(-60.0);
+                            ui.horizontal(|ui| {
+                                let response = ui.add_sized(
+                                    [50.0, 127.0],
+                                    egui::Slider::new(&mut gain, -60.0..=12.0).vertical().show_value(false),
+                                );
+                                if response.changed() {
+                                    let _ = app.engine.execute_merged(
+                                        "mix.volume",
+                                        &json!({"track": track.id.0, "db": gain}),
+                                        &format!("orvia:mix:vol:{}", track.id.0),
+                                    );
+                                }
+                                ui.label(format!("{:.1}", track.mixer.volume_db));
+                            });
+                            if let Some(pan) = track.mixer.pan.first().copied() {
+                                let mut value = pan;
+                                if ui.add(egui::Slider::new(&mut value, -1.0..=1.0).show_value(false)).changed() {
+                                    let _ = app.engine.execute_merged(
+                                        "mix.pan",
+                                        &json!({"track": track.id.0, "pan": value, "index": 0}),
+                                        &format!("orvia:mix:pan:{}", track.id.0),
+                                    );
+                                }
+                            }
+                        });
+                }
+            });
+        });
+}
+
 /// The strip down the Tracks panel's right edge: the lists' scroll bars, and a clear line between
 /// the panel and the window beside it.
 const GUTTER_W: f32 = 10.0;
