@@ -71,3 +71,48 @@
 **Chưa thay đổi:** `main`, website LUNOR production, engine audio, MIDI data, plugin host, export/session, Cloudflare build script. Không dùng ảnh/mã có bản quyền của Steinberg/Cubase.
 **QA thực tế:** Source đã ghi qua GitHub connector; **chưa xác nhận Cargo test hoặc Cloudflare WASM build cho HEAD PR #4; chưa có URL immutable bản này**. Không được tuyên bố đã chạy trên web/đã đạt Cubase hoặc chất lượng audio chỉ từ source. Kiểm tra sau build: timeline toàn chiều cao, Inspector + track headers một cột, bật/tắt Lower MixConsole/Key Editor và kéo splitter, nhấp đúp MIDI, phát âm thanh, save/undo.
 **Việc tiếp theo:** Theo dõi bình luận Cloudflare Pages bot trên PR #4; nếu failed phải đọc log và sửa; nếu successful đúng HEAD mới gửi đường dẫn preview cho người dùng kiểm thử.
+
+
+## ORVIA — quay về SoundCraft DAW thật (22/10/2026)
+
+**Chỉ đạo:** Chủ dự án chọn SoundCraft làm nền kỹ thuật xây lại ORVIA;
+không tiếp tục các bản HTML mock hoặc Zrythm. Yêu cầu workflow gần Cubase,
+không copy mã/tài nguyên độc quyền, ưu tiên miễn phí, không CMD và tránh
+thao tác gây tốn quota. Trước khi sửa đã đọc nhật ký LUNOR MUSIC Google Drive,
+nhật ký này, AGENTS.md, ROADMAP.md, docs/gaps.md, mã Rust và PR #4/#5.
+
+**Nền:** `feature/orvia-cubase-project-zone` PR #4, giữ nguyên audio, MIDI,
+VST3 host, session .scraft, runtime native/web. Không lấy nhánh PR #5 vốn chỉ
+deploy ảnh và dashboard tĩnh. **Nhánh mới:** `feature/orvia-soundcraft-rebuild`.
+
+**Code đã commit:**
+- `crates/ui-egui/src/dialogs.rs`: thay New Tracks dàn hàng bằng hộp
+  **ORVIA · Thêm Track** có lựa chọn 8 `TrackKind` thật của engine, cấu hình
+  kênh thực có hỗ trợ, MIDI timebase, tên và số lượng; `track.new` được gọi
+  trực tiếp. Tự đổi preset tên/kênh/timebase theo loại; thêm 2 unit tests
+  cho payload/engine track creation; không tạo dropdown thiết bị giả.
+- `apps/soundcraft/src/main.rs`: đổi tiêu đề cửa sổ desktop thành ORVIA Studio,
+  giữ IDs, tên crate/binary nội bộ và file data để bảo toàn tương thích.
+- `docs/ORVIA-SOUNDCRAFT-REBUILD.md`: mô tả phạm vi, giới hạn, QA gates.
+
+**Chưa xác minh:** Môi trường container không có `cargo`/`rustc`, GitHub Actions
+không được kích hoạt do giới hạn quota. Chưa compile Rust mới, chưa có .exe hoặc
+web build mới, chưa test thực VST3/Kontakt hoặc hardware I/O. Không gọi đây là
+đã hoàn thành DAW, không gửi URL preview như đang chạy phần mềm. Icon
+SoundCraft hiện chưa được thay bằng icon ORVIA gốc.
+
+**Bảo toàn:** Không merge `main`, không thay PR #4/#5 hoặc các repo khác,
+không dùng TinyFish, dịch vụ phí hay CMD máy chủ dự án.
+**Tiếp theo:** PR Draft nhánh mới; khi có runner miễn phí được duyệt phải
+chạy Cargo check/test và test native chính xác, rồi nghiệm thu luồng
+tạo Track / Piano Roll / Play / Undo / VST3.
+
+## Ưu tiên ORVIA Web thật — 22/10/2026
+
+Chỉ đạo người dùng: **trước mắt làm trên web**, Windows installer xếp sau. Đã đọc lại nhật ký Drive/nhánh và kiểm tra code SoundCraft WebAssembly (`apps/soundcraft-web/src/web.rs`, `index.html`, `Trunk.toml`, scripts/cloudflare-pages-build.sh) cùng PR #6 và Cloudflare Pages bot.
+
+**Bằng chứng thật:** Cloudflare bot PR #6 báo `Deploy successful` tại commit `ee61e06`; immutable preview https://76d548d3.orvia-daw-preview.pages.dev, branch preview https://feature-orvia-soundcraft-reb.orvia-daw-preview.pages.dev. Script deploy đòi có file `.wasm`, không phải website gallery/HTML mô phỏng. **Chưa kiểm thử trực tiếp audio, MIDI, save/open trong Chrome**; không kết luận DAW đã hoạt động đầy đủ.
+
+**Bổ sung mã cho web (sau commit được bot xác nhận):** `apps/soundcraft-web/index.html` kiểm tra `navigator.gpu` trước khi khởi tạo; `apps/soundcraft-web/src/web.rs` tự chọn backend WebGL2 trong Rust egui/wgpu nếu không có WebGPU, vẫn cho phép `?webgl` thủ công. Khi runtime khởi động lỗi, hiện thông báo text an toàn. Mã web dùng chung hộp Add Track thật đã sửa ở nhánh này. Các commit này **chưa được xác minh Cloudflare build/Chromium cho HEAD**, không gộp với bằng chứng commit ee61e06.
+
+Không khởi chạy GitHub Actions; chưa có Rust/Cargo trong container; không CMD máy người dùng, phí hay TinyFish. Không merge main, không thay production `lunor-web`, không triển khai bản Windows. Tiếp theo: xác minh Cloudflare bot thành công đúng HEAD của nhánh mới, rồi QA trải nghiệm trình duyệt và audio/MIDI trước khi nghiệm thu. Browser không host được VST3/Kontakt native.
