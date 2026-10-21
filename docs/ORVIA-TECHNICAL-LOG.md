@@ -116,3 +116,25 @@ Chỉ đạo người dùng: **trước mắt làm trên web**, Windows installe
 **Bổ sung mã cho web (sau commit được bot xác nhận):** `apps/soundcraft-web/index.html` kiểm tra `navigator.gpu` trước khi khởi tạo; `apps/soundcraft-web/src/web.rs` tự chọn backend WebGL2 trong Rust egui/wgpu nếu không có WebGPU, vẫn cho phép `?webgl` thủ công. Khi runtime khởi động lỗi, hiện thông báo text an toàn. Mã web dùng chung hộp Add Track thật đã sửa ở nhánh này. Các commit này **chưa được xác minh Cloudflare build/Chromium cho HEAD**, không gộp với bằng chứng commit ee61e06.
 
 Không khởi chạy GitHub Actions; chưa có Rust/Cargo trong container; không CMD máy người dùng, phí hay TinyFish. Không merge main, không thay production `lunor-web`, không triển khai bản Windows. Tiếp theo: xác minh Cloudflare bot thành công đúng HEAD của nhánh mới, rồi QA trải nghiệm trình duyệt và audio/MIDI trước khi nghiệm thu. Browser không host được VST3/Kontakt native.
+
+
+## Giai đoạn 2 — Project Workflow theo Cubase, đợt 1 (22/10/2026)
+
+**Yêu cầu mới:** Người dùng xác nhận bản ORVIA Web GĐ1 chạy và *phát nhạc bình thường*, đồng ý bắt đầu GĐ2. Không đánh dấu GĐ1 toàn phần đã nghiệm thu: lưu/mở project .scraftz, nhập/xuất WAV/MIDI vẫn chưa có bằng chứng thao tác thực. Trước thay đổi đã đọc nhật ký Drive, file này, audit 30 nhóm, kế hoạch Project Window, AGENTS.md và PR #6.
+
+**Đường phát triển:** tạo nhánh `feature/orvia-web-stage2-project-workflow` từ `feature/orvia-soundcraft-rebuild` HEAD `c2ea6ab`; Draft PR **#7** https://github.com/CapCuuStudio/soundcraft/pull/7 (base nhánh GĐ1), không sửa/merge main.
+
+**Thay đổi Rust UI dùng chung desktop + WebAssembly:**
+- `crates/ui-egui/src/orvia_project_bar.rs` (mới): dải Project Tools nhỏ Select/Move/Draw/Trim/Zoom/Smart và Grid gọi `edit.tool`/`edit.mode` có thật. Info Line (có ẩn nội dung) lấy clip thực đang chọn: tên, Track, Start/Length giây với lệnh `edit.move_clips`/`edit.trim_clip`, Gain cho Audio qua `clip.gain`, Mute qua `edit.mute_clips`, Rename qua dialog đang có. Tôn trọng `clip.edit_locked` cho các trường chỉnh sửa. Có unit test tham số clip target.
+- `crates/ui-egui/src/lib.rs` và `edit_window.rs`: gắn module vào top panel cao **33 px**, giữ nguyên main toolbar, timeline, transport, MixConsole/Key Editor.
+- `crates/ui-egui/src/panels.rs`, `mix_window.rs`: Routing output chọn Main/bus thật dùng menu và `track.output` sẵn có; Routing input chỉ cho chọn ở native, **web thể hiện chưa hỗ trợ thu âm đầu vào**. Sends hiện toàn bộ slot thật, chọn bus, sửa level/mute/remove qua lệnh `mix.send`, `mix.send_level`, `mix.send_remove`. Thêm đổi tên Track qua dialog, sửa nhãn browser built-in khỏi gây hiểu nhầm web hỗ trợ VST3 Windows.
+
+**Kiểm thử:** mã đã commit, xem diff PR #7. Cloudflare tự động build preview từ GitHub; tại lúc cập nhật log chưa có bằng chứng **Deploy successful** đúng HEAD Stage2. Môi trường hiện không có cargo/rustc, không tự chạy GitHub Actions hoặc sử dụng TinyFish nên unit test chưa được chạy. Không báo GUI/audio/saving stage2 đã QA xong.
+
+**Cần nghiệm thu GĐ2:** build WASM HEAD thành công; mở Project Window thực tại 1366×768, Tool chọn/di chuyển/vẽ/trim/Grid gọi engine; chọn Audio và MIDI clip, Info Line phản ánh đúng; sửa Start, Length, Gain, Mute, Rename, Undo/Redo, khóa clip; routing Main/Bus và Sends tác động đến mixer; lưu/mở .scraftz không mất dữ liệu; GĐ1 playback vẫn có tiếng. Chỉ sau browser QA mới chuyển tiếp nâng cấp GĐ2.
+
+**Bảo toàn:** không dùng mã/icon/skin độc quyền Cubase; không chạm engine DSP, session format, bản main/production; không GitHub Actions, TinyFish, dịch vụ phí hay CMD máy người dùng.
+
+## Giai đoạn 2A — Font tiếng Việt và bố cục gọn (22/10/2026)
+
+Người dùng duyệt Bước 2A; đã đọc nhật ký chung/nhánh, fonts.rs, Info Line, Inspector, AGENTS.md và ATTRIBUTION.md. Nhúng Be Vietnam Pro Regular .ttf từ Google Fonts, SIL OFL 1.1, vào `FontDefinitions` của egui chỉ ở wasm32 để dấu tiếng Việt hiển thị trong canvas thực, thêm `assets/fonts/OFL.txt` và attribution. Thêm test header TTF và kiểm tra đăng ký font trong 3 family trên WASM. Đưa nhãn tiếng Việt vào Info Line và Inspector/Right Zone, thu Info Line 33→31px và đưa thông báo input browser xuống hàng riêng để tránh tràn tại 1366x768. Bảo toàn transport/engine/audio/MIDI/session và toolbar chức năng. Cần Cloudflare deploy successful đúng HEAD, test chữ dấu tiếng Việt trong Chrome và QA chức năng trước khi đánh dấu PASS. Không tự chạy Actions/CMD/TinyFish hoặc merge production.

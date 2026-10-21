@@ -17,6 +17,7 @@ pub mod menus;
 pub mod midi_editor;
 pub mod mix_window;
 pub mod ops_windows;
+mod orvia_project_bar;
 pub mod palette;
 pub mod panels;
 mod recent;
