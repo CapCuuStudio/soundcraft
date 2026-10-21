@@ -1886,6 +1886,43 @@ mod bundle_tests {
         assert_eq!(r.path.as_deref(), Some("Midnight Groove.scraftz"));
     }
 
+    /// Stage 1 web acceptance regression: track.new and the MIDI editor's
+    /// actual command path must survive a .scraftz download/open round-trip.
+    #[test]
+    fn orvia_web_instrument_four_notes_round_trip_with_velocity_and_mixer() {
+        let mut e = Engine::default();
+        let track = e.execute(
+            "track.new",
+            &serde_json::json!({"kind": "instrument", "name": "ORVIA Piano", "count": 1, "timebase": "ticks", "format": "Stereo"}),
+        ).unwrap()["tracks"][0].as_u64().unwrap();
+        let clip = e.execute("midi.new_clip", &serde_json::json!({"track": track})).unwrap()["clip"].as_u64().unwrap();
+        for (pitch, start, velocity) in [(60, 0, 35), (64, 240, 66), (67, 480, 92), (72, 720, 120)] {
+            e.execute(
+                "midi.note_add",
+                &serde_json::json!({"clip": clip, "pitch": pitch, "start_ticks": start, "length_ticks": 180, "velocity": velocity}),
+            ).unwrap();
+        }
+        e.execute("mix.volume", &serde_json::json!({"track": track, "db": -9.0})).unwrap();
+        let (bytes, _) = session_bundle(e.session()).unwrap();
+        let mut reopened = Engine::default();
+        let missing = open_session_bytes(&mut reopened, "ORVIA Piano.scraftz", &bytes).unwrap();
+        assert!(missing.is_empty(), "browser bundle must contain its media: {missing:?}");
+        let stored = reopened.session().track_by_name("ORVIA Piano").unwrap();
+        assert_eq!(stored.kind, soundcraft_model::TrackKind::Instrument);
+        assert_eq!(stored.instrument.as_ref().map(|x| x.plugin.as_str()), Some("subtractive_synth"));
+        assert_eq!(stored.mixer.volume_db, -9.0);
+        assert!(stored.ticks_timebase);
+        let notes = reopened.execute("midi.notes", &serde_json::json!({"clip": clip})).unwrap();
+        let saved = notes["notes"].as_array().unwrap();
+        assert_eq!(saved.len(), 4);
+        for (note, (pitch, start, velocity)) in saved.iter().zip([(60, 0, 35), (64, 240, 66), (67, 480, 92), (72, 720, 120)]) {
+            assert_eq!(note["pitch"], pitch);
+            assert_eq!(note["start"], start);
+            assert_eq!(note["velocity"], velocity);
+        }
+        assert!(!reopened.is_dirty());
+    }
+
     #[test]
     fn same_named_sources_get_distinct_files() {
         let mut e = crate::demo::demo_engine();
