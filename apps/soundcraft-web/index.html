@@ -18,6 +18,15 @@
     // Real WebAssembly/egui graphics fallback: WebGPU first, WebGL2 when absent.
     // This flag is read by the Rust web runner, not by a fake HTML renderer.
     window.__orviaPreferWebGl = typeof navigator === 'undefined' || !('gpu' in navigator);
+    // Ask the browser to confirm closing a tab only when the Rust DAW reports
+    // unsaved changes. The browser controls the confirmation wording.
+    window.__orviaUnsavedProject = false;
+    window.addEventListener('beforeunload', function (event) {
+      if (window.__orviaUnsavedProject) {
+        event.preventDefault();
+        event.returnValue = '';
+      }
+    });
     // cpal (wasm) builds the output stream at startup, before any user gesture, so the
     // WebAudio AudioContext stays 'suspended': no audio is heard and the transport clock
     // (driven by the audio callback) never advances. Capture the AudioContext cpal creates
