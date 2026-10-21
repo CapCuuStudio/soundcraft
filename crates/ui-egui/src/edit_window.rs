@@ -2573,7 +2573,7 @@ fn clip_context_menu(app: &mut SoundApp, ui: &mut Ui, clip: Option<ClipId>) {
                 ui.close();
             }
             let playhead = app.position();
-            if playhead > event.start && playhead < event.end
+            if playhead > event.start && playhead < event.end()
                 && ui.button("Chia tại Playhead").clicked()
             {
                 let _ = app.run("clip.split_one", json!({"clip": c.0, "at": playhead}));
