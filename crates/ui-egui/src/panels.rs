@@ -62,6 +62,10 @@ pub fn orvia_inspector(app: &mut SoundApp, ui: &mut Ui) {
                 ui.label(egui::RichText::new(track.kind.label()).small().color(Tokens::current().text_dim));
             });
         });
+        ui.add_space(4.0);
+        if ui.small_button("Đổi tên Track").clicked() {
+            app.dialogs.open_rename_track(id, &track.name);
+        }
         ui.add_space(7.0);
         ui.horizontal(|ui| {
             if ui.selectable_label(track.mixer.mute, "M  Mute").clicked() {
@@ -108,9 +112,13 @@ pub fn orvia_inspector(app: &mut SoundApp, ui: &mut Ui) {
         egui::CollapsingHeader::new("Routing").default_open(false).show(ui, |ui| {
             ui.horizontal(|ui| {
                 ui.label("Input");
-                let response = ui.button(crate::mix_window::input_name(app, &track))
-                    .on_hover_text("Choose a real input route");
-                crate::mix_window::route_popup(app, &response, id, true);
+                if cfg!(target_arch = "wasm32") {
+                    ui.label(egui::RichText::new("Chưa hỗ trợ thu âm đầu vào trên web").small().weak());
+                } else {
+                    let response = ui.button(crate::mix_window::input_name(app, &track))
+                        .on_hover_text("Choose an available audio input path");
+                    crate::mix_window::route_popup(app, &response, id, true);
+                }
             });
             ui.horizontal(|ui| {
                 ui.label("Output");
@@ -120,7 +128,7 @@ pub fn orvia_inspector(app: &mut SoundApp, ui: &mut Ui) {
             });
         });
         if track.kind == soundcraft_model::TrackKind::Instrument {
-            egui::CollapsingHeader::new("VST Instruments").default_open(true).show(ui, |ui| {
+            egui::CollapsingHeader::new("Nhạc cụ").default_open(true).show(ui, |ui| {
                 ui.label(track.instrument.as_ref().map_or("No instrument", |v| v.plugin.as_str()));
                 ui.menu_button("Select Instrument...", |ui| crate::mix_window::instrument_menu(app, ui, id));
             });
@@ -135,7 +143,7 @@ pub fn orvia_inspector(app: &mut SoundApp, ui: &mut Ui) {
             }
         });
         egui::CollapsingHeader::new("Sends").default_open(false).show(ui, |ui| {
-            for (slot, send) in track.mixer.sends.iter().enumerate().take(4) {
+            for (slot, send) in track.mixer.sends.iter().enumerate() {
                 ui.horizontal(|ui| {
                     ui.label(format!("{:02}", slot + 1));
                     let label = send.as_ref().map_or_else(
@@ -179,7 +187,7 @@ pub fn orvia_inspector(app: &mut SoundApp, ui: &mut Ui) {
 /// ORVIA's right-side rack lists real built-in instruments and effects.
 /// Clicking a plug-in inserts it through the same engine command as the MixConsole.
 pub fn orvia_browser(app: &mut SoundApp, ui: &mut Ui) {
-    panel_header(ui, "VSTi & EFFECTS");
+    panel_header(ui, "NHẠC CỤ & HIỆU ỨNG");
     let state_key = egui::Id::new("orvia_rack_mode");
     let mut mode = ui.ctx().data_mut(|data| data.get_temp::<u8>(state_key)).unwrap_or(0);
     ui.horizontal(|ui| {
@@ -189,7 +197,7 @@ pub fn orvia_browser(app: &mut SoundApp, ui: &mut Ui) {
     ui.ctx().data_mut(|data| data.insert_temp(state_key, mode));
     let filter_id = egui::Id::new("orvia_rack_filter");
     let mut filter = ui.ctx().data_mut(|data| data.get_temp::<String>(filter_id)).unwrap_or_default();
-    ui.add(egui::TextEdit::singleline(&mut filter).hint_text("Search available plugins").desired_width(f32::INFINITY));
+    ui.add(egui::TextEdit::singleline(&mut filter).hint_text("Tìm nhạc cụ / hiệu ứng").desired_width(f32::INFINITY));
     ui.ctx().data_mut(|data| data.insert_temp(filter_id, filter.clone()));
     let needle = filter.to_ascii_lowercase();
     let selected = {
