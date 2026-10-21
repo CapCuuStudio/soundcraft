@@ -138,3 +138,13 @@ Không khởi chạy GitHub Actions; chưa có Rust/Cargo trong container; khôn
 ## Giai đoạn 2A — Font tiếng Việt và bố cục gọn (22/10/2026)
 
 Người dùng duyệt Bước 2A; đã đọc nhật ký chung/nhánh, fonts.rs, Info Line, Inspector, AGENTS.md và ATTRIBUTION.md. Nhúng Be Vietnam Pro Regular .ttf từ Google Fonts, SIL OFL 1.1, vào `FontDefinitions` của egui chỉ ở wasm32 để dấu tiếng Việt hiển thị trong canvas thực, thêm `assets/fonts/OFL.txt` và attribution. Thêm test header TTF và kiểm tra đăng ký font trong 3 family trên WASM. Đưa nhãn tiếng Việt vào Info Line và Inspector/Right Zone, thu Info Line 33→31px và đưa thông báo input browser xuống hàng riêng để tránh tràn tại 1366x768. Bảo toàn transport/engine/audio/MIDI/session và toolbar chức năng. Cần Cloudflare deploy successful đúng HEAD, test chữ dấu tiếng Việt trong Chrome và QA chức năng trước khi đánh dấu PASS. Không tự chạy Actions/CMD/TinyFish hoặc merge production.
+
+## Giai đoạn 2C — Rà soát tiếp và sửa context menu (22/10/2026)
+
+**Trước sửa:** Đã đọc nhật ký LUNOR MUSIC trên Google Drive, nhật ký ORVIA này, AGENTS.md, ROADMAP.md, docs/gaps.md, QA 2C và source PR #9. GitHub Pages bot bình luận PR #9 cho commit `b7137e4` **Deploy successful**, immutable https://75f57c9c.orvia-daw-preview.pages.dev; compare branch xác nhận HEAD cũ là chính commit đó. Bản 2C có bằng chứng build thành công, **chưa có browser runtime QA/Cargo test**.
+
+**Nguyên nhân lỗi mới BUG-2C-06:** Context menu ở `edit_window.rs` lưu ClipId khi nhấp phải nhưng nhiều lệnh clip vẫn có precondition `has_selection`, gây không thực thi nếu chưa chọn Track/Clip. **Sửa giới hạn:** khi người dùng bấm hành động context clip, `edit.select` noundo chọn đúng ClipId (`exact:true`) trước khi gọi lệnh, bảo vệ việc target không nhầm sang clip đã chọn trước đó. Bổ sung test engine cho Mute/Edit Lock đúng clip, clip track khác giữ nguyên. QA report 2C cập nhật bằng chứng Cloudflare cùng lưu ý version.
+
+**Chưa xác minh:** Rust tests và Chrome hành động Mute/Lock/Quantize/context mới. Commit mới cần Cloudflare deploy đúng SHA riêng; không đánh đồng với build thành công `b7137e4`. Không chạy GitHub Actions, TinyFish, CMD máy người dùng, không sửa main/production, không dịch vụ trả phí.
+
+**Bước tiếp theo:** theo dõi Cloudflare PR #9 của commit mới; nếu success, người dùng mở preview để thử context-menu Mute/Lock/Quantize, duplicate/split/Undo, lưu/mở .scraftz và phát audio. Chưa chuyển GĐ3 trước cổng nghiệm thu.

@@ -2591,7 +2591,12 @@ fn clip_context_menu(app: &mut SoundApp, ui: &mut Ui, clip: Option<ClipId>) {
         ("Send to Back", "clip.send_to_back"),
     ] {
         if ui.button(label).clicked() {
+            // A right-click remembers the target clip without selecting it.
+            // Commands below still use has_selection: select exactly this clip
+            // before dispatching, so they never affect a previously selected track.
+            let _ = app.run("edit.select", json!({"clips": [c.0], "exact": true}));
             let _ = app.run(cmd, json!({"clips": ids}));
+            ui.close();
         }
     }
     ui.separator();

@@ -10,7 +10,7 @@
 | Cổng | Bằng chứng | Kết quả 22/10 |
 |---|---|---|
 | A. Mã nguồn GĐ2C riêng biệt | Nhánh `feature/orvia-web-stage2c-qa`, PR kiểm thử trên GitHub | Source committed |
-| B. Cloudflare deploy đúng HEAD 2C | GitHub Checks / Pages bot phải báo `success` ở đúng SHA | **PENDING** — không suy diễn từ 2A |
+| B. Cloudflare deploy đúng SHA 2C | Cloudflare bot PR #9 báo success cho `b7137e4`, immutable https://75f57c9c.orvia-daw-preview.pages.dev | **PASS for b7137e4**; commit sửa tiếp theo cần build riêng |
 | C. Font Việt trong DAW web | Open Chrome/Edge 1366×768, xem “THÔNG TIN CLIP”, “Độ dài”, “NHẠC CỤ & HIỆU ỨNG” | **UNVERIFIED** — có code/asset và 2A đã từng báo deploy thành công |
 | D. Tool/Timeline | Move/Trim/Pencil/Grid snap khi kéo clip; Cmd/Ctrl đảo Snap; không có toolbar trùng | **UNVERIFIED runtime**, source có các handler |
 | E. Info Line Bars/Beats/Time | Chọn clip Keys, xem Bars/Beats, sửa Start/Length; Time-lock phải vô hiệu hóa Start/Length | **FIXED IN SOURCE + tests pending** |
@@ -59,3 +59,10 @@
   `apps/soundcraft-web/src/web.rs` + `apps/soundcraft-web/index.html` (Save/Open & unsaved guard);
   `crates/ui-egui/src/panels.rs` (Inspector).
 - Công việc chưa nghiệm thu ở GĐ1 được giữ nguyên, không viết lại lịch sử bằng trạng thái PASS sai.
+
+## Đợt rà soát tiếp theo — 22/10/2026: BUG-2C-06
+- **Bằng chứng Cloudflare**: PR #9 được bot xác nhận **Deploy successful** commit `b7137e48f69bdf691ecbab268daa1adf878c11df`, URL immutable https://75f57c9c.orvia-daw-preview.pages.dev. GitHub compare chứng minh SHA này đúng HEAD *trước lượt sửa tiếp theo*.
+- **Lỗi tĩnh tìm thấy:** Menu chuột phải nhớ ClipId nhưng các lệnh `edit.mute_clips`, `clip.edit_lock`, `clip.time_lock`, `clip.quantize_to_grid`, `clip.gain_render`, `clip.bring_to_front`, `clip.send_to_back` vẫn có precondition `has_selection`; khi nhấp phải clip chưa được chọn, các lệnh có thể bị chặn hoặc phụ thuộc lựa chọn cũ.
+- **Sửa ở UI:** Trước khi chạy các lệnh trong menu, gửi `edit.select` với `{"clips":[id],"exact":true}` (noundo), rồi dispatch `clips` đúng target. Không thay đổi âm thanh, dữ liệu MIDI, hoặc cách lệnh áp dụng ngoài context menu.
+- **Regression bổ sung:** `orvia_stage2c_context_clip_actions_select_exact_target` — select clip rõ ràng khi chưa chọn Track, Mute + Edit Lock tác động lên Keys, Snare không đổi. **Test written, not executed**.
+- **Giới hạn:** Build success cũ không chứng minh commit sửa BUG-2C-06; Cargo/rustc chưa khả dụng; Chrome runtime không truy cập được từ công cụ. Chỉ nghiệm thu sau build đúng SHA mới, unit tests và test trên browser.

@@ -540,6 +540,27 @@ mod tests {
         assert_eq!(restored.session().track_by_name("Snare").unwrap().clips(), before_other.as_slice());
     }
 
+    /// ORVIA's clip context actions must target the right-clicked event,
+    /// even when no track was previously selected or another clip was active.
+    #[test]
+    fn orvia_stage2c_context_clip_actions_select_exact_target() {
+        let mut engine = crate::demo::demo_engine();
+        let target = engine.session().track_by_name("Keys").unwrap().clips()[0].id;
+        let other = engine.session().track_by_name("Snare").unwrap().clips()[0].clone();
+        let before_mute = engine.session().find_clip(target).unwrap().1.muted;
+
+        engine.execute("edit.select_none", &json!({})).unwrap();
+        engine.execute("edit.select", &json!({"clips": [target.0], "exact": true})).unwrap();
+        assert_eq!(engine.session().edit.selected_clips, vec![target]);
+        engine.execute("edit.mute_clips", &json!({"clips": [target.0]})).unwrap();
+        assert_ne!(engine.session().find_clip(target).unwrap().1.muted, before_mute);
+        assert_eq!(engine.session().find_clip(other.id).unwrap().1, &other);
+
+        engine.execute("clip.edit_lock", &json!({"clips": [target.0]})).unwrap();
+        assert!(engine.session().find_clip(target).unwrap().1.edit_locked);
+        assert_eq!(engine.session().find_clip(other.id).unwrap().1, &other);
+    }
+
     #[test]
     fn elastic_warp_renders_and_remove_warp_restores() {
         let mut e = crate::demo::demo_engine();
