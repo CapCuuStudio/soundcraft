@@ -106,3 +106,13 @@ không dùng TinyFish, dịch vụ phí hay CMD máy chủ dự án.
 **Tiếp theo:** PR Draft nhánh mới; khi có runner miễn phí được duyệt phải
 chạy Cargo check/test và test native chính xác, rồi nghiệm thu luồng
 tạo Track / Piano Roll / Play / Undo / VST3.
+
+## Ưu tiên ORVIA Web thật — 22/10/2026
+
+Chỉ đạo người dùng: **trước mắt làm trên web**, Windows installer xếp sau. Đã đọc lại nhật ký Drive/nhánh và kiểm tra code SoundCraft WebAssembly (`apps/soundcraft-web/src/web.rs`, `index.html`, `Trunk.toml`, scripts/cloudflare-pages-build.sh) cùng PR #6 và Cloudflare Pages bot.
+
+**Bằng chứng thật:** Cloudflare bot PR #6 báo `Deploy successful` tại commit `ee61e06`; immutable preview https://76d548d3.orvia-daw-preview.pages.dev, branch preview https://feature-orvia-soundcraft-reb.orvia-daw-preview.pages.dev. Script deploy đòi có file `.wasm`, không phải website gallery/HTML mô phỏng. **Chưa kiểm thử trực tiếp audio, MIDI, save/open trong Chrome**; không kết luận DAW đã hoạt động đầy đủ.
+
+**Bổ sung mã cho web (sau commit được bot xác nhận):** `apps/soundcraft-web/index.html` kiểm tra `navigator.gpu` trước khi khởi tạo; `apps/soundcraft-web/src/web.rs` tự chọn backend WebGL2 trong Rust egui/wgpu nếu không có WebGPU, vẫn cho phép `?webgl` thủ công. Khi runtime khởi động lỗi, hiện thông báo text an toàn. Mã web dùng chung hộp Add Track thật đã sửa ở nhánh này. Các commit này **chưa được xác minh Cloudflare build/Chromium cho HEAD**, không gộp với bằng chứng commit ee61e06.
+
+Không khởi chạy GitHub Actions; chưa có Rust/Cargo trong container; không CMD máy người dùng, phí hay TinyFish. Không merge main, không thay production `lunor-web`, không triển khai bản Windows. Tiếp theo: xác minh Cloudflare bot thành công đúng HEAD của nhánh mới, rồi QA trải nghiệm trình duyệt và audio/MIDI trước khi nghiệm thu. Browser không host được VST3/Kontakt native.
