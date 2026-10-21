@@ -2565,6 +2565,22 @@ fn clip_context_menu(app: &mut SoundApp, ui: &mut Ui, clip: Option<ClipId>) {
         return;
     };
     let ids = json!([c.0]);
+    let current = app.engine.session().find_clip(c).map(|(_, item)| item.clone());
+    if let Some(event) = current {
+        if !event.edit_locked && !event.time_locked {
+            if ui.button("Nhân bản clip").clicked() {
+                let _ = app.run("clip.duplicate_one", json!({"clip": c.0}));
+                ui.close();
+            }
+            let playhead = app.position();
+            if playhead > event.start && playhead < event.end()
+                && ui.button("Chia tại Playhead").clicked()
+            {
+                let _ = app.run("clip.split_one", json!({"clip": c.0, "at": playhead}));
+                ui.close();
+            }
+        }
+    }
     for (label, cmd) in [
         ("Mute/Unmute", "edit.mute_clips"),
         ("Edit Lock/Unlock", "clip.edit_lock"),

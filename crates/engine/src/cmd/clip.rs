@@ -66,6 +66,10 @@ pub fn specs() -> Vec<CommandSpec> {
             Ok(json!({}))
         }),
         cmd!("clip.loop", "Loop...", ["Clip"], Some("Cmd+Alt+L"), "{clips?, count?: n, length?: samples}", has_selection, loop_clips),
+        // Event-specific actions for ORVIA's timeline (do not silently split
+        // or duplicate every overlapping event in a track).
+        cmd!("clip.duplicate_one", "Duplicate Event", [], None, "{clip: id} (inserts after event; ripples later clips rather than overwriting)", has_selection, duplicate_one),
+        cmd!("clip.split_one", "Split Event", [], None, "{clip: id, at: samples}", has_selection, split_one),
         cmd!("clip.rename", "Rename...", ["Clip"], Some("Cmd+Alt+Shift+R"), "{clip?, name}", has_selection, rename),
         cmd!("clip.gain", "Clip Gain", [], None, "{clips?, db | delta_db}", has_selection, gain),
         cmd!("clip.gain_nudge_up", "Nudge Clip Gain Up", [], Some("Ctrl+Shift+Up"), "{clips?}", has_selection, |e, p| nudge_gain(e, p, 1.0)),
@@ -314,6 +318,53 @@ fn loop_clips(e: &mut Engine, p: &Value) -> Result<Value> {
     Ok(json!({"loops": made}))
 }
 
+/// Insert one independent copy of a selected event. Use Shuffle paste to
+/// preserve anything that already starts after the original event.
+fn duplicate_one(e: &mut Engine, p: &Value) -> Result<Value> {
+    let id = clip_id(p, "clip.duplicate_one")?;
+    let (tid, clip) = e.session().find_clip(id)
+        .map(|(track, clip)| (track, clip.clone()))
+        .ok_or_else(|| bad("clip.duplicate_one", "clip not found"))?;
+    if clip.edit_locked || clip.time_locked {
+        return Err(bad("clip.duplicate_one", "clip is locked"));
+    }
+    let mut copy = clip.clone();
+    copy.start = 0;
+    copy.group = None;
+    copy.loop_id = None;
+    let inserted = crate::edit::paste(e.session_mut(), tid, clip.end(), &[copy], clip.length, true)
+        .map_err(|why| bad("clip.duplicate_one", why))?;
+    Ok(json!({"duplicated": inserted.len(), "clips": inserted.iter().map(|id| id.0).collect::<Vec<_>>()}))
+}
+
+/// Split exactly one clip, preserving neighbours and MIDI note/CC rebasing.
+fn split_one(e: &mut Engine, p: &Value) -> Result<Value> {
+    let id = clip_id(p, "clip.split_one")?;
+    let at = position_param(e, "clip.split_one", p, "at")?
+        .ok_or_else(|| bad("clip.split_one", "split position required"))?;
+    let (tid, clip) = e.session().find_clip(id)
+        .map(|(track, clip)| (track, clip.clone()))
+        .ok_or_else(|| bad("clip.split_one", "clip not found"))?;
+    if clip.edit_locked || clip.time_locked {
+        return Err(bad("clip.split_one", "clip is locked"));
+    }
+    if at <= clip.start || at >= clip.end() {
+        return Err(bad("clip.split_one", "split position must be inside the event"));
+    }
+    let new_id = e.session_mut().new_clip_id();
+    let parts = crate::edit::split_clip(&clip, at, new_id, crate::edit::TimeCtx::of(e.session()))
+        .ok_or_else(|| bad("clip.split_one", "could not split clip"))?;
+    let pl = e.session_mut().track_mut(tid).and_then(|track| track.playlist_mut())
+        .ok_or_else(|| bad("clip.split_one", "track playlist not found"))?;
+    let index = pl.clips.iter().position(|c| c.id == id)
+        .ok_or_else(|| bad("clip.split_one", "clip no longer in playlist"))?;
+    pl.clips.remove(index);
+    pl.clips.push(parts.0);
+    pl.clips.push(parts.1);
+    pl.sort();
+    Ok(json!({"split": 1, "left": id.0, "right": new_id.0}))
+}
+
 fn rename(e: &mut Engine, p: &Value) -> Result<Value> {
     let name = str_param(p, "name").map(str::trim).filter(|n| !n.is_empty()).ok_or_else(|| bad("clip.rename", "`name` required"))?.to_string();
     let ids = clip_ids_param(e, p);
@@ -364,6 +415,33 @@ fn quantize_to_grid(e: &mut Engine, p: &Value) -> Result<Value> {
 mod tests {
     use serde_json::json;
     use soundcraft_model::{ClipId, TrackId};
+
+    #[test]
+    fn orvia_stage2b_duplicate_and_split_affect_only_selected_clip_and_undo() {
+        let mut e = crate::demo::demo_engine();
+        let keys = e.session().track_by_name("Keys").expect("demo Keys").id;
+        let before = e.session().track(keys).expect("Keys track").clips().to_vec();
+        let source = before.first().expect("original Keys clip").clone();
+        let duplicate = e.execute("clip.duplicate_one", &json!({"clip": source.id.0})).expect("duplicate");
+        assert_eq!(duplicate["duplicated"], 1);
+        let id = ClipId(duplicate["clips"][0].as_u64().expect("new clip id"));
+        let created = e.session().find_clip(id).expect("created").1.clone();
+        assert_eq!(created.start, source.end());
+        assert_eq!(created.length, source.length);
+        assert_eq!(created.content, source.content);
+        assert_eq!(e.session().find_clip(source.id).expect("original").1, &source);
+        let at = created.start + created.length / 2;
+        let split = e.execute("clip.split_one", &json!({"clip": id.0, "at": at})).expect("split");
+        assert_eq!(split["split"], 1);
+        let right = ClipId(split["right"].as_u64().expect("split child"));
+        assert_eq!(e.session().find_clip(id).expect("left").1.end(), at);
+        assert_eq!(e.session().find_clip(right).expect("right").1.start, at);
+        assert_eq!(e.session().find_clip(source.id).expect("original untouched").1, &source);
+        assert!(e.undo(), "split must undo");
+        assert!(e.session().find_clip(right).is_none(), "undo removes split child");
+        assert!(e.undo(), "duplicate must undo");
+        assert_eq!(e.session().track(keys).expect("Keys track").clips(), before.as_slice());
+    }
 
     #[test]
     fn elastic_warp_renders_and_remove_warp_restores() {
