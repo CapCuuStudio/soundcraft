@@ -1,10 +1,11 @@
-//! ORVIA's compact Cubase-inspired project tool and selected-clip information bar.
+//! ORVIA's compact Cubase-inspired selected-event Info Line.
+//! The main toolbar already has Select/Grab/Draw/Trim; do not duplicate it here.
 //! Every edit below dispatches a real SoundCraft command; the bar never owns session data.
 
 use crate::SoundApp;
 use egui::{RichText, Ui};
 use serde_json::{Value, json};
-use soundcraft_model::{ClipId, Tool};
+use soundcraft_model::ClipId;
 
 fn clip_move(id: ClipId, delta: i64) -> Value {
     json!({"clips": [id.0], "by": delta})
@@ -17,9 +18,9 @@ fn clip_trim_end(id: ClipId, end: i64) -> Value {
 pub fn show(app: &mut SoundApp, ui: &mut Ui) {
     let show_id = ui.id().with("orvia_info_line_open");
     let mut expanded = ui.ctx().data_mut(|d| d.get_temp::<bool>(show_id)).unwrap_or(true);
-    let (tool, grid, selected) = {
+    let selected = {
         let s = app.engine.session();
-        let selected = s.edit.selected_clips.first().and_then(|id| {
+        s.edit.selected_clips.first().and_then(|id| {
             s.find_clip(*id).map(|(track, clip)| {
                 (
                     clip.clone(),
@@ -27,32 +28,14 @@ pub fn show(app: &mut SoundApp, ui: &mut Ui) {
                     s.sample_rate.hz(),
                 )
             })
-        });
-        (s.edit.tool, s.edit.edit_mode.is_grid(), selected)
+        })
     };
     ui.spacing_mut().item_spacing.x = 5.0;
     egui::ScrollArea::horizontal().id_salt("orvia_project_tools_scroll").show(ui, |ui| {
         ui.horizontal(|ui| {
-            ui.label(RichText::new("ORVIA").strong().size(10.0));
-            ui.separator();
-            for (candidate, label, help) in [
-                (Tool::Selector, "Chọn", "Chọn vùng / sự kiện"),
-                (Tool::Grabber, "Di chuyển", "Chọn và di chuyển clip"),
-                (Tool::Pencil, "Vẽ", "Vẽ nội dung MIDI"),
-                (Tool::Trim, "Cắt mép", "Điều chỉnh mép clip"),
-                (Tool::Zoom, "Zoom", "Phóng to hoặc thu nhỏ"),
-                (Tool::Smart, "Smart", "Công cụ thích ứng theo vị trí chuột"),
-            ] {
-                if ui.selectable_label(tool == candidate, label).on_hover_text(help).clicked() {
-                    let _ = app.run("edit.tool", json!({"tool": candidate.id()}));
-                }
-            }
-            if ui.selectable_label(grid, "Lưới").on_hover_text("Bật Grid để bám nhịp; tắt để về Slip").clicked() {
-                let mode = if grid { "slip" } else { "grid" };
-                let _ = app.run("edit.mode", json!({"mode": mode}));
-            }
-            ui.separator();
-            if ui.small_button(if expanded { "Ẩn thông tin" } else { "Info Line" }).clicked() {
+            ui.label(RichText::new("INFO LINE").strong().size(11.0))
+                .on_hover_text("Properties of the selected audio or MIDI event");
+            if ui.small_button(if expanded { "Hide" } else { "Show" }).clicked() {
                 expanded = !expanded;
             }
             if !expanded {
@@ -62,7 +45,7 @@ pub fn show(app: &mut SoundApp, ui: &mut Ui) {
             if let Some((clip, track, rate)) = &selected {
                 ui.label(RichText::new(&clip.name).strong())
                     .on_hover_text(format!("Track: {track}"));
-                ui.label("Bắt đầu");
+                ui.label("Start");
                 let sr = f64::from(*rate).max(1.0);
                 let mut at = clip.start as f64 / sr;
                 let at_field = ui.add_enabled(
@@ -82,7 +65,7 @@ pub fn show(app: &mut SoundApp, ui: &mut Ui) {
                         }
                     }
                 }
-                ui.label("Dài");
+                ui.label("Length");
                 let mut length = clip.length as f64 / sr;
                 let length_field = ui.add_enabled(
                     !clip.edit_locked,
@@ -116,14 +99,14 @@ pub fn show(app: &mut SoundApp, ui: &mut Ui) {
                         }
                     }
                 }
-                if ui.selectable_label(clip.muted, "Tắt tiếng").clicked() {
+                if ui.selectable_label(clip.muted, "Muted").clicked() {
                     let _ = app.run("edit.mute_clips", json!({"clips": [clip.id.0]}));
                 }
-                if ui.add_enabled(!clip.edit_locked, egui::Button::new("Đổi tên")).clicked() {
+                if ui.add_enabled(!clip.edit_locked, egui::Button::new("Rename")).clicked() {
                     app.dialogs.open_rename_clip(clip.id, &clip.name);
                 }
             } else {
-                ui.label(RichText::new("Chọn một clip trên Timeline để chỉnh vị trí, độ dài hoặc âm lượng").weak());
+                ui.label(RichText::new("Select an audio or MIDI clip to edit its properties").weak());
             }
         });
     });
