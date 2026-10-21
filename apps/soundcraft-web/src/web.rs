@@ -236,6 +236,15 @@ impl eframe::App for WebShell {
             self.app.load_sample_bytes(&read, bytes);
         }
         self.app.logic(ctx);
+        // Keep the browser's unload protection in sync with the actual engine
+        // dirty bit. A file download alone is not assumed to be a saved project.
+        if let Some(window) = web_sys::window() {
+            let _ = js_sys::Reflect::set(
+                window.as_ref(),
+                &wasm_bindgen::JsValue::from_str("__orviaUnsavedProject"),
+                &wasm_bindgen::JsValue::from_bool(self.app.engine.is_dirty()),
+            );
+        }
         // A prompt opened during this frame becomes a picker on the next one.
         self.take_path_prompt(ctx);
     }
