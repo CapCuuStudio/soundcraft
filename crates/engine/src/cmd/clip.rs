@@ -70,6 +70,7 @@ pub fn specs() -> Vec<CommandSpec> {
         // or duplicate every overlapping event in a track).
         cmd!("clip.duplicate_one", "Duplicate Event", [], None, "{clip: id} (inserts after event; ripples later clips rather than overwriting)", always, duplicate_one),
         cmd!("clip.split_one", "Split Event", [], None, "{clip: id, at: samples}", always, split_one),
+        cmd!("clip.delete_one", "Delete Event", [], None, "{clip: id} (removes only this event)", always, delete_one),
         cmd!("clip.rename", "Rename...", ["Clip"], Some("Cmd+Alt+Shift+R"), "{clip?, name}", has_selection, rename),
         cmd!("clip.gain", "Clip Gain", [], None, "{clips?, db | delta_db}", has_selection, gain),
         cmd!("clip.gain_nudge_up", "Nudge Clip Gain Up", [], Some("Ctrl+Shift+Up"), "{clips?}", has_selection, |e, p| nudge_gain(e, p, 1.0)),
@@ -365,6 +366,26 @@ fn split_one(e: &mut Engine, p: &Value) -> Result<Value> {
     Ok(json!({"split": 1, "left": id.0, "right": new_id.0}))
 }
 
+/// Delete the specified event only. A context-menu Delete must never erase
+/// other overlapping events because the edit selection spans their times.
+fn delete_one(e: &mut Engine, p: &Value) -> Result<Value> {
+    let id = clip_id(p, "clip.delete_one")?;
+    let (tid, clip) = e.session().find_clip(id)
+        .map(|(track, clip)| (track, clip.clone()))
+        .ok_or_else(|| bad("clip.delete_one", "clip not found"))?;
+    if clip.edit_locked || clip.time_locked {
+        return Err(bad("clip.delete_one", "clip is locked"));
+    }
+    let s = e.session_mut();
+    let playlist = s.track_mut(tid).and_then(|track| track.playlist_mut())
+        .ok_or_else(|| bad("clip.delete_one", "track playlist not found"))?;
+    let index = playlist.clips.iter().position(|c| c.id == id)
+        .ok_or_else(|| bad("clip.delete_one", "clip no longer in playlist"))?;
+    playlist.clips.remove(index);
+    s.edit.selected_clips.retain(|selected| *selected != id);
+    Ok(json!({"deleted": id.0}))
+}
+
 fn rename(e: &mut Engine, p: &Value) -> Result<Value> {
     let name = str_param(p, "name").map(str::trim).filter(|n| !n.is_empty()).ok_or_else(|| bad("clip.rename", "`name` required"))?.to_string();
     let ids = clip_ids_param(e, p);
@@ -559,6 +580,40 @@ mod tests {
         engine.execute("clip.edit_lock", &json!({"clips": [target.0]})).unwrap();
         assert!(engine.session().find_clip(target).unwrap().1.edit_locked);
         assert_eq!(engine.session().find_clip(other.id).unwrap().1, &other);
+    }
+
+    /// Removing a right-clicked MIDI event cannot erase another event
+    /// overlapping the same time range, nor any event on another track.
+    #[test]
+    fn orvia_stage2c_delete_one_preserves_overlaps_locks_and_undo() {
+        let mut engine = crate::demo::demo_engine();
+        let keys = engine.session().track_by_name("Keys").unwrap().id;
+        let original = engine.session().track(keys).unwrap().clips()[0].clone();
+        let snare = engine.session().track_by_name("Snare").unwrap().clips().to_vec();
+        let overlap_id = engine.session_mut().new_clip_id();
+        let mut overlap = original.clone();
+        overlap.id = overlap_id;
+        overlap.name = "Keep overlapping MIDI".into();
+        engine.session_mut().track_mut(keys).unwrap().playlist_mut().unwrap().clips.push(overlap.clone());
+
+        engine.execute("edit.select_none", &json!({})).unwrap();
+        let before = engine.session().clone();
+        assert_eq!(engine.execute("clip.delete_one", &json!({"clip": original.id.0})).unwrap()["deleted"], original.id.0);
+        assert!(engine.session().find_clip(original.id).is_none());
+        assert_eq!(engine.session().find_clip(overlap_id).unwrap().1, &overlap);
+        assert_eq!(engine.session().track_by_name("Snare").unwrap().clips(), snare.as_slice());
+        let after = engine.session().clone();
+        assert!(engine.undo(), "delete must be undoable");
+        assert_eq!(engine.session(), &before);
+        assert!(engine.redo(), "delete must be redoable");
+        assert_eq!(engine.session(), &after);
+
+        engine.session_mut().find_clip_mut(overlap_id).unwrap().time_locked = true;
+        let locked = engine.session().clone();
+        assert!(engine.execute("clip.delete_one", &json!({"clip": overlap_id.0})).is_err());
+        assert_eq!(engine.session(), &locked);
+        assert!(engine.execute("clip.delete_one", &json!({"clip": u64::MAX})).is_err());
+        assert_eq!(engine.session(), &locked);
     }
 
     #[test]

@@ -148,3 +148,11 @@ Người dùng duyệt Bước 2A; đã đọc nhật ký chung/nhánh, fonts.rs
 **Chưa xác minh:** Rust tests và Chrome hành động Mute/Lock/Quantize/context mới. Commit mới cần Cloudflare deploy đúng SHA riêng; không đánh đồng với build thành công `b7137e4`. Không chạy GitHub Actions, TinyFish, CMD máy người dùng, không sửa main/production, không dịch vụ trả phí.
 
 **Bước tiếp theo:** theo dõi Cloudflare PR #9 của commit mới; nếu success, người dùng mở preview để thử context-menu Mute/Lock/Quantize, duplicate/split/Undo, lưu/mở .scraftz và phát audio. Chưa chuyển GĐ3 trước cổng nghiệm thu.
+
+## Giai đoạn 2C — Ngăn xóa nhầm clip khi menu Delete (22/10/2026)
+
+**Đã đọc trước khi sửa:** nhật ký LUNOR MUSIC Google Drive, tài liệu này, AGENTS.md, ROADMAP.md, docs/gaps.md và báo cáo QA 2C, cùng source `cmd/edit.rs`, `cmd/clip.rs`, `edit_window.rs`. Xác nhận Cloudflare bot PR #9 `0f9f0b8` Deploy successful tại https://765acb46.orvia-daw-preview.pages.dev, branch HEAD đúng SHA trước sửa; không truy cập được trực tiếp trang Cloudflare (DNS từ môi trường công cụ). Không có rustc/cargo tại môi trường nên Rust unit tests chưa chạy.
+
+**BUG-2C-07 dữ liệu:** `Delete` trong menu chuột phải đang chọn một clip, rồi gọi `edit.clear` xóa mọi clip trong khoảng thời gian chọn trên track. Có nguy cơ làm mất/cắt clip chồng vùng. Sửa giới hạn: lệnh engine `clip.delete_one` xóa duy nhất target ClipId, từ chối clip bị khóa hoặc ID sai, xóa selection còn treo; GUI Delete chuyển sang lệnh này và disabled nếu locked; không sửa hành vi edit.clear cho xóa khoảng chủ ý. Test engine `orvia_stage2c_delete_one_preserves_overlaps_locks_and_undo` kiểm tra overlapping clip/track khác giữ nguyên, Undo/Redo và không biến đổi khi locked/missing id.
+
+**QA gate:** source+tests committed không đồng nghĩa PASS; phải có Cloudflare deploy đúng commit sửa Delete, Cargo test và Chrome runtime QA với audio/save/open. Không merge main hoặc production, không Actions/TinyFish, không dùng dịch vụ phí hoặc CMD máy người dùng.

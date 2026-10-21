@@ -10,7 +10,7 @@
 | Cổng | Bằng chứng | Kết quả 22/10 |
 |---|---|---|
 | A. Mã nguồn GĐ2C riêng biệt | Nhánh `feature/orvia-web-stage2c-qa`, PR kiểm thử trên GitHub | Source committed |
-| B. Cloudflare deploy đúng SHA 2C | Cloudflare bot PR #9 báo success cho `b7137e4`, immutable https://75f57c9c.orvia-daw-preview.pages.dev | **PASS for b7137e4**; commit sửa tiếp theo cần build riêng |
+| B. Cloudflare deploy đúng SHA 2C | Cloudflare bot PR #9 báo success cho `0f9f0b8`, immutable https://765acb46.orvia-daw-preview.pages.dev | **PASS for 0f9f0b8**; bản sửa Delete mới cần build riêng |
 | C. Font Việt trong DAW web | Open Chrome/Edge 1366×768, xem “THÔNG TIN CLIP”, “Độ dài”, “NHẠC CỤ & HIỆU ỨNG” | **UNVERIFIED** — có code/asset và 2A đã từng báo deploy thành công |
 | D. Tool/Timeline | Move/Trim/Pencil/Grid snap khi kéo clip; Cmd/Ctrl đảo Snap; không có toolbar trùng | **UNVERIFIED runtime**, source có các handler |
 | E. Info Line Bars/Beats/Time | Chọn clip Keys, xem Bars/Beats, sửa Start/Length; Time-lock phải vô hiệu hóa Start/Length | **FIXED IN SOURCE + tests pending** |
@@ -66,3 +66,10 @@
 - **Sửa ở UI:** Trước khi chạy các lệnh trong menu, gửi `edit.select` với `{"clips":[id],"exact":true}` (noundo), rồi dispatch `clips` đúng target. Không thay đổi âm thanh, dữ liệu MIDI, hoặc cách lệnh áp dụng ngoài context menu.
 - **Regression bổ sung:** `orvia_stage2c_context_clip_actions_select_exact_target` — select clip rõ ràng khi chưa chọn Track, Mute + Edit Lock tác động lên Keys, Snare không đổi. **Test written, not executed**.
 - **Giới hạn:** Build success cũ không chứng minh commit sửa BUG-2C-06; Cargo/rustc chưa khả dụng; Chrome runtime không truy cập được từ công cụ. Chỉ nghiệm thu sau build đúng SHA mới, unit tests và test trên browser.
+
+## Đợt rà soát tiếp theo — 22/10/2026: BUG-2C-07 (Delete clip đúng đối tượng)
+- **Xác nhận độc lập:** Cloudflare Pages bot PR #9 đã báo **Deploy successful** cho `0f9f0b8`, immutable https://765acb46.orvia-daw-preview.pages.dev. GitHub compare HEAD = SHA trước sửa Delete. Không đồng nghĩa đã thử Rust/Chrome thành công.
+- **BUG-2C-07:** Trong `edit_window.rs`, menu chuột phải `Delete` gọi `edit.select` rồi `edit.clear`. `edit.select` chuyển selection thành **khoảng thời gian clip**; `edit.clear` khi khoảng không rỗng dùng `ops::clear_range` trên track, có thể xóa/cắt các clip khác chồng khoảng thời gian. Đây là rủi ro mất dữ liệu được xác minh qua đường code.
+- **Sửa:** Thêm engine command `clip.delete_one` dùng ClipId tường minh, kiểm tra tồn tại + `edit_locked/time_locked`, loại bỏ duy nhất clip đó khỏi playlist và selection; UI gọi lệnh thay cho `edit.clear`, vô hiệu nút với clip khóa. Giữ `edit.clear` nguyên dạng cho thao tác xóa range chủ động.
+- **Regression mới:** `orvia_stage2c_delete_one_preserves_overlaps_locks_and_undo`: tạo 2 clips cùng vùng thời gian trên Keys + Snare; Delete chỉ clip mục tiêu, overlap/Snare giữ nguyên, Undo/Redo, time-lock/missing ID không làm đổi project. **Test đã ghi, chưa chạy**.
+- **QA còn thiếu:** cần build/deploy commit mới thành công và chạy Cargo tests + thực nghiệm Chrome (Delete overlap / right-click / duplicate / split / undo-redo / save-open / Play/Mixer/WAV). Không coi 2C là hoàn tất chỉ vì build success.

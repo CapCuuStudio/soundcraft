@@ -2566,7 +2566,7 @@ fn clip_context_menu(app: &mut SoundApp, ui: &mut Ui, clip: Option<ClipId>) {
     };
     let ids = json!([c.0]);
     let current = app.engine.session().find_clip(c).map(|(_, item)| item.clone());
-    if let Some(event) = current {
+    if let Some(event) = current.as_ref() {
         if !event.edit_locked && !event.time_locked {
             if ui.button("Nhân bản clip").clicked() {
                 let _ = app.run("clip.duplicate_one", json!({"clip": c.0}));
@@ -2604,9 +2604,11 @@ fn clip_context_menu(app: &mut SoundApp, ui: &mut Ui, clip: Option<ClipId>) {
         let name = app.engine.session().find_clip(c).map(|(_, x)| x.name.clone()).unwrap_or_default();
         app.dialogs.open_rename_clip(c, &name);
     }
-    if ui.button("Delete").clicked() {
-        let _ = app.run("edit.select", json!({"clips": ids}));
-        let _ = app.run("edit.clear", json!({}));
+    // Deleting an edit-range can erase adjacent/crossfaded clips. Target one ID instead.
+    let can_delete = current.as_ref().is_some_and(|event| !event.edit_locked && !event.time_locked);
+    if ui.add_enabled(can_delete, egui::Button::new("Delete")).clicked() {
+        let _ = app.run("clip.delete_one", json!({"clip": c.0}));
+        ui.close();
     }
 }
 
