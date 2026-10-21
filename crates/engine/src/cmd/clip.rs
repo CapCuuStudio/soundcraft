@@ -475,6 +475,49 @@ mod tests {
         assert_eq!(engine.session(), &locked, "locked clip must stay unchanged");
     }
 
+    /// Existing clips must move rather than be overwritten; a locked event
+    /// must refuse the edit instead of silently destroying the arrangement.
+    #[test]
+    fn orvia_stage2c_duplicate_preserves_adjacent_clips_and_honours_downstream_lock() {
+        use soundcraft_model::{ChannelFormat, Clip, TrackKind};
+        let mut engine = crate::Engine::default();
+        let (track, ids) = {
+            let session = engine.session_mut();
+            let track = session.add_track(TrackKind::Midi, ChannelFormat::Mono, Some("Timeline QA"));
+            let mut ids = Vec::new();
+            for index in 0..3 {
+                let id = session.new_clip_id();
+                crate::edit::place_clip(
+                    session,
+                    track,
+                    Clip::midi(id, format!("Part {index}"), index * 48_000, 48_000, soundcraft_midi::Sequence::default()),
+                );
+                ids.push(id);
+            }
+            (track, ids)
+        };
+        engine.session_mut().find_clip_mut(ids[2]).unwrap().edit_locked = true;
+        let locked_state = engine.session().clone();
+        let denied = engine.execute("clip.duplicate_one", &json!({"clip": ids[0].0}));
+        assert!(denied.is_err(), "must refuse ripple into locked clip");
+        assert_eq!(engine.session(), &locked_state, "refused duplicate mutated data");
+
+        engine.session_mut().find_clip_mut(ids[2]).unwrap().edit_locked = false;
+        let before = engine.session().clone();
+        let copied = engine.execute("clip.duplicate_one", &json!({"clip": ids[0].0})).unwrap();
+        let new_id = ClipId(copied["clips"][0].as_u64().unwrap());
+        assert_eq!(engine.session().find_clip(ids[0]).unwrap().1.start, 0);
+        assert_eq!(engine.session().find_clip(new_id).unwrap().1.start, 48_000);
+        assert_eq!(engine.session().find_clip(ids[1]).unwrap().1.start, 96_000);
+        assert_eq!(engine.session().find_clip(ids[2]).unwrap().1.start, 144_000);
+        let after = engine.session().clone();
+        assert!(engine.undo());
+        assert_eq!(engine.session(), &before);
+        assert!(engine.redo());
+        assert_eq!(engine.session(), &after);
+        assert_eq!(engine.session().track(track).unwrap().clips().len(), 4);
+    }
+
     /// Integration path that WebAssembly uses to save and reopen edited songs.
     #[test]
     fn orvia_stage2c_duplicate_split_bundle_roundtrip_preserves_midi() {
