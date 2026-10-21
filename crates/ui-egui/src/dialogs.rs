@@ -271,7 +271,7 @@ pub fn show(app: &mut SoundApp, ctx: &egui::Context) {
     let mut save_first: Option<(String, Value)> = None;
     let confirmed = matches!(d, Dialog::SaveChanges { .. });
     let title = match &d {
-        Dialog::NewTracks { .. } => "New Tracks",
+        Dialog::NewTracks { .. } => "ORVIA · Thêm Track",
         Dialog::NewSession { .. } => "New Session",
         Dialog::Bounce { .. } => "Bounce Mix",
         Dialog::RenameTrack { .. } => "Rename Track",
@@ -300,39 +300,99 @@ pub fn show(app: &mut SoundApp, ctx: &egui::Context) {
             ui.spacing_mut().item_spacing = vec2(8.0, 8.0);
             match &mut d {
                 Dialog::NewTracks { count, format, kind, timebase, name } => {
+                    // ORVIA works on SoundCraft's real track command. Do not show fake
+                    // device/plug-in selectors that cannot be honoured by the engine.
+                    ui.set_min_width(415.0);
+                    ui.label(egui::RichText::new("Thiết lập Track").strong().size(15.0));
+                    ui.add_space(5.0);
+                    let previous = soundcraft_model::TrackKind::from_id(kind).unwrap_or(soundcraft_model::TrackKind::Audio);
+                    let mut selected = previous;
                     ui.horizontal(|ui| {
-                        ui.label("Create");
-                        ui.add(egui::DragValue::new(count).range(1..=128));
-                        ui.label("new");
-                        egui::ComboBox::from_id_salt("nt_fmt").selected_text(format.as_str()).show_ui(ui, |ui| {
-                            for f in soundcraft_model::ChannelFormat::ALL {
-                                ui.selectable_value(format, f.label().to_string(), f.label());
-                            }
-                        });
-                        egui::ComboBox::from_id_salt("nt_kind")
-                            .selected_text(soundcraft_model::TrackKind::from_id(kind).map_or("Audio Track", |k| k.label()))
+                        ui.label("Loại Track");
+                        egui::ComboBox::from_id_salt("orvia_track_kind")
+                            .selected_text(selected.label())
+                            .width(260.0)
                             .show_ui(ui, |ui| {
-                                for k in soundcraft_model::TrackKind::ALL {
-                                    if ui.selectable_label(kind == k.id(), k.label()).clicked() {
-                                        *kind = k.id().to_string();
-                                        *name = k.default_name().to_string();
-                                    }
+                                for candidate in [
+                                    soundcraft_model::TrackKind::Audio,
+                                    soundcraft_model::TrackKind::Instrument,
+                                    soundcraft_model::TrackKind::Midi,
+                                    soundcraft_model::TrackKind::Aux,
+                                    soundcraft_model::TrackKind::Folder,
+                                    soundcraft_model::TrackKind::Vca,
+                                    soundcraft_model::TrackKind::Master,
+                                    soundcraft_model::TrackKind::Video,
+                                ] {
+                                    ui.selectable_value(&mut selected, candidate, candidate.label());
                                 }
                             });
-                        ui.label("in");
-                        egui::ComboBox::from_id_salt("nt_tb").selected_text(if timebase == "ticks" { "Ticks" } else { "Samples" }).show_ui(
-                            ui,
-                            |ui| {
-                                ui.selectable_value(timebase, "samples".to_string(), "Samples");
-                                ui.selectable_value(timebase, "ticks".to_string(), "Ticks");
-                            },
-                        );
-                        ui.label("Name:");
-                        ui.add(egui::TextEdit::singleline(name).desired_width(140.0));
                     });
-                    if buttons(ui, "Create", enter) {
-                        action =
-                            Some(("track.new".into(), json!({"count": count, "format": format, "kind": kind, "timebase": timebase, "name": name})));
+                    if selected != previous {
+                        *kind = selected.id().into();
+                        *name = selected.default_name().into();
+                        *format = if matches!(
+                            selected,
+                            soundcraft_model::TrackKind::Aux
+                                | soundcraft_model::TrackKind::Master
+                                | soundcraft_model::TrackKind::Instrument
+                                | soundcraft_model::TrackKind::Folder
+                        ) {
+                            "Stereo".into()
+                        } else {
+                            "Mono".into()
+                        };
+                        *timebase = if selected.is_midi() { "ticks".into() } else { "samples".into() };
+                    }
+                    ui.separator();
+                    egui::Grid::new("orvia_add_track_settings")
+                        .num_columns(2)
+                        .spacing(vec2(18.0, 10.0))
+                        .show(ui, |ui| {
+                            if selected.is_audio_path() {
+                                ui.label("Cấu hình âm thanh");
+                                egui::ComboBox::from_id_salt("orvia_track_format")
+                                    .selected_text(format.as_str())
+                                    .width(236.0)
+                                    .show_ui(ui, |ui| {
+                                        for channel_format in soundcraft_model::ChannelFormat::ALL {
+                                            ui.selectable_value(
+                                                format,
+                                                channel_format.label().to_string(),
+                                                channel_format.label(),
+                                            );
+                                        }
+                                    });
+                                ui.end_row();
+                            }
+                            if selected.is_midi() {
+                                ui.label("Timebase");
+                                egui::ComboBox::from_id_salt("orvia_track_timebase")
+                                    .selected_text(if timebase == "ticks" { "Nhịp / Tick" } else { "Mẫu / Sample" })
+                                    .width(236.0)
+                                    .show_ui(ui, |ui| {
+                                        ui.selectable_value(timebase, "ticks".into(), "Nhịp / Tick");
+                                        ui.selectable_value(timebase, "samples".into(), "Mẫu / Sample");
+                                    });
+                                ui.end_row();
+                            }
+                            ui.label("Tên Track");
+                            ui.add(egui::TextEdit::singleline(name).desired_width(244.0));
+                            ui.end_row();
+                            ui.label("Số lượng");
+                            ui.add(egui::DragValue::new(count).range(1..=128).speed(1.0));
+                            ui.end_row();
+                        });
+                    ui.add_space(6.0);
+                    let help = if selected.is_midi() {
+                        "Cổng MIDI/VST3 được cấu hình trong DAW sau khi tạo Track; đây không phải bộ quét thiết bị."
+                    } else if selected.is_audio_path() {
+                        "Đầu vào, đầu ra và hiệu ứng được định tuyến trong DAW sau khi tạo Track."
+                    } else {
+                        "Track được tạo trong project thật. Không thêm tính năng chưa có trong engine."
+                    };
+                    ui.label(egui::RichText::new(help).small().weak());
+                    if buttons(ui, "Thêm Track", enter) {
+                        action = Some(orvia_new_tracks_action(*count, format, kind, timebase, name));
                     }
                 }
                 Dialog::NewSession { name, sample_rate, demo } => {
@@ -659,6 +719,24 @@ fn name_field(ui: &mut egui::Ui, name: &mut String) {
     }
 }
 
+/// A single validated engine command creates every requested track. The UI must
+/// never silently substitute simulated I/O settings for real routing.
+fn orvia_new_tracks_action(count: u32, format: &str, kind: &str, timebase: &str, name: &str) -> (String, Value) {
+    let selected = soundcraft_model::TrackKind::from_id(kind).unwrap_or(soundcraft_model::TrackKind::Audio);
+    let requested_name = name.trim();
+    let resolved_name = if requested_name.is_empty() { selected.default_name() } else { requested_name };
+    (
+        "track.new".into(),
+        json!({
+            "count": count.clamp(1, 128),
+            "format": format,
+            "kind": selected.id(),
+            "timebase": if selected.is_midi() { timebase } else { "samples" },
+            "name": resolved_name
+        }),
+    )
+}
+
 /// The command the tempo-change dialog runs on OK.
 fn tempo_change_action(at: Samples, bpm: f64) -> (String, Value) {
     ("event.tempo".into(), json!({"bpm": bpm, "at": at}))
@@ -719,6 +797,33 @@ fn audiosuite_window(app: &mut SoundApp, ctx: &egui::Context) {
 #[cfg(test)]
 mod tests {
     use super::*;
+
+    #[test]
+    fn orvia_add_track_uses_real_engine_and_correct_track_kinds() {
+        let mut engine = soundcraft_engine::demo::demo_engine();
+        let original_count = engine.session().tracks.len();
+        let (command, parameters) = orvia_new_tracks_action(2, "Stereo", "instrument", "ticks", "Strings");
+        assert_eq!(command, "track.new");
+        assert_eq!(parameters["count"], 2);
+        assert_eq!(parameters["timebase"], "ticks");
+        engine.execute(&command, &parameters).unwrap();
+        assert_eq!(engine.session().tracks.len(), original_count + 2);
+        let created = &engine.session().tracks[original_count..];
+        assert!(created.iter().all(|track| track.kind == soundcraft_model::TrackKind::Instrument));
+        assert!(created.iter().all(|track| track.ticks_timebase));
+        assert!(created.iter().all(|track| track.instrument.is_some()));
+    }
+
+    #[test]
+    fn orvia_add_track_defaults_empty_name_and_bounds_count() {
+        let (_, params) = orvia_new_tracks_action(0, "Mono", "midi", "ticks", " ");
+        assert_eq!(params["count"], 1);
+        assert_eq!(params["name"], "MIDI");
+        assert_eq!(params["kind"], "midi");
+        let (_, params) = orvia_new_tracks_action(900, "Stereo", "aux", "ticks", "Effects");
+        assert_eq!(params["count"], 128);
+        assert_eq!(params["timebase"], "samples");
+    }
 
     #[test]
     fn file_commands_get_path_prompts_with_sensible_names() {
