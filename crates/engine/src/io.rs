@@ -1921,6 +1921,16 @@ mod bundle_tests {
             assert_eq!(note["velocity"], velocity);
         }
         assert!(!reopened.is_dirty());
+        // The exact saved instrument project should produce sound in the
+        // offline mixer, not only look correct when deserialized.
+        let one_second = soundcraft_time::Range::new(0, reopened.session().sample_rate.samples(1.0));
+        let rendered = soundcraft_mix::render_range(reopened.session(), one_second, 512);
+        let peak = rendered.iter().flat_map(|ch| ch.iter()).fold(0.0f32, |max, sample| max.max(sample.abs()));
+        assert!(peak > 0.0001, "saved instrument must be audible, peak={peak}");
+        reopened.execute("mix.mute", &serde_json::json!({"track": track, "value": true})).unwrap();
+        let muted = soundcraft_mix::render_range(reopened.session(), one_second, 512);
+        let muted_peak = muted.iter().flat_map(|ch| ch.iter()).fold(0.0f32, |max, sample| max.max(sample.abs()));
+        assert!(muted_peak < 0.0001, "mute must silence the instrument, peak={muted_peak}");
     }
 
     #[test]
