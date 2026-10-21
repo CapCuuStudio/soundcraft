@@ -33,9 +33,9 @@ pub fn show(app: &mut SoundApp, ui: &mut Ui) {
     ui.spacing_mut().item_spacing.x = 5.0;
     egui::ScrollArea::horizontal().id_salt("orvia_project_tools_scroll").show(ui, |ui| {
         ui.horizontal(|ui| {
-            ui.label(RichText::new("INFO LINE").strong().size(11.0))
-                .on_hover_text("Properties of the selected audio or MIDI event");
-            if ui.small_button(if expanded { "Hide" } else { "Show" }).clicked() {
+            ui.label(RichText::new("THÔNG TIN CLIP").strong().size(11.0))
+                .on_hover_text("Thông tin sự kiện Audio hoặc MIDI đang chọn");
+            if ui.small_button(if expanded { "Ẩn" } else { "Hiện" }).clicked() {
                 expanded = !expanded;
             }
             if !expanded {
@@ -45,7 +45,7 @@ pub fn show(app: &mut SoundApp, ui: &mut Ui) {
             if let Some((clip, track, rate)) = &selected {
                 ui.label(RichText::new(&clip.name).strong())
                     .on_hover_text(format!("Track: {track}"));
-                ui.label("Start");
+                ui.label("Bắt đầu");
                 let sr = f64::from(*rate).max(1.0);
                 let mut at = clip.start as f64 / sr;
                 let at_field = ui.add_enabled(
@@ -65,7 +65,7 @@ pub fn show(app: &mut SoundApp, ui: &mut Ui) {
                         }
                     }
                 }
-                ui.label("Length");
+                ui.label("Độ dài");
                 let mut length = clip.length as f64 / sr;
                 let length_field = ui.add_enabled(
                     !clip.edit_locked,
@@ -99,14 +99,14 @@ pub fn show(app: &mut SoundApp, ui: &mut Ui) {
                         }
                     }
                 }
-                if ui.selectable_label(clip.muted, "Muted").clicked() {
+                if ui.selectable_label(clip.muted, "Tắt tiếng").clicked() {
                     let _ = app.run("edit.mute_clips", json!({"clips": [clip.id.0]}));
                 }
-                if ui.add_enabled(!clip.edit_locked, egui::Button::new("Rename")).clicked() {
+                if ui.add_enabled(!clip.edit_locked, egui::Button::new("Đổi tên")).clicked() {
                     app.dialogs.open_rename_clip(clip.id, &clip.name);
                 }
             } else {
-                ui.label(RichText::new("Select an audio or MIDI clip to edit its properties").weak());
+                ui.label(RichText::new("Chọn clip Audio hoặc MIDI trên Timeline để chỉnh thông tin").weak());
             }
         });
     });

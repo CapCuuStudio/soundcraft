@@ -134,3 +134,7 @@ Không khởi chạy GitHub Actions; chưa có Rust/Cargo trong container; khôn
 **Cần nghiệm thu GĐ2:** build WASM HEAD thành công; mở Project Window thực tại 1366×768, Tool chọn/di chuyển/vẽ/trim/Grid gọi engine; chọn Audio và MIDI clip, Info Line phản ánh đúng; sửa Start, Length, Gain, Mute, Rename, Undo/Redo, khóa clip; routing Main/Bus và Sends tác động đến mixer; lưu/mở .scraftz không mất dữ liệu; GĐ1 playback vẫn có tiếng. Chỉ sau browser QA mới chuyển tiếp nâng cấp GĐ2.
 
 **Bảo toàn:** không dùng mã/icon/skin độc quyền Cubase; không chạm engine DSP, session format, bản main/production; không GitHub Actions, TinyFish, dịch vụ phí hay CMD máy người dùng.
+
+## Giai đoạn 2A — Font tiếng Việt và bố cục gọn (22/10/2026)
+
+Người dùng duyệt Bước 2A; đã đọc nhật ký chung/nhánh, fonts.rs, Info Line, Inspector, AGENTS.md và ATTRIBUTION.md. Nhúng Be Vietnam Pro Regular .ttf từ Google Fonts, SIL OFL 1.1, vào `FontDefinitions` của egui chỉ ở wasm32 để dấu tiếng Việt hiển thị trong canvas thực, thêm `assets/fonts/OFL.txt` và attribution. Thêm test header TTF và kiểm tra đăng ký font trong 3 family trên WASM. Đưa nhãn tiếng Việt vào Info Line và Inspector/Right Zone, thu Info Line 33→31px và đưa thông báo input browser xuống hàng riêng để tránh tràn tại 1366x768. Bảo toàn transport/engine/audio/MIDI/session và toolbar chức năng. Cần Cloudflare deploy successful đúng HEAD, test chữ dấu tiếng Việt trong Chrome và QA chức năng trước khi đánh dấu PASS. Không tự chạy Actions/CMD/TinyFish hoặc merge production.

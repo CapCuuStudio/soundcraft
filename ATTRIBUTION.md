@@ -21,9 +21,13 @@ are bundled.
 
 ## Fonts
 
-SoundCraft bundles no font files. It uses the default fonts shipped inside the `egui` crate
-(Ubuntu-Light: Ubuntu Font Licence 1.0; Hack: MIT; Noto Emoji: OFL-1.1; emoji-icon-font: OFL-1.1/MIT)
-and, at runtime, the operating system's own UI fonts when available (never redistributed).
+For WebAssembly, ORVIA includes **Be Vietnam Pro Regular** (Copyright 2021, The Be Vietnam Pro Project Authors),
+SIL Open Font License 1.1, to render Vietnamese diacritics inside the egui canvas
+(the CSS font stack cannot fix egui's own glyph atlas). Source:
+https://github.com/google/fonts/tree/main/ofl/bevietnampro.
+The license is bundled at `assets/fonts/OFL.txt`. Native SoundCraft continues to
+use operating-system fonts when available (never redistributed), plus egui's defaults
+(Ubuntu-Light: Ubuntu Font Licence 1.0; Hack: MIT; Noto Emoji: OFL-1.1; emoji-icon-font: OFL-1.1/MIT).
 
 ## Files
 
@@ -37,6 +41,8 @@ and, at runtime, the operating system's own UI fonts when available (never redis
 | `docs/brand/artcraft-mark.png` | ArtCraft Team | craftrules `assets/brand/` | ArtCraft brand terms |
 | `docs/brand/artcraft-mark-black.svg` | ArtCraft Team | craftrules `assets/brand/` | ArtCraft brand terms |
 | `docs/brand/artcraft-mark-black.png` | ArtCraft Team | craftrules `assets/brand/` | ArtCraft brand terms |
+| `assets/fonts/BeVietnamPro-Regular.ttf` | The Be Vietnam Pro Project Authors | https://github.com/google/fonts/tree/main/ofl/bevietnampro | SIL OFL-1.1 |
+| `assets/fonts/OFL.txt` | The Be Vietnam Pro Project Authors | https://github.com/google/fonts/blob/main/ofl/bevietnampro/OFL.txt | SIL OFL-1.1 |
 | `assets/app-icon/icon.svg` | SoundCraft contributors | original (hand-placed SVG paths; placeholder app icon) | MIT OR Apache-2.0 |
 | `packaging/macos/dmg/` (all files) | @XusBadia | original (macOS DMG window background and layout, from the app icon; see `packaging/macos/dmg/README.md`) | MIT OR Apache-2.0 |
 | `assets/app-icon/soundcraft-1024.png` | SoundCraft contributors | original, rendered from `icon.svg` | MIT OR Apache-2.0 |

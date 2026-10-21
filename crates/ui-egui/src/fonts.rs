@@ -121,6 +121,25 @@ pub fn definitions() -> FontDefinitions {
         bold_family.insert(0, "system-regular".into());
     }
     fonts.families.insert(FontFamily::Name("bold".into()), bold_family);
+    // Unlike native SoundCraft, WASM cannot read local system fonts. Include a
+    // small, OFL-licensed Vietnamese face directly in the egui font atlas.
+    #[cfg(target_arch = "wasm32")]
+    {
+        let name = "orvia-be-vietnam-pro".to_string();
+        fonts.font_data.insert(
+            name.clone(),
+            Arc::new(FontData::from_static(include_bytes!("../../../assets/fonts/BeVietnamPro-Regular.ttf"))),
+        );
+        if let Some(family) = fonts.families.get_mut(&FontFamily::Proportional) {
+            family.insert(0, name.clone());
+        }
+        if let Some(family) = fonts.families.get_mut(&FontFamily::Monospace) {
+            family.push(name.clone());
+        }
+        if let Some(family) = fonts.families.get_mut(&FontFamily::Name("bold".into())) {
+            family.insert(0, name);
+        }
+    }
     if let Some(h) = load(HANGUL, "sans-serif:lang=ko", Some("ko")) {
         fonts.font_data.insert("system-hangul".into(), Arc::new(h));
         for family in fonts.families.values_mut() {
@@ -137,6 +156,22 @@ pub fn install(ctx: &egui::Context) {
 #[cfg(test)]
 mod tests {
     use super::*;
+
+    #[test]
+    fn bundled_vietnamese_font_is_valid_truetype() {
+        let bytes = include_bytes!("../../../assets/fonts/BeVietnamPro-Regular.ttf");
+        assert!(bytes.starts_with(b"\0\x01\0\0"));
+        assert!(bytes.len() > 80_000);
+    }
+
+    #[cfg(target_arch = "wasm32")]
+    #[test]
+    fn web_font_is_registered_in_every_text_family() {
+        let definitions = definitions();
+        for family in [FontFamily::Proportional, FontFamily::Monospace, FontFamily::Name("bold".into())] {
+            assert!(definitions.families.get(&family).is_some_and(|f| f.iter().any(|n| n == "orvia-be-vietnam-pro")));
+        }
+    }
 
     #[test]
     fn hangul_candidates_cover_every_desktop_platform() {
