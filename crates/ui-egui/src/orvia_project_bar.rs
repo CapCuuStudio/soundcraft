@@ -6,6 +6,7 @@ use crate::SoundApp;
 use egui::{RichText, Ui};
 use serde_json::{Value, json};
 use soundcraft_model::ClipId;
+use soundcraft_time::TimeFormat;
 
 fn clip_move(id: ClipId, delta: i64) -> Value {
     json!({"clips": [id.0], "by": delta})
@@ -13,6 +14,14 @@ fn clip_move(id: ClipId, delta: i64) -> Value {
 
 fn clip_trim_end(id: ClipId, end: i64) -> Value {
     json!({"clip": id.0, "end": end})
+}
+
+pub(crate) fn duplicate_params(id: ClipId) -> Value {
+    json!({"clip": id.0})
+}
+
+pub(crate) fn split_params(id: ClipId, at: i64) -> Value {
+    json!({"clip": id.0, "at": at})
 }
 
 pub fn show(app: &mut SoundApp, ui: &mut Ui) {
@@ -26,6 +35,11 @@ pub fn show(app: &mut SoundApp, ui: &mut Ui) {
                     clip.clone(),
                     s.track(track).map_or("Track".to_string(), |t| t.name.clone()),
                     s.sample_rate.hz(),
+                    s.format_position(clip.start, TimeFormat::BarsBeats),
+                    soundcraft_time::format_length(
+                        clip.start, clip.length, TimeFormat::BarsBeats,
+                        s.sample_rate, &s.tempo, s.frame_rate,
+                    ),
                 )
             })
         })
@@ -42,9 +56,12 @@ pub fn show(app: &mut SoundApp, ui: &mut Ui) {
                 return;
             }
             ui.separator();
-            if let Some((clip, track, rate)) = &selected {
+            if let Some((clip, track, rate, bars, bars_length)) = &selected {
                 ui.label(RichText::new(&clip.name).strong())
                     .on_hover_text(format!("Track: {track}"));
+                ui.label(format!("Nhịp {bars}")).on_hover_text(
+                    format!("Bars | Beats | Ticks: {bars}. Độ dài: {bars_length}. Đồng hồ âm nhạc theo Tempo Map.")
+                );
                 ui.label("Bắt đầu");
                 let sr = f64::from(*rate).max(1.0);
                 let mut at = clip.start as f64 / sr;
@@ -105,6 +122,37 @@ pub fn show(app: &mut SoundApp, ui: &mut Ui) {
                 if ui.add_enabled(!clip.edit_locked, egui::Button::new("Đổi tên")).clicked() {
                     app.dialogs.open_rename_clip(clip.id, &clip.name);
                 }
+                let locked = clip.edit_locked || clip.time_locked;
+                let cursor = app.position();
+                let can_split = !locked && cursor > clip.start && cursor < clip.end();
+                ui.menu_button("Tác vụ", |ui| {
+                    if ui.add_enabled(!locked, egui::Button::new("Nhân bản clip"))
+                        .on_hover_text("Chèn một bản sao sau clip và dời các clip tiếp theo để không ghi đè")
+                        .clicked()
+                    {
+                        let _ = app.run("clip.duplicate_one", duplicate_params(clip.id));
+                        ui.close();
+                    }
+                    if ui.add_enabled(can_split, egui::Button::new("Chia tại con trỏ"))
+                        .on_hover_text("Chỉ chia clip này tại vị trí Playhead, giữ nguyên clip khác")
+                        .clicked()
+                    {
+                        let _ = app.run("clip.split_one", split_params(clip.id, cursor));
+                        ui.close();
+                    }
+                    if !can_split {
+                        ui.label(RichText::new("Đưa Playhead vào bên trong clip để chia").small().weak());
+                    }
+                    if ui.add_enabled(!locked, egui::Button::new("Căn theo lưới"))
+                        .on_hover_text("Quantize clip đã chọn vào lưới nhịp hiện tại")
+                        .clicked()
+                    {
+                        let _ = app.run("clip.quantize_to_grid", json!({"clips": [clip.id.0]}));
+                        ui.close();
+                    }
+                    ui.separator();
+                    ui.label(RichText::new("Grid/Snap và kéo mép clip dùng công cụ trên Toolbar").small().weak());
+                });
             } else {
                 ui.label(RichText::new("Chọn clip Audio hoặc MIDI trên Timeline để chỉnh thông tin").weak());
             }
@@ -122,5 +170,7 @@ mod tests {
         let id = ClipId(24);
         assert_eq!(clip_move(id, -120), json!({"clips": [24], "by": -120}));
         assert_eq!(clip_trim_end(id, 48000), json!({"clip": 24, "end": 48000}));
+        assert_eq!(duplicate_params(id), json!({"clip": 24}));
+        assert_eq!(split_params(id, 24000), json!({"clip": 24, "at": 24000}));
     }
 }
