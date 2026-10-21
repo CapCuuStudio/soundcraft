@@ -181,8 +181,18 @@ impl WebShell {
     }
 
     fn handle(&mut self, purpose: Purpose, name: &str, bytes: &[u8]) {
-        if matches!(purpose, Purpose::Session) && soundcraft_ui_egui::bounce::refuses_session_switch(&mut self.app) {
-            return;
+        if matches!(purpose, Purpose::Session) {
+            if soundcraft_ui_egui::bounce::refuses_session_switch(&mut self.app) {
+                return;
+            }
+            // File pickers and browser drag/drop both arrive asynchronously and
+            // bypass the native session.open -> Save Changes dialog. Refuse to
+            // discard edits until the user has saved/downloaded a project bundle.
+            // There is no safe "open anyway" shortcut in this code path.
+            if self.app.engine.is_dirty() {
+                self.app.ui.status = "Dự án đang có thay đổi chưa lưu. Hãy lưu/tải project .scraftz trước khi mở project khác.".into();
+                return;
+            }
         }
         let e = &mut self.app.engine;
         let at = e.session().edit.selection.start.max(0);
