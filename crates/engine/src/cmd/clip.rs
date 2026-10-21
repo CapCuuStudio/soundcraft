@@ -68,8 +68,8 @@ pub fn specs() -> Vec<CommandSpec> {
         cmd!("clip.loop", "Loop...", ["Clip"], Some("Cmd+Alt+L"), "{clips?, count?: n, length?: samples}", has_selection, loop_clips),
         // Event-specific actions for ORVIA's timeline (do not silently split
         // or duplicate every overlapping event in a track).
-        cmd!("clip.duplicate_one", "Duplicate Event", [], None, "{clip: id} (inserts after event; ripples later clips rather than overwriting)", has_selection, duplicate_one),
-        cmd!("clip.split_one", "Split Event", [], None, "{clip: id, at: samples}", has_selection, split_one),
+        cmd!("clip.duplicate_one", "Duplicate Event", [], None, "{clip: id} (inserts after event; ripples later clips rather than overwriting)", always, duplicate_one),
+        cmd!("clip.split_one", "Split Event", [], None, "{clip: id, at: samples}", always, split_one),
         cmd!("clip.rename", "Rename...", ["Clip"], Some("Cmd+Alt+Shift+R"), "{clip?, name}", has_selection, rename),
         cmd!("clip.gain", "Clip Gain", [], None, "{clips?, db | delta_db}", has_selection, gain),
         cmd!("clip.gain_nudge_up", "Nudge Clip Gain Up", [], Some("Ctrl+Shift+Up"), "{clips?}", has_selection, |e, p| nudge_gain(e, p, 1.0)),
@@ -441,6 +441,60 @@ mod tests {
         assert!(e.session().find_clip(right).is_none(), "undo removes split child");
         assert!(e.undo(), "duplicate must undo");
         assert_eq!(e.session().track(keys).expect("Keys track").clips(), before.as_slice());
+    }
+
+    /// Context-menu actions target their explicit clip even if the user has
+    /// no edit selection. A right-click must not silently do nothing.
+    #[test]
+    fn orvia_stage2c_explicit_clip_does_not_require_track_selection() {
+        let mut engine = crate::demo::demo_engine();
+        let original = engine.session().track_by_name("Keys").unwrap().clips()[0].clone();
+        engine.execute("edit.select_none", &json!({})).unwrap();
+        assert!(engine.session().edit.selected_tracks.is_empty());
+        assert!(engine.session().edit.selected_clips.is_empty());
+        let result = engine.execute("clip.duplicate_one", &json!({"clip": original.id.0})).unwrap();
+        assert_eq!(result["duplicated"], 1);
+    }
+
+    /// Out-of-range, locked and non-existent targets must never alter a project.
+    #[test]
+    fn orvia_stage2c_invalid_split_does_not_change_project() {
+        let mut engine = crate::demo::demo_engine();
+        let original = engine.session().track_by_name("Keys").unwrap().clips()[0].clone();
+        let before = engine.session().clone();
+        for at in [original.start, original.end()] {
+            assert!(engine.execute("clip.split_one", &json!({"clip": original.id.0, "at": at})).is_err());
+            assert_eq!(engine.session(), &before, "failed split at {at} mutated project");
+        }
+        assert!(engine.execute("clip.split_one", &json!({"clip": u64::MAX, "at": original.start + 1})).is_err());
+        assert_eq!(engine.session(), &before);
+        engine.session_mut().find_clip_mut(original.id).unwrap().edit_locked = true;
+        let locked = engine.session().clone();
+        assert!(engine.execute("clip.duplicate_one", &json!({"clip": original.id.0})).is_err());
+        assert!(engine.execute("clip.split_one", &json!({"clip": original.id.0, "at": original.start + 1})).is_err());
+        assert_eq!(engine.session(), &locked, "locked clip must stay unchanged");
+    }
+
+    /// Integration path that WebAssembly uses to save and reopen edited songs.
+    #[test]
+    fn orvia_stage2c_duplicate_split_bundle_roundtrip_preserves_midi() {
+        let mut engine = crate::demo::demo_engine();
+        let keys = engine.session().track_by_name("Keys").unwrap().id;
+        let original = engine.session().track(keys).unwrap().clips()[0].clone();
+        let before_other = engine.session().track_by_name("Snare").unwrap().clips().to_vec();
+        let clone_result = engine.execute("clip.duplicate_one", &json!({"clip": original.id.0})).unwrap();
+        let cloned = ClipId(clone_result["clips"][0].as_u64().unwrap());
+        let copy = engine.session().find_clip(cloned).unwrap().1.clone();
+        let cursor = copy.start + copy.length / 2;
+        engine.execute("clip.split_one", &json!({"clip": cloned.0, "at": cursor})).unwrap();
+        assert_eq!(engine.session().track_by_name("Snare").unwrap().clips(), before_other.as_slice());
+        let expected = engine.session().track(keys).unwrap().clips().to_vec();
+        let (bundle, _) = crate::io::session_bundle(engine.session()).unwrap();
+        let mut restored = crate::Engine::default();
+        let missing = crate::io::open_session_bytes(&mut restored, "orvia-2c.scraftz", &bundle).unwrap();
+        assert!(missing.is_empty(), "browser bundle lost media: {missing:?}");
+        assert_eq!(restored.session().track(keys).unwrap().clips(), expected.as_slice());
+        assert_eq!(restored.session().track_by_name("Snare").unwrap().clips(), before_other.as_slice());
     }
 
     #[test]
