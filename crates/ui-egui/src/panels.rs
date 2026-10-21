@@ -37,8 +37,7 @@ fn panel_header(ui: &mut Ui, title: &str) {
 }
 
 /// ORVIA's left zone: a real, selection-aware inspector built on existing session state.
-/// Stage 1 is intentionally read-only except for existing tested window/track commands;
-/// faders, plugin browser and routing controls come in later stages.
+/// Stage 2 connects routing, sends and gain to the actual engine command paths.
 pub fn orvia_inspector(app: &mut SoundApp, ui: &mut Ui) {
     panel_header(ui, "INSPECTOR");
     let selected = {
@@ -107,8 +106,18 @@ pub fn orvia_inspector(app: &mut SoundApp, ui: &mut Ui) {
             }
         }
         egui::CollapsingHeader::new("Routing").default_open(false).show(ui, |ui| {
-            ui.label(format!("Input: {:?}", track.mixer.input));
-            ui.label(format!("Output: {:?}", track.mixer.output));
+            ui.horizontal(|ui| {
+                ui.label("Input");
+                let response = ui.button(crate::mix_window::input_name(app, &track))
+                    .on_hover_text("Choose a real input route");
+                crate::mix_window::route_popup(app, &response, id, true);
+            });
+            ui.horizontal(|ui| {
+                ui.label("Output");
+                let response = ui.button(crate::mix_window::route_name(app, &track.mixer.output))
+                    .on_hover_text("Choose Main or a real project bus");
+                crate::mix_window::route_popup(app, &response, id, false);
+            });
         });
         if track.kind == soundcraft_model::TrackKind::Instrument {
             egui::CollapsingHeader::new("VST Instruments").default_open(true).show(ui, |ui| {
@@ -126,17 +135,39 @@ pub fn orvia_inspector(app: &mut SoundApp, ui: &mut Ui) {
             }
         });
         egui::CollapsingHeader::new("Sends").default_open(false).show(ui, |ui| {
-            let mut any = false;
-            for (slot, send) in track.mixer.sends.iter().enumerate() {
-                if let Some(send) = send {
-                    any = true;
-                    ui.label(format!("{}: {:?} ({:.1} dB)", slot + 1, send.target, send.level_db));
-                }
+            for (slot, send) in track.mixer.sends.iter().enumerate().take(4) {
+                ui.horizontal(|ui| {
+                    ui.label(format!("{:02}", slot + 1));
+                    let label = send.as_ref().map_or_else(
+                        || "Chọn Bus...".to_string(),
+                        |s| crate::mix_window::route_name(app, &s.target),
+                    );
+                    ui.menu_button(label, |ui| {
+                        crate::mix_window::send_route_menu(app, ui, id, slot, send.as_ref().map(|s| &s.target));
+                    });
+                    if let Some(send) = send {
+                        let mut db = send.level_db.clamp(-60.0, 12.0);
+                        if ui.add(egui::Slider::new(&mut db, -60.0..=12.0).show_value(false)).on_hover_text(
+                            format!("Send level: {:.1} dB", send.level_db)
+                        ).changed() {
+                            if let Err(error) = app.engine.execute_merged(
+                                "mix.send_level",
+                                &json!({"track": id.0, "slot": slot, "db": db}),
+                                &format!("orvia:send:{}:{}", id.0, slot),
+                            ) {
+                                app.ui.status = error.to_string();
+                            }
+                        }
+                        if ui.selectable_label(send.mute, "M").on_hover_text("Mute Send").clicked() {
+                            let _ = app.run("mix.send_level", json!({"track": id.0, "slot": slot, "mute": !send.mute}));
+                        }
+                        if ui.small_button("×").on_hover_text("Remove Send").clicked() {
+                            let _ = app.run("mix.send_remove", json!({"track": id.0, "slot": slot}));
+                        }
+                    }
+                });
             }
-            if !any { ui.label("No active sends"); }
-            if ui.button("Open MixConsole for Sends").clicked() {
-                let _ = app.run("window.mix", json!({}));
-            }
+            ui.label(egui::RichText::new("Chọn Bus để tạo Send thật; không thêm đường âm thanh giả.").small().weak());
         });
         ui.add_space(6.0);
         if ui.button("+ Add Track").clicked() {
