@@ -1,62 +1,15 @@
 #!/usr/bin/env bash
-# Build the *real* ORVIA Rust/WebAssembly DAW for Cloudflare Pages.
-# Build setting: bash scripts/cloudflare-pages-build.sh
+# Temporary ORVIA Desktop progress portal for Cloudflare Pages, NOT the DAW.
+# Scoped exclusively to feature/orvia-zrythm-desktop-transition.
 set -Eeuo pipefail
 
 ROOT="$(cd "$(dirname "${BASH_SOURCE[0]}")/.." && pwd)"
-cd "$ROOT"
-
-export CARGO_INCREMENTAL=0
-export CARGO_BUILD_JOBS="${CARGO_BUILD_JOBS:-2}"
-export CARGO_TERM_COLOR=always
-export PATH="$HOME/.cargo/bin:$HOME/.local/bin:$PATH"
-
-RUST_TOOLCHAIN="1.95.0"
-TRUNK_VERSION="v0.21.14"
-mkdir -p "$HOME/.local/bin"
-
-if ! command -v rustup >/dev/null 2>&1; then
-  echo '[ORVIA] Installing Rust using the official rustup installer.'
-  curl --fail --silent --show-error --location --retry 2 https://sh.rustup.rs -o /tmp/orvia-rustup-init.sh
-  sh /tmp/orvia-rustup-init.sh -y --profile minimal --default-toolchain "$RUST_TOOLCHAIN"
-fi
-rustup toolchain install "$RUST_TOOLCHAIN" --profile minimal --target wasm32-unknown-unknown
-export RUSTUP_TOOLCHAIN="$RUST_TOOLCHAIN"
-
-if ! command -v trunk >/dev/null 2>&1; then
-  echo "[ORVIA] Installing pinned Trunk $TRUNK_VERSION."
-  archive="$(mktemp /tmp/orvia-trunk-XXXXXX.tar.gz)"
-  checksum="$(mktemp /tmp/orvia-trunk-checksum-XXXXXX)"
-  base="https://github.com/trunk-rs/trunk/releases/download/$TRUNK_VERSION/trunk-x86_64-unknown-linux-gnu.tar.gz"
-  curl --fail --silent --show-error --location --retry 2 "$base" -o "$archive"
-  curl --fail --silent --show-error --location --retry 2 "${base}.sha256" -o "$checksum"
-  expected="$(awk '{print $1}' "$checksum")"
-  actual="$(sha256sum "$archive" | awk '{print $1}')"
-  if [[ -z "$expected" || "$expected" != "$actual" ]]; then
-    echo '[ORVIA] Trunk SHA256 mismatch. Refusing to run downloaded binary.' >&2
-    exit 1
-  fi
-  tar -xzf "$archive" -C "$HOME/.local/bin" trunk
-  chmod +x "$HOME/.local/bin/trunk"
-  rm -f "$archive" "$checksum"
-fi
-
-echo '[ORVIA] Compiling Rust/WebAssembly DAW (not a placeholder website).'
-cd "$ROOT/apps/soundcraft-web"
-trunk build --release
-
-DIST="$ROOT/dist/web"
-[[ -s "$DIST/index.html" ]] || { echo '[ORVIA] Missing index.html' >&2; exit 1; }
-find "$DIST" -type f -name '*.wasm' -print -quit | grep -q . || {
-  echo '[ORVIA] Missing WASM bundle. Refusing to deploy HTML shell.' >&2
-  exit 1
-}
-while IFS= read -r -d '' file; do
-  bytes="$(wc -c < "$file")"
-  if (( bytes > 25 * 1024 * 1024 )); then
-    echo "[ORVIA] Cloudflare Pages 25 MiB per-asset limit exceeded: $file ($bytes bytes)" >&2
-    exit 1
-  fi
-done < <(find "$DIST" -type f -print0)
-
-echo "[ORVIA] Real DAW bundle validated: $DIST"
+INPUT="$ROOT/preview/orvia-progress"
+OUTPUT="$ROOT/dist/web"
+mkdir -p "$OUTPUT"
+test -s "$INPUT/index.html" || { echo "[ORVIA] Missing truthful progress page" >&2; exit 1; }
+test -s "$INPUT/status.json" || { echo "[ORVIA] Missing progress status" >&2; exit 1; }
+cp "$INPUT/index.html" "$OUTPUT/index.html"
+cp "$INPUT/status.json" "$OUTPUT/status.json"
+echo "[ORVIA] Temporary native Windows development monitor prepared; this is not a web DAW."
+echo "[ORVIA] Output: $OUTPUT"

@@ -1,0 +1,61 @@
+{
+  "project": "ORVIA Desktop",
+  "platform": "Windows 10/11",
+  "approach": "Zrythm upstream (đang nghiên cứu chuyển nền tảng)",
+  "updated_at": "2026-10-20",
+  "phase": "S1 · Biên dịch Zrythm Windows lần đầu",
+  "overall_status": "Build Windows đang chạy trên GitHub",
+  "website_role": "Trang theo dõi tạm thời, không phải DAW chạy trên web",
+  "repository": "https://github.com/Gamevalentine/zrythm",
+  "upstream": "https://github.com/zrythm/zrythm",
+  "pull_request": "https://github.com/Gamevalentine/zrythm/pull/1",
+  "build_url": "https://github.com/Gamevalentine/zrythm/actions/runs/39437210753",
+  "windows_native_build": "Đang chạy · GitHub Actions run #39437210753 (chưa có kết quả)",
+  "screenshots": [],
+  "videos": [],
+  "installer_url": null,
+  "completed": [
+    "Đọc nhật ký kỹ thuật và quyết định sản phẩm Windows desktop",
+    "Khảo sát mã nguồn Zrythm: C++23, Qt/QML, JUCE, CMake",
+    "Kiểm tra giấy phép AGPL và chính sách thương hiệu Zrythm",
+    "Chuẩn bị kế hoạch QA và trang giám sát tạm",
+    "Đã tạo fork Zrythm độc lập trong Gamevalentine/zrythm (master giữ nguyên)",
+    "Đã tạo nhánh native feature/orvia-desktop-foundation và Draft PR #1",
+    "Đã kích hoạt build Zrythm Windows baseline #39437210753 trên GitHub hosted runner miễn phí của repo công khai"
+  ],
+  "milestones": [
+    {
+      "name": "S0 · Fork độc lập & giấy phép",
+      "state": "progress",
+      "detail": "Đã fork Gamevalentine/zrythm, giữ nguyên master tại 4c2d471; đã tạo nhánh ORVIA và PR #1. Chưa rà xong license từng dependency."
+    },
+    {
+      "name": "S1 · Native Windows baseline",
+      "state": "progress",
+      "detail": "Windows run #39437210753 bắt đầu; đang tải source và dependencies. Chưa có .exe, audio QA hoặc screenshot chạy thật."
+    },
+    {
+      "name": "S2 · Thương hiệu ORVIA",
+      "state": "pending",
+      "detail": "Chưa sửa mã hoặc logo Zrythm."
+    },
+    {
+      "name": "S3 · MIDI / Mixer / VST3 QA",
+      "state": "pending",
+      "detail": "Cần Windows build chạy trước khi kiểm thử."
+    },
+    {
+      "name": "S4 · Windows package",
+      "state": "pending",
+      "detail": "Chỉ thực hiện sau nghiệm thu các chức năng thực."
+    }
+  ],
+  "restrictions": [
+    "Không chạy giả giao diện trên web",
+    "Không đụng SoundCraft main/production",
+    "Không tự tạo chi phí cloud/Actions",
+    "Không dùng CMD trên máy của người dùng"
+  ],
+  "native_branch": "https://github.com/Gamevalentine/zrythm/tree/feature/orvia-desktop-foundation",
+  "upstream_base_sha": "4c2d47143da71ab8cb08141890e7b36fe7974312"
+}

@@ -1,0 +1,99 @@
+<!doctype html>
+<html lang="vi">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<meta name="theme-color" content="#0b0f16">
+<title>ORVIA — Xem giao diện DAW Desktop</title>
+<style>
+:root{color-scheme:dark;--bg:#0b0f16;--panel:#151b25;--panel2:#1c2632;--line:#33404e;--text:#f3f5fa;--muted:#a4b4c4;--amber:#ffb627;--blue:#8aaaff}
+*{box-sizing:border-box}body{margin:0;background:var(--bg);color:var(--text);font:14px/1.55 system-ui,-apple-system,Segoe UI,sans-serif}
+a{color:#bdd2ff;text-decoration:none}a:hover{text-decoration:underline}button{font:inherit;color:inherit;cursor:pointer}
+header{height:60px;border-bottom:1px solid var(--line);display:flex;align-items:center;justify-content:space-between;padding:0 clamp(15px,3vw,42px);background:#111821;gap:16px}
+.logo{font-weight:900;font-size:21px;letter-spacing:.16em}.logo span{color:var(--amber)}.sub{font-size:11px;color:#abbacb;letter-spacing:.075em}.tag{font-size:11px;padding:6px 10px;border:1px solid #69778a;border-radius:30px;color:#cad5e2;white-space:nowrap}
+main{max-width:1680px;margin:auto;padding:24px clamp(14px,2.3vw,34px) 55px}
+h1{font-size:clamp(22px,3.1vw,38px);line-height:1.2;letter-spacing:-.025em;margin:4px 0 10px}
+.lead{color:var(--muted);margin:0 0 19px;max-width:900px}.eyebrow{color:var(--amber);font-size:11px;letter-spacing:.12em;font-weight:800}
+.gallery{border:1px solid #3a4654;background:var(--panel);border-radius:12px;overflow:hidden}
+.gallery-top{display:flex;align-items:center;justify-content:space-between;gap:12px;flex-wrap:wrap;padding:12px 15px;background:#1a222d}
+.gallery-title{font-weight:800;font-size:15px}.gallery-source{font-size:12px;color:var(--muted)}
+.controls{display:flex;align-items:center;gap:7px}.controls button{border:1px solid #435267;background:#263444;padding:7px 11px;border-radius:7px;font-weight:650}.controls button:hover,.thumb:hover{border-color:var(--amber)}
+.viewer{display:flex;align-items:center;justify-content:center;background:#090b10;min-height:min(58vw,440px);position:relative}
+.viewer img{display:block;object-fit:contain;width:100%;max-height:77vh;height:auto;min-height:220px;cursor:zoom-in}
+.viewer .fallback{padding:50px;text-align:center;color:var(--muted)}
+.gallery-footer{display:flex;justify-content:space-between;align-items:center;flex-wrap:wrap;padding:10px 15px;background:#171f2a;gap:9px}
+.gallery-footer p{margin:0;color:#c4d1e0;font-size:12px}.photos{display:flex;gap:8px;align-items:center;flex-wrap:wrap}
+.thumb{border:1px solid #485565;background:#263241;border-radius:7px;padding:8px 11px;font-size:12px}.thumb.active{background:#52401f;border-color:var(--amber);color:#ffe2a3}
+.callout{border-left:3px solid var(--amber);padding:10px 14px;background:#1c222b;color:#d1dae5;font-size:13px;margin:15px 0 22px;border-radius:4px}
+.panel{border:1px solid var(--line);background:var(--panel);border-radius:11px;padding:18px;margin-top:16px}
+.panel h2{font-size:16px;margin:0 0 12px}.panel p{color:var(--muted);margin:0 0 12px}
+.details{border:1px solid var(--line);background:#131a23;border-radius:11px;margin-top:18px;overflow:hidden}
+.details summary{cursor:pointer;padding:15px 18px;font-weight:750}.details summary::marker{color:var(--amber)}.details-body{border-top:1px solid var(--line);padding:16px 18px}
+.grid{display:grid;grid-template-columns:1.5fr 1fr;gap:16px}.status{margin:0;padding:0;list-style:none}.status li{border-top:1px solid #2a3747;padding:8px 0}.status li:first-child{border:0}.dim{color:var(--muted)}.small{font-size:12px}.pill{border:1px solid #53718c;background:#15283b;color:#bcd7f7;padding:5px 9px;border-radius:50px;display:inline-block;font-size:11px;line-height:1}
+footer{margin:30px 0 0;color:#8c9cae;font-size:12px}
+.dialog{position:fixed;inset:0;background:rgba(0,0,0,.95);z-index:20;display:none;align-items:center;justify-content:center;padding:55px 12px 12px}
+.dialog.open{display:flex}.dialog img{max-width:100%;max-height:100%;object-fit:contain}.close{position:absolute;top:12px;right:17px;background:#243244;border:1px solid #5a7189;padding:7px 15px;border-radius:7px}
+@media(max-width:800px){header{height:auto;min-height:60px;padding:12px}.tag{display:none}.grid{grid-template-columns:1fr}main{padding-top:18px}.controls{gap:5px}.controls button{padding:5px 8px}.viewer img{max-height:62vh;min-height:0}.viewer{min-height:180px}}
+</style>
+</head>
+<body>
+<header><div><div class="logo">OR<span>VIA</span></div><div class="sub">LUNOR MUSIC · DESKTOP WINDOWS</div></div><span class="tag">KHU VỰC XEM TRƯỚC GIAO DIỆN</span></header>
+<main>
+<div class="eyebrow">ORVIA DESKTOP · VISUAL PREVIEW</div>
+<h1>Giao diện DAW mà chúng ta đang phát triển</h1>
+<p class="lead">Xem giao diện thật từ mã nguồn Zrythm v2 — nền tảng được chọn cho ORVIA. Ấn vào ảnh để phóng to, chuyển giữa giao diện Timeline và Piano Roll/VST. Khi bản Windows ORVIA có ảnh chạy thực tế, khu vực này sẽ được cập nhật bằng ảnh từ bản build đó.</p>
+<section class="gallery" aria-label="Ảnh giao diện thật">
+<div class="gallery-top">
+<div><div class="gallery-title" id="currentTitle">Piano Roll, VST và Timeline — Zrythm v2</div><div class="gallery-source" id="imageCredit">Ảnh ứng dụng Zrythm nguyên bản · 30/09/2026</div></div>
+<div class="controls"><button type="button" id="prev" aria-label="Ảnh trước">‹ Trước</button><button type="button" id="next" aria-label="Ảnh sau">Sau ›</button><button type="button" id="zoom">⛶ Phóng to</button></div>
+</div>
+<div class="viewer"><img id="hero" src="https://forum.zrythm.org/uploads/default/original/1X/168b27ad5d08a92966a2f6d12bdeb4ac982812d1.png" alt="Ảnh thật giao diện Zrythm v2 với plugin nhạc cụ, timeline và Piano Roll" loading="eager"></div>
+<div class="gallery-footer"><div class="photos" id="photoTabs"><button class="thumb active" type="button" data-index="0">1 · Piano Roll + VST</button><button class="thumb" type="button" data-index="1">2 · Timeline + Inspector</button></div><p id="count">Ảnh 1 / 2 · Nhấp vào ảnh để xem lớn</p></div>
+</section>
+<div class="callout"><strong>Phân biệt rõ:</strong> Hai ảnh ban đầu là <strong>ảnh chụp Zrythm v2 gốc</strong> do dự án Zrythm công bố, không phải ORVIA đã thay logo. Bản Windows của ORVIA hiện đang được biên dịch; khi có bản chạy và ảnh chụp thật, chúng ta mới đưa vào đây.</div>
+<details class="details"><summary>Thông tin build Windows và tiến độ phát triển (mở khi cần)</summary><div class="details-body grid">
+<div><h2>Đang triển khai</h2><ul class="status" id="milestones"><li>Kiểm tra bản Windows native</li></ul></div>
+<div><h2>Build thực tế</h2><p id="buildStatus">Đang tải trạng thái…</p><a id="buildLink" href="https://github.com/Gamevalentine/zrythm/actions/runs/39437210753" target="_blank" rel="noopener noreferrer">Xem GitHub Windows build ↗</a><p style="margin-top:12px">Mã nguồn: <a href="https://github.com/Gamevalentine/zrythm/pull/1" target="_blank" rel="noopener noreferrer">ORVIA Zrythm fork (Draft PR #1)</a></p><p class="small">Đây không phải trang chạy DAW trong trình duyệt. Không yêu cầu cài đặt trên máy người dùng.</p></div>
+</div></details>
+<footer>Nguồn ảnh: <a href="https://forum.zrythm.org/t/zrythm-v2-0-0-alpha-5-released/602" target="_blank" rel="noopener noreferrer">Zrythm v2 alpha.5</a> và <a href="https://forum.zrythm.org/t/zrythm-v2-0-0-alpha-6-released/603" target="_blank" rel="noopener noreferrer">alpha.6</a>. ORVIA là dự án độc lập, không liên kết hoặc được Zrythm bảo trợ. Các quyền và thông báo giấy phép được giữ nguyên.</footer>
+</main>
+<div class="dialog" id="lightbox" role="dialog" aria-modal="true" aria-label="Ảnh giao diện phóng to"><button type="button" id="close" class="close">Đóng ✕</button><img id="big" alt="Ảnh giao diện được phóng to"></div>
+<script>
+(() => {
+const official=[
+{title:"Piano Roll, VST và Timeline",source:"Zrythm v2 alpha.5 · ảnh chính thức ngày 30/09/2026",url:"https://forum.zrythm.org/uploads/default/original/1X/168b27ad5d08a92966a2f6d12bdeb4ac982812d1.png",alt:"Giao diện Zrythm v2 thật: plugin SIMIAN, timeline, Piano Roll và Velocity",tab:"Piano Roll + VST"},
+{title:"Project Timeline và Inspector",source:"Zrythm v2 alpha.6 · ảnh chính thức ngày 04/10/2026",url:"https://forum.zrythm.org/uploads/default/original/1X/d11db6e94c666d931edeb2b23ddd55bcc4da9818.png",alt:"Giao diện Zrythm v2 thật: track, clip màu cam, Inspector và plugin browser",tab:"Timeline + Inspector"}
+];
+let photos=official,idx=0;
+const hero=document.querySelector("#hero"),tabs=document.querySelector("#photoTabs"),box=document.querySelector("#lightbox"),big=document.querySelector("#big");
+function render(){
+const im=photos[idx];hero.src=im.url;hero.alt=im.alt;big.src=im.url;big.alt=im.alt;
+document.querySelector("#currentTitle").textContent=im.title;
+document.querySelector("#imageCredit").textContent=im.source;
+document.querySelector("#count").textContent="Ảnh "+(idx+1)+" / "+photos.length+" · Nhấp vào ảnh để xem lớn";
+tabs.replaceChildren();photos.forEach((o,i)=>{const b=document.createElement("button");b.type="button";b.className="thumb"+(i===idx?" active":"");b.textContent=(i+1)+" · "+o.tab;b.addEventListener("click",()=>{idx=i;render()});tabs.appendChild(b)});
+}
+document.querySelector("#prev").addEventListener("click",()=>{idx=(idx-1+photos.length)%photos.length;render()});
+document.querySelector("#next").addEventListener("click",()=>{idx=(idx+1)%photos.length;render()});
+function zoom(){big.src=photos[idx].url;box.classList.add("open");document.querySelector("#close").focus()}
+hero.addEventListener("click",zoom);document.querySelector("#zoom").addEventListener("click",zoom);
+function close(){box.classList.remove("open")}
+document.querySelector("#close").addEventListener("click",close);
+box.addEventListener("click",e=>{if(e.target===box)close()});
+document.addEventListener("keydown",e=>{if(e.key==="Escape")close();if(e.key==="ArrowLeft"&&box.classList.contains("open")){idx=(idx-1+photos.length)%photos.length;render()}if(e.key==="ArrowRight"&&box.classList.contains("open")){idx=(idx+1)%photos.length;render()}});
+hero.addEventListener("error",()=>{hero.alt="Ảnh nguồn hiện chưa tải được. Xem đường dẫn Zrythm gốc ở cuối trang."});
+render();
+fetch("./status.json",{cache:"no-store"}).then(r=>r.ok?r.json():null).then(d=>{
+if(!d)return;
+document.querySelector("#buildStatus").textContent=d.windows_native_build||"Chưa có kết quả build";
+if(typeof d.build_url==="string"&&/^https:\/\/github\.com\/Gamevalentine\/zrythm\/actions\/runs\/\d+$/.test(d.build_url))document.querySelector("#buildLink").href=d.build_url;
+const list=document.querySelector("#milestones");list.replaceChildren();
+for(const p of d.milestones||[]){const li=document.createElement("li");const state=p.state==="done"?"✓":p.state==="progress"?"◌":"○";li.textContent=state+" "+p.name+" — "+p.detail;list.appendChild(li)}
+// Replace upstream reference screenshots only with explicitly tagged,
+// verified native screenshot entries. Never mislabel references as ORVIA.
+const verified=(d.screenshots||[]).filter(x=>x&&x.verified===true&&x.origin==="native-windows"&&/^https:\/\//.test(x.url||""));
+if(verified.length){photos=verified.map((x,i)=>({url:x.url,title:x.title||"ORVIA Desktop · bản thử nghiệm",source:"Ảnh từ bản Windows chạy thật · "+(x.commit||"đã xác minh"),alt:x.alt||"Ảnh ORVIA Desktop từ Windows build",tab:x.tab||"ORVIA "+(i+1)})).concat(official);idx=0;render()}
+}).catch(()=>{document.querySelector("#buildStatus").textContent="Chưa đọc được trạng thái build; xem trực tiếp GitHub."});
+})();
+</script>
+</body></html>
