@@ -26,11 +26,20 @@ pub fn start() {
             return;
         };
         let mut options = eframe::WebOptions::default();
-        if query().contains("webgl")
+        // The native Rust/egui DAW runs on WebGPU when available. Older browsers,
+        // disabled WebGPU installations and some GPU drivers must use real WebGL2,
+        // not an HTML mock. The tiny capability flag is set before WASM loads.
+        let webgl_fallback = query().split('&').any(|part| part.trim_start_matches('?') == "webgl")
+            || web_sys::window()
+                .and_then(|w| js_sys::Reflect::get(w.as_ref(), &wasm_bindgen::JsValue::from_str("__orviaPreferWebGl")).ok())
+                .and_then(|value| value.as_bool())
+                .unwrap_or(false);
+        if webgl_fallback
             && let eframe::egui_wgpu::WgpuSetup::CreateNew(create) = &mut options.wgpu_options.wgpu_setup
         {
             create.instance_descriptor.backends = eframe::wgpu::Backends::GL;
         }
+        log::info!("ORVIA browser graphics: {}", if webgl_fallback { "WebGL2" } else { "WebGPU" });
         let result = eframe::WebRunner::new()
             .start(
                 canvas,
@@ -49,7 +58,12 @@ pub fn start() {
         if let Some(el) = document.get_element_by_id(LOADING_ID) {
             match result {
                 Ok(()) => el.remove(),
-                Err(e) => el.set_inner_html(&format!("<p>ORVIA không thể khởi động: {e:?}</p><p>Trình duyệt cần hỗ trợ WebGPU hoặc WebGL2.</p>")),
+                Err(e) => {
+                    // Don't interpolate dynamic error strings into HTML.
+                    el.set_text_content(Some(&format!(
+                        "ORVIA chưa khởi động được: {e:?}. Nếu trình duyệt không hỗ trợ WebGPU, hãy thử tải lại địa chỉ với ?webgl để dùng WebGL2. Không có phiên bản giao diện HTML giả thay thế."
+                    )));
+                },
             }
         }
     });
