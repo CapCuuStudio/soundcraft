@@ -382,7 +382,17 @@ fn delete_one(e: &mut Engine, p: &Value) -> Result<Value> {
     let index = playlist.clips.iter().position(|c| c.id == id)
         .ok_or_else(|| bad("clip.delete_one", "clip no longer in playlist"))?;
     playlist.clips.remove(index);
+    // A selected clip also owns the edit range shown on the timeline.
+    // Collapse that range when the last selected clip is deleted, otherwise
+    // a subsequent range action can unintentionally target surviving events.
+    let was_selected = s.edit.selected_clips.contains(&id);
     s.edit.selected_clips.retain(|selected| *selected != id);
+    if was_selected && s.edit.selected_clips.is_empty() {
+        s.edit.selection.end = s.edit.selection.start;
+        if s.edit.link_timeline_edit {
+            s.edit.timeline_selection = s.edit.selection;
+        }
+    }
     Ok(json!({"deleted": id.0}))
 }
 
@@ -614,6 +624,27 @@ mod tests {
         assert_eq!(engine.session(), &locked);
         assert!(engine.execute("clip.delete_one", &json!({"clip": u64::MAX})).is_err());
         assert_eq!(engine.session(), &locked);
+    }
+
+    /// Deleting the last selected event must clear its old time range:
+    /// the next range-based command must not cut remaining overlapping clips.
+    #[test]
+    fn orvia_stage2c_delete_selected_clip_clears_stale_range() {
+        let mut engine = crate::demo::demo_engine();
+        let target = engine.session().track_by_name("Keys").unwrap().clips()[0].id;
+        engine.execute("edit.select", &json!({"clips": [target.0], "exact": true})).unwrap();
+        assert!(!engine.session().edit.selection.is_empty());
+        assert_eq!(engine.session().edit.selected_clips, vec![target]);
+
+        engine.execute("clip.delete_one", &json!({"clip": target.0})).unwrap();
+        assert!(engine.session().find_clip(target).is_none());
+        assert!(engine.session().edit.selected_clips.is_empty());
+        assert!(engine.session().edit.selection.is_empty());
+        if engine.session().edit.link_timeline_edit {
+            assert_eq!(engine.session().edit.timeline_selection, engine.session().edit.selection);
+        }
+        assert!(engine.undo());
+        assert!(engine.session().find_clip(target).is_some());
     }
 
     #[test]

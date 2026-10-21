@@ -10,7 +10,7 @@
 | Cổng | Bằng chứng | Kết quả 22/10 |
 |---|---|---|
 | A. Mã nguồn GĐ2C riêng biệt | Nhánh `feature/orvia-web-stage2c-qa`, PR kiểm thử trên GitHub | Source committed |
-| B. Cloudflare deploy đúng SHA 2C | Cloudflare bot PR #9 báo success cho `0f9f0b8`, immutable https://765acb46.orvia-daw-preview.pages.dev | **PASS for 0f9f0b8**; bản sửa Delete mới cần build riêng |
+| B. Cloudflare deploy đúng SHA 2C | Cloudflare bot PR #9 báo success cho `4463fa5`, immutable https://23b392b0.orvia-daw-preview.pages.dev | **PASS for 4463fa5**; bản điều chỉnh selection mới cần build riêng |
 | C. Font Việt trong DAW web | Open Chrome/Edge 1366×768, xem “THÔNG TIN CLIP”, “Độ dài”, “NHẠC CỤ & HIỆU ỨNG” | **UNVERIFIED** — có code/asset và 2A đã từng báo deploy thành công |
 | D. Tool/Timeline | Move/Trim/Pencil/Grid snap khi kéo clip; Cmd/Ctrl đảo Snap; không có toolbar trùng | **UNVERIFIED runtime**, source có các handler |
 | E. Info Line Bars/Beats/Time | Chọn clip Keys, xem Bars/Beats, sửa Start/Length; Time-lock phải vô hiệu hóa Start/Length | **FIXED IN SOURCE + tests pending** |
@@ -73,3 +73,10 @@
 - **Sửa:** Thêm engine command `clip.delete_one` dùng ClipId tường minh, kiểm tra tồn tại + `edit_locked/time_locked`, loại bỏ duy nhất clip đó khỏi playlist và selection; UI gọi lệnh thay cho `edit.clear`, vô hiệu nút với clip khóa. Giữ `edit.clear` nguyên dạng cho thao tác xóa range chủ động.
 - **Regression mới:** `orvia_stage2c_delete_one_preserves_overlaps_locks_and_undo`: tạo 2 clips cùng vùng thời gian trên Keys + Snare; Delete chỉ clip mục tiêu, overlap/Snare giữ nguyên, Undo/Redo, time-lock/missing ID không làm đổi project. **Test đã ghi, chưa chạy**.
 - **QA còn thiếu:** cần build/deploy commit mới thành công và chạy Cargo tests + thực nghiệm Chrome (Delete overlap / right-click / duplicate / split / undo-redo / save-open / Play/Mixer/WAV). Không coi 2C là hoàn tất chỉ vì build success.
+
+## Đợt rà soát tiếp — 22/10/2026: REG-2C-08 (selection sau khi Delete)
+- Cloudflare Pages bot PR #9 xác nhận **Deploy successful** cho `4463fa519b865b430173fffe81ebe1b4f4e38c83`, immutable https://23b392b0.orvia-daw-preview.pages.dev (build source, không thay thế Chrome QA hoặc Cargo test).
+- **Vấn đề còn sót từ BUG-2C-07:** Khi người dùng đã chọn clip rồi Delete, `clip.delete_one` loại bỏ ClipId khỏi `selected_clips` nhưng vẫn giữ `edit.selection` trên khoảng thời gian clip cũ. Lệnh tác động theo vùng kế tiếp có thể hoạt động trên một khoảng ghost và làm ảnh hưởng clips còn lại.
+- **Sửa giới hạn:** Nếu Delete đã xóa clip **đang chọn cuối cùng**, thu `edit.selection` về điểm bắt đầu; đồng bộ `timeline_selection` chỉ nếu `link_timeline_edit` đang bật. Không thay đổi selection của clip không được chọn và không sửa hành vi xóa khoảng chủ động.
+- **Regression thêm:** `orvia_stage2c_delete_selected_clip_clears_stale_range` xác minh chọn Keys → Delete → selection rỗng, linked timeline nếu bật, Undo khôi phục clip.
+- **Chưa thực thi tests:** không có `cargo` / `rustc` ở môi trường tác nghiệp; Cloudflare build mới phải xác nhận đúng commit tiếp theo. Runtime QA bao gồm nghe tiếng, chuột phải, Save/Open/Export vẫn chưa được xác minh thực tế.
