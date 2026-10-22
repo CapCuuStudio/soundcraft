@@ -9,7 +9,7 @@ use soundcraft_time::TICKS_PER_QUARTER;
 
 const KEY_W: f32 = 48.0;
 const ROW_H: f32 = 9.0;
-const VEL_H: f32 = 64.0;
+const VEL_H: f32 = 94.0;
 
 #[derive(Debug, Clone, Default)]
 pub struct MidiEditorState {
