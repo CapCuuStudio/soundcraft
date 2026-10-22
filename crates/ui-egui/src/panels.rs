@@ -185,59 +185,13 @@ pub fn orvia_inspector(app: &mut SoundApp, ui: &mut Ui) {
     });
 }
 
-/// ORVIA's right-side rack lists real built-in instruments and effects.
-/// Clicking a plug-in inserts it through the same engine command as the MixConsole.
+mod orvia_rack;
+
+/// ORVIA 3C: built-in instrument/FX browser and Insert Rack.
+/// Reuses the actual engine commands, never claims browser-native VST3 hosting.
 pub fn orvia_browser(app: &mut SoundApp, ui: &mut Ui) {
     panel_header(ui, "NHẠC CỤ & HIỆU ỨNG");
-    let state_key = egui::Id::new("orvia_rack_mode");
-    let mut mode = ui.ctx().data_mut(|data| data.get_temp::<u8>(state_key)).unwrap_or(0);
-    ui.horizontal(|ui| {
-        ui.selectable_value(&mut mode, 0, "Instruments");
-        ui.selectable_value(&mut mode, 1, "Hiệu ứng");
-    });
-    ui.ctx().data_mut(|data| data.insert_temp(state_key, mode));
-    let filter_id = egui::Id::new("orvia_rack_filter");
-    let mut filter = ui.ctx().data_mut(|data| data.get_temp::<String>(filter_id)).unwrap_or_default();
-    ui.add(egui::TextEdit::singleline(&mut filter).hint_text("Tìm nhạc cụ hoặc hiệu ứng").desired_width(f32::INFINITY));
-    ui.ctx().data_mut(|data| data.insert_temp(filter_id, filter.clone()));
-    let needle = filter.to_ascii_lowercase();
-    let selected = {
-        let session = app.engine.session();
-        session.tracks.iter().find(|t| session.edit.selected_tracks.contains(&t.id)).cloned()
-    };
-    egui::ScrollArea::vertical().id_salt("orvia_rack_scroll").show(ui, |ui| {
-        let available = soundcraft_dsp::plugins().iter().filter(|p|
-            p.is_instrument == (mode == 0)
-                && (needle.is_empty() || p.name.to_ascii_lowercase().contains(&needle))
-        );
-        if selected.is_none() {
-            ui.label(egui::RichText::new("Select a track to add a plugin").color(Tokens::current().text_dim));
-        }
-        for plugin in available {
-            let target = selected.as_ref().filter(|t| if mode == 0 {
-                t.kind == soundcraft_model::TrackKind::Instrument
-            } else { t.kind.is_audio_path() });
-            let free_slot = target.and_then(|t| t.mixer.inserts.iter().position(Option::is_none));
-            let enabled = target.is_some() && (mode == 0 || free_slot.is_some());
-            let button = ui.add_enabled(enabled, egui::Button::new(plugin.name).min_size(vec2(ui.available_width().max(130.0), 21.0)));
-            if button.clicked() {
-                if let Some(track) = target {
-                    let params = if mode == 0 {
-                        json!({"track": track.id.0, "plugin": plugin.id})
-                    } else {
-                        json!({"track": track.id.0, "slot": free_slot, "plugin": plugin.id})
-                    };
-                    let cmd = if mode == 0 { "mix.instrument" } else { "mix.insert" };
-                    if let Err(error) = app.run(cmd, params) {
-                        app.ui.status = error;
-                    }
-                }
-            }
-            if !enabled {
-                button.on_disabled_hover_text(if mode == 0 { "Choose an Instrument track" } else { "Choose an audio track with a free insert" });
-            }
-        }
-    });
+    orvia_rack::show(app, ui);
 }
 
 /// Visible channel IDs in timeline order. The selection filter is a view only:

@@ -40,7 +40,7 @@ impl Panel {
             Self::Canvas => "Project Timeline",
             Self::Inspector => "Inspector",
             Self::Tracks => "Tracks",
-            Self::Browser => "VSTi / Media",
+            Self::Browser => "Nhạc cụ & FX",
             Self::MixConsole => "MixConsole",
             Self::Clips => "Media & Clips",
             Self::Midi => "MIDI Editor",
