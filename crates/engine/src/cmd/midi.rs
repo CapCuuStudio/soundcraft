@@ -3,7 +3,7 @@
 use super::*;
 use crate::cmd;
 use serde_json::json;
-use soundcraft_midi::{Note, Sequence};
+use soundcraft_midi::{CtrlEvent, CtrlKind, Note, Sequence};
 use soundcraft_model::{Clip, ClipContent, ClipId};
 use soundcraft_time::TICKS_PER_QUARTER;
 
@@ -23,6 +23,8 @@ pub fn specs() -> Vec<CommandSpec> {
         cmd!("midi.note_edit", "Edit Note", [], None, "{clip, index, pitch?, start_ticks?, length_ticks?, velocity?}", always, note_edit),
         cmd!("midi.note_delete", "Delete Notes", [], None, "{clip, indices: [n]}", always, note_delete),
         cmd!("midi.notes_move", "Move Notes", [], None, "{clip, indices: [n], ticks?: 0, semitones?: 0}", always, notes_move),
+        cmd!("midi.cc_set", "Set MIDI CC", [], None, "{clip, cc: 0..127, tick, value: 0..127, channel?: 0}", always, cc_set),
+        cmd!("midi.cc_delete", "Delete MIDI CC", [], None, "{clip, cc: 0..127, tick, channel?: 0}", always, cc_delete),
     ]
 }
 
@@ -32,6 +34,60 @@ fn seq_mut<'a>(e: &'a mut Engine, id: ClipId, cmd: &str) -> Result<&'a mut Seque
         Some(_) => Err(bad(cmd, "not a MIDI clip")),
         None => Err(bad(cmd, "no such clip")),
     }
+}
+
+// Controller edits never override a clip's Edit/Time lock.
+fn cc_seq_mut<'a>(e: &'a mut Engine, id: ClipId, cmd: &str) -> Result<&'a mut Sequence> {
+    let clip = e.session_mut().find_clip_mut(id).ok_or_else(|| bad(cmd, "no such clip"))?;
+    if clip.edit_locked || clip.time_locked {
+        return Err(bad(cmd, "clip is locked"));
+    }
+    match &mut clip.content {
+        ClipContent::Midi { sequence } => Ok(sequence),
+        _ => Err(bad(cmd, "not a MIDI clip")),
+    }
+}
+
+fn cc_params(p: &Value, cmd: &str) -> Result<(u8, i64, u8)> {
+    let cc = p.get("cc").and_then(Value::as_u64).filter(|v| *v <= 127)
+        .ok_or_else(|| bad(cmd, "cc must be 0..127"))? as u8;
+    let tick = p.get("tick").and_then(Value::as_i64).filter(|v| *v >= 0)
+        .ok_or_else(|| bad(cmd, "tick must be nonnegative"))?;
+    let channel = p.get("channel")
+        .map(|v| v.as_u64().filter(|v| *v <= 15))
+        .unwrap_or(Some(0))
+        .ok_or_else(|| bad(cmd, "channel must be 0..15"))? as u8;
+    Ok((cc, tick, channel))
+}
+
+// Replacing an event at the same tick, channel and CC avoids ambiguous MIDI
+// values and makes redraws at one position behave like editing a point.
+fn cc_set(e: &mut Engine, p: &Value) -> Result<Value> {
+    let id = clip_id(p, "midi.cc_set")?;
+    let (cc, tick, channel) = cc_params(p, "midi.cc_set")?;
+    let value = p.get("value").and_then(Value::as_u64).filter(|v| *v <= 127)
+        .ok_or_else(|| bad("midi.cc_set", "value must be 0..127"))? as i32;
+    let seq = cc_seq_mut(e, id, "midi.cc_set")?;
+    let mut updated = false;
+    if let Some(ctrl) = seq.ctrls.iter_mut().find(|c|
+        c.tick == tick && c.channel == channel && c.kind == CtrlKind::Cc(cc)
+    ) {
+        ctrl.value = value;
+        updated = true;
+    } else {
+        seq.ctrls.push(CtrlEvent { tick, channel, kind: CtrlKind::Cc(cc), value });
+    }
+    seq.sort();
+    Ok(json!({"cc":cc,"tick":tick,"value":value,"updated":updated}))
+}
+
+fn cc_delete(e: &mut Engine, p: &Value) -> Result<Value> {
+    let id = clip_id(p, "midi.cc_delete")?;
+    let (cc, tick, channel) = cc_params(p, "midi.cc_delete")?;
+    let seq = cc_seq_mut(e, id, "midi.cc_delete")?;
+    let before = seq.ctrls.len();
+    seq.ctrls.retain(|c| !(c.tick == tick && c.channel == channel && c.kind == CtrlKind::Cc(cc)));
+    Ok(json!({"deleted": before - seq.ctrls.len()}))
 }
 
 fn notes(e: &mut Engine, p: &Value) -> Result<Value> {
@@ -155,6 +211,49 @@ mod tests {
         e.execute("midi.note_delete", &json!({"clip": clip, "indices": [0]})).unwrap();
         assert_eq!(e.execute("midi.notes", &json!({"clip": clip})).unwrap()["notes"].as_array().map(Vec::len), Some(1));
         assert!(e.execute("midi.note_edit", &json!({"clip": clip, "index": 99})).is_err());
+    }
+
+    #[test]
+    fn orvia3b_controller_edit_replace_delete_undo_bundle_and_locks() {
+        let mut e = Engine::default();
+        let tid = e.session_mut().add_track(TrackKind::Instrument, ChannelFormat::Stereo, Some("Keys"));
+        let cid = e.execute("midi.new_clip", &json!({"track":tid.0})).unwrap()["clip"].as_u64().unwrap();
+        e.execute("midi.note_add", &json!({"clip":cid,"pitch":60,"start_ticks":0,"velocity":95})).unwrap();
+        let untouched_notes = e.session().find_clip(ClipId(cid)).unwrap().1.content.clone();
+        let first = e.execute("midi.cc_set", &json!({"clip":cid,"cc":64,"tick":240,"value":127})).unwrap();
+        assert_eq!(first["updated"], false);
+        let overwrite = e.execute("midi.cc_set", &json!({"clip":cid,"cc":64,"tick":240,"value":0})).unwrap();
+        assert_eq!(overwrite["updated"], true);
+        e.execute("midi.cc_set", &json!({"clip":cid,"cc":1,"tick":0,"value":55})).unwrap();
+        let saved = e.session().clone();
+        let (bytes, _) = crate::io::session_bundle(e.session()).unwrap();
+        let mut opened = Engine::default();
+        assert!(crate::io::open_session_bytes(&mut opened, "ORVIA3B.scraftz", &bytes).unwrap().is_empty());
+        assert_eq!(opened.session().find_clip(ClipId(cid)).unwrap().1.content, saved.find_clip(ClipId(cid)).unwrap().1.content);
+        assert!(e.undo(), "CC additions must be undoable");
+        assert!(e.redo(), "redo must preserve CC values");
+        assert_eq!(e.session(), &saved);
+
+        assert_eq!(e.execute("midi.cc_delete", &json!({"clip":cid,"cc":64,"tick":240})).unwrap()["deleted"], 1);
+        assert!(e.undo());
+        assert_eq!(e.session(), &saved);
+        // Invalid data and clip locks must never modify the project.
+        let before = e.session().clone();
+        assert!(e.execute("midi.cc_set", &json!({"clip":cid,"cc":128,"tick":0,"value":8})).is_err());
+        assert!(e.execute("midi.cc_set", &json!({"clip":cid,"cc":11,"tick":-1,"value":8})).is_err());
+        assert!(e.execute("midi.cc_set", &json!({"clip":cid,"cc":11,"tick":0,"value":128})).is_err());
+        assert!(e.execute("midi.cc_delete", &json!({"clip":u64::MAX,"cc":1,"tick":0})).is_err());
+        assert_eq!(e.session(), &before);
+        e.session_mut().find_clip_mut(ClipId(cid)).unwrap().time_locked = true;
+        let locked = e.session().clone();
+        assert!(e.execute("midi.cc_set", &json!({"clip":cid,"cc":64,"tick":300,"value":127})).is_err());
+        assert_eq!(e.session(), &locked);
+        // Notes are untouched by controller edits (both CC and notes share one Sequence).
+        if let ClipContent::Midi { sequence } = &saved.find_clip(ClipId(cid)).unwrap().1.content {
+            if let ClipContent::Midi { sequence: notes_before } = &untouched_notes {
+                assert_eq!(sequence.notes, notes_before.notes);
+            } else { unreachable!(); }
+        } else { unreachable!(); }
     }
 
     #[test]
