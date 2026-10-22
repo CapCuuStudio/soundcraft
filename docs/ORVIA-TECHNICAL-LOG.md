@@ -138,3 +138,26 @@ Không khởi chạy GitHub Actions; chưa có Rust/Cargo trong container; khôn
 ## Giai đoạn 2A — Font tiếng Việt và bố cục gọn (22/10/2026)
 
 Người dùng duyệt Bước 2A; đã đọc nhật ký chung/nhánh, fonts.rs, Info Line, Inspector, AGENTS.md và ATTRIBUTION.md. Nhúng Be Vietnam Pro Regular .ttf từ Google Fonts, SIL OFL 1.1, vào `FontDefinitions` của egui chỉ ở wasm32 để dấu tiếng Việt hiển thị trong canvas thực, thêm `assets/fonts/OFL.txt` và attribution. Thêm test header TTF và kiểm tra đăng ký font trong 3 family trên WASM. Đưa nhãn tiếng Việt vào Info Line và Inspector/Right Zone, thu Info Line 33→31px và đưa thông báo input browser xuống hàng riêng để tránh tràn tại 1366x768. Bảo toàn transport/engine/audio/MIDI/session và toolbar chức năng. Cần Cloudflare deploy successful đúng HEAD, test chữ dấu tiếng Việt trong Chrome và QA chức năng trước khi đánh dấu PASS. Không tự chạy Actions/CMD/TinyFish hoặc merge production.
+
+## Giai đoạn 2C — Rà soát tiếp và sửa context menu (22/10/2026)
+
+**Trước sửa:** Đã đọc nhật ký LUNOR MUSIC trên Google Drive, nhật ký ORVIA này, AGENTS.md, ROADMAP.md, docs/gaps.md, QA 2C và source PR #9. GitHub Pages bot bình luận PR #9 cho commit `b7137e4` **Deploy successful**, immutable https://75f57c9c.orvia-daw-preview.pages.dev; compare branch xác nhận HEAD cũ là chính commit đó. Bản 2C có bằng chứng build thành công, **chưa có browser runtime QA/Cargo test**.
+
+**Nguyên nhân lỗi mới BUG-2C-06:** Context menu ở `edit_window.rs` lưu ClipId khi nhấp phải nhưng nhiều lệnh clip vẫn có precondition `has_selection`, gây không thực thi nếu chưa chọn Track/Clip. **Sửa giới hạn:** khi người dùng bấm hành động context clip, `edit.select` noundo chọn đúng ClipId (`exact:true`) trước khi gọi lệnh, bảo vệ việc target không nhầm sang clip đã chọn trước đó. Bổ sung test engine cho Mute/Edit Lock đúng clip, clip track khác giữ nguyên. QA report 2C cập nhật bằng chứng Cloudflare cùng lưu ý version.
+
+**Chưa xác minh:** Rust tests và Chrome hành động Mute/Lock/Quantize/context mới. Commit mới cần Cloudflare deploy đúng SHA riêng; không đánh đồng với build thành công `b7137e4`. Không chạy GitHub Actions, TinyFish, CMD máy người dùng, không sửa main/production, không dịch vụ trả phí.
+
+**Bước tiếp theo:** theo dõi Cloudflare PR #9 của commit mới; nếu success, người dùng mở preview để thử context-menu Mute/Lock/Quantize, duplicate/split/Undo, lưu/mở .scraftz và phát audio. Chưa chuyển GĐ3 trước cổng nghiệm thu.
+
+## Giai đoạn 2C — Ngăn xóa nhầm clip khi menu Delete (22/10/2026)
+
+**Đã đọc trước khi sửa:** nhật ký LUNOR MUSIC Google Drive, tài liệu này, AGENTS.md, ROADMAP.md, docs/gaps.md và báo cáo QA 2C, cùng source `cmd/edit.rs`, `cmd/clip.rs`, `edit_window.rs`. Xác nhận Cloudflare bot PR #9 `0f9f0b8` Deploy successful tại https://765acb46.orvia-daw-preview.pages.dev, branch HEAD đúng SHA trước sửa; không truy cập được trực tiếp trang Cloudflare (DNS từ môi trường công cụ). Không có rustc/cargo tại môi trường nên Rust unit tests chưa chạy.
+
+**BUG-2C-07 dữ liệu:** `Delete` trong menu chuột phải đang chọn một clip, rồi gọi `edit.clear` xóa mọi clip trong khoảng thời gian chọn trên track. Có nguy cơ làm mất/cắt clip chồng vùng. Sửa giới hạn: lệnh engine `clip.delete_one` xóa duy nhất target ClipId, từ chối clip bị khóa hoặc ID sai, xóa selection còn treo; GUI Delete chuyển sang lệnh này và disabled nếu locked; không sửa hành vi edit.clear cho xóa khoảng chủ ý. Test engine `orvia_stage2c_delete_one_preserves_overlaps_locks_and_undo` kiểm tra overlapping clip/track khác giữ nguyên, Undo/Redo và không biến đổi khi locked/missing id.
+
+**QA gate:** source+tests committed không đồng nghĩa PASS; phải có Cloudflare deploy đúng commit sửa Delete, Cargo test và Chrome runtime QA với audio/save/open. Không merge main hoặc production, không Actions/TinyFish, không dùng dịch vụ phí hoặc CMD máy người dùng.
+
+## Giai đoạn 2C — Bổ sung an toàn xóa clip và khoảng chọn (22/10/2026)
+
+Đã đọc lại nhật ký dự án Google Drive, báo cáo QA và nhật ký repo; Cloudflare Pages bot PR #9 xác nhận **Deploy successful** đúng commit `4463fa519b865b430173fffe81ebe1b4f4e38c83`, Preview bất biến https://23b392b0.orvia-daw-preview.pages.dev; GitHub compare HEAD match. Cloudflare thành công chỉ là bằng chứng build/deploy, chưa xác minh browser/audio.
+Audit `clip.delete_one` phát hiện trạng thái chọn có thể giữ lại `edit.selection` với khoảng thời gian của clip đã bị xóa. Vì người dùng sẽ tiếp tục edit sau Delete, vùng chọn mồ côi có thể khiến lệnh range-based tiếp theo xóa nhầm vật liệu còn lại. Sửa để collapse khoảng chọn về một điểm khi clip đang chọn cuối cùng bị xóa; cập nhật `timeline_selection` khi linked, còn lựa chọn chưa liên quan không đổi. Bổ sung test `orvia_stage2c_delete_selected_clip_clears_stale_range`; cập nhật báo cáo QA. Chưa chạy Cargo tests/Chrome runtime (không có cargo/rustc và môi trường không truy cập URL Cloudflare), không tự chạy Actions, TinyFish, CMD máy người dùng, hay phí. Nhánh PR #9 vẫn độc lập main/production. Cổng tiếp theo là Cloudflare build của commit mới và nghiệm thu thao tác thật (Delete/Undo, Duplicate/Split, Save/Open, Play, Export).

@@ -68,8 +68,9 @@ pub fn specs() -> Vec<CommandSpec> {
         cmd!("clip.loop", "Loop...", ["Clip"], Some("Cmd+Alt+L"), "{clips?, count?: n, length?: samples}", has_selection, loop_clips),
         // Event-specific actions for ORVIA's timeline (do not silently split
         // or duplicate every overlapping event in a track).
-        cmd!("clip.duplicate_one", "Duplicate Event", [], None, "{clip: id} (inserts after event; ripples later clips rather than overwriting)", has_selection, duplicate_one),
-        cmd!("clip.split_one", "Split Event", [], None, "{clip: id, at: samples}", has_selection, split_one),
+        cmd!("clip.duplicate_one", "Duplicate Event", [], None, "{clip: id} (inserts after event; ripples later clips rather than overwriting)", always, duplicate_one),
+        cmd!("clip.split_one", "Split Event", [], None, "{clip: id, at: samples}", always, split_one),
+        cmd!("clip.delete_one", "Delete Event", [], None, "{clip: id} (removes only this event)", always, delete_one),
         cmd!("clip.rename", "Rename...", ["Clip"], Some("Cmd+Alt+Shift+R"), "{clip?, name}", has_selection, rename),
         cmd!("clip.gain", "Clip Gain", [], None, "{clips?, db | delta_db}", has_selection, gain),
         cmd!("clip.gain_nudge_up", "Nudge Clip Gain Up", [], Some("Ctrl+Shift+Up"), "{clips?}", has_selection, |e, p| nudge_gain(e, p, 1.0)),
@@ -365,6 +366,36 @@ fn split_one(e: &mut Engine, p: &Value) -> Result<Value> {
     Ok(json!({"split": 1, "left": id.0, "right": new_id.0}))
 }
 
+/// Delete the specified event only. A context-menu Delete must never erase
+/// other overlapping events because the edit selection spans their times.
+fn delete_one(e: &mut Engine, p: &Value) -> Result<Value> {
+    let id = clip_id(p, "clip.delete_one")?;
+    let (tid, clip) = e.session().find_clip(id)
+        .map(|(track, clip)| (track, clip.clone()))
+        .ok_or_else(|| bad("clip.delete_one", "clip not found"))?;
+    if clip.edit_locked || clip.time_locked {
+        return Err(bad("clip.delete_one", "clip is locked"));
+    }
+    let s = e.session_mut();
+    let playlist = s.track_mut(tid).and_then(|track| track.playlist_mut())
+        .ok_or_else(|| bad("clip.delete_one", "track playlist not found"))?;
+    let index = playlist.clips.iter().position(|c| c.id == id)
+        .ok_or_else(|| bad("clip.delete_one", "clip no longer in playlist"))?;
+    playlist.clips.remove(index);
+    // A selected clip also owns the edit range shown on the timeline.
+    // Collapse that range when the last selected clip is deleted, otherwise
+    // a subsequent range action can unintentionally target surviving events.
+    let was_selected = s.edit.selected_clips.contains(&id);
+    s.edit.selected_clips.retain(|selected| *selected != id);
+    if was_selected && s.edit.selected_clips.is_empty() {
+        s.edit.selection.end = s.edit.selection.start;
+        if s.edit.link_timeline_edit {
+            s.edit.timeline_selection = s.edit.selection;
+        }
+    }
+    Ok(json!({"deleted": id.0}))
+}
+
 fn rename(e: &mut Engine, p: &Value) -> Result<Value> {
     let name = str_param(p, "name").map(str::trim).filter(|n| !n.is_empty()).ok_or_else(|| bad("clip.rename", "`name` required"))?.to_string();
     let ids = clip_ids_param(e, p);
@@ -441,6 +472,179 @@ mod tests {
         assert!(e.session().find_clip(right).is_none(), "undo removes split child");
         assert!(e.undo(), "duplicate must undo");
         assert_eq!(e.session().track(keys).expect("Keys track").clips(), before.as_slice());
+    }
+
+    /// Context-menu actions target their explicit clip even if the user has
+    /// no edit selection. A right-click must not silently do nothing.
+    #[test]
+    fn orvia_stage2c_explicit_clip_does_not_require_track_selection() {
+        let mut engine = crate::demo::demo_engine();
+        let original = engine.session().track_by_name("Keys").unwrap().clips()[0].clone();
+        engine.execute("edit.select_none", &json!({})).unwrap();
+        assert!(engine.session().edit.selected_tracks.is_empty());
+        assert!(engine.session().edit.selected_clips.is_empty());
+        let result = engine.execute("clip.duplicate_one", &json!({"clip": original.id.0})).unwrap();
+        assert_eq!(result["duplicated"], 1);
+    }
+
+    /// Out-of-range, locked and non-existent targets must never alter a project.
+    #[test]
+    fn orvia_stage2c_invalid_split_does_not_change_project() {
+        let mut engine = crate::demo::demo_engine();
+        let original = engine.session().track_by_name("Keys").unwrap().clips()[0].clone();
+        let before = engine.session().clone();
+        for at in [original.start, original.end()] {
+            assert!(engine.execute("clip.split_one", &json!({"clip": original.id.0, "at": at})).is_err());
+            assert_eq!(engine.session(), &before, "failed split at {at} mutated project");
+        }
+        assert!(engine.execute("clip.split_one", &json!({"clip": u64::MAX, "at": original.start + 1})).is_err());
+        assert_eq!(engine.session(), &before);
+        engine.session_mut().find_clip_mut(original.id).unwrap().edit_locked = true;
+        let locked = engine.session().clone();
+        assert!(engine.execute("clip.duplicate_one", &json!({"clip": original.id.0})).is_err());
+        assert!(engine.execute("clip.split_one", &json!({"clip": original.id.0, "at": original.start + 1})).is_err());
+        assert_eq!(engine.session(), &locked, "locked clip must stay unchanged");
+    }
+
+    /// Existing clips must move rather than be overwritten; a locked event
+    /// must refuse the edit instead of silently destroying the arrangement.
+    #[test]
+    fn orvia_stage2c_duplicate_preserves_adjacent_clips_and_honours_downstream_lock() {
+        use soundcraft_model::{ChannelFormat, Clip, TrackKind};
+        let mut engine = crate::Engine::default();
+        let (track, ids) = {
+            let session = engine.session_mut();
+            let track = session.add_track(TrackKind::Midi, ChannelFormat::Mono, Some("Timeline QA"));
+            let mut ids = Vec::new();
+            for index in 0..3 {
+                let id = session.new_clip_id();
+                crate::edit::place_clip(
+                    session,
+                    track,
+                    Clip::midi(id, format!("Part {index}"), index * 48_000, 48_000, soundcraft_midi::Sequence::default()),
+                );
+                ids.push(id);
+            }
+            (track, ids)
+        };
+        engine.session_mut().find_clip_mut(ids[2]).unwrap().edit_locked = true;
+        let locked_state = engine.session().clone();
+        let denied = engine.execute("clip.duplicate_one", &json!({"clip": ids[0].0}));
+        assert!(denied.is_err(), "must refuse ripple into locked clip");
+        assert_eq!(engine.session(), &locked_state, "refused duplicate mutated data");
+
+        engine.session_mut().find_clip_mut(ids[2]).unwrap().edit_locked = false;
+        let before = engine.session().clone();
+        let copied = engine.execute("clip.duplicate_one", &json!({"clip": ids[0].0})).unwrap();
+        let new_id = ClipId(copied["clips"][0].as_u64().unwrap());
+        assert_eq!(engine.session().find_clip(ids[0]).unwrap().1.start, 0);
+        assert_eq!(engine.session().find_clip(new_id).unwrap().1.start, 48_000);
+        assert_eq!(engine.session().find_clip(ids[1]).unwrap().1.start, 96_000);
+        assert_eq!(engine.session().find_clip(ids[2]).unwrap().1.start, 144_000);
+        let after = engine.session().clone();
+        assert!(engine.undo());
+        assert_eq!(engine.session(), &before);
+        assert!(engine.redo());
+        assert_eq!(engine.session(), &after);
+        assert_eq!(engine.session().track(track).unwrap().clips().len(), 4);
+    }
+
+    /// Integration path that WebAssembly uses to save and reopen edited songs.
+    #[test]
+    fn orvia_stage2c_duplicate_split_bundle_roundtrip_preserves_midi() {
+        let mut engine = crate::demo::demo_engine();
+        let keys = engine.session().track_by_name("Keys").unwrap().id;
+        let original = engine.session().track(keys).unwrap().clips()[0].clone();
+        let before_other = engine.session().track_by_name("Snare").unwrap().clips().to_vec();
+        let clone_result = engine.execute("clip.duplicate_one", &json!({"clip": original.id.0})).unwrap();
+        let cloned = ClipId(clone_result["clips"][0].as_u64().unwrap());
+        let copy = engine.session().find_clip(cloned).unwrap().1.clone();
+        let cursor = copy.start + copy.length / 2;
+        engine.execute("clip.split_one", &json!({"clip": cloned.0, "at": cursor})).unwrap();
+        assert_eq!(engine.session().track_by_name("Snare").unwrap().clips(), before_other.as_slice());
+        let expected = engine.session().track(keys).unwrap().clips().to_vec();
+        let (bundle, _) = crate::io::session_bundle(engine.session()).unwrap();
+        let mut restored = crate::Engine::default();
+        let missing = crate::io::open_session_bytes(&mut restored, "orvia-2c.scraftz", &bundle).unwrap();
+        assert!(missing.is_empty(), "browser bundle lost media: {missing:?}");
+        assert_eq!(restored.session().track(keys).unwrap().clips(), expected.as_slice());
+        assert_eq!(restored.session().track_by_name("Snare").unwrap().clips(), before_other.as_slice());
+    }
+
+    /// ORVIA's clip context actions must target the right-clicked event,
+    /// even when no track was previously selected or another clip was active.
+    #[test]
+    fn orvia_stage2c_context_clip_actions_select_exact_target() {
+        let mut engine = crate::demo::demo_engine();
+        let target = engine.session().track_by_name("Keys").unwrap().clips()[0].id;
+        let other = engine.session().track_by_name("Snare").unwrap().clips()[0].clone();
+        let before_mute = engine.session().find_clip(target).unwrap().1.muted;
+
+        engine.execute("edit.select_none", &json!({})).unwrap();
+        engine.execute("edit.select", &json!({"clips": [target.0], "exact": true})).unwrap();
+        assert_eq!(engine.session().edit.selected_clips, vec![target]);
+        engine.execute("edit.mute_clips", &json!({"clips": [target.0]})).unwrap();
+        assert_ne!(engine.session().find_clip(target).unwrap().1.muted, before_mute);
+        assert_eq!(engine.session().find_clip(other.id).unwrap().1, &other);
+
+        engine.execute("clip.edit_lock", &json!({"clips": [target.0]})).unwrap();
+        assert!(engine.session().find_clip(target).unwrap().1.edit_locked);
+        assert_eq!(engine.session().find_clip(other.id).unwrap().1, &other);
+    }
+
+    /// Removing a right-clicked MIDI event cannot erase another event
+    /// overlapping the same time range, nor any event on another track.
+    #[test]
+    fn orvia_stage2c_delete_one_preserves_overlaps_locks_and_undo() {
+        let mut engine = crate::demo::demo_engine();
+        let keys = engine.session().track_by_name("Keys").unwrap().id;
+        let original = engine.session().track(keys).unwrap().clips()[0].clone();
+        let snare = engine.session().track_by_name("Snare").unwrap().clips().to_vec();
+        let overlap_id = engine.session_mut().new_clip_id();
+        let mut overlap = original.clone();
+        overlap.id = overlap_id;
+        overlap.name = "Keep overlapping MIDI".into();
+        engine.session_mut().track_mut(keys).unwrap().playlist_mut().unwrap().clips.push(overlap.clone());
+
+        engine.execute("edit.select_none", &json!({})).unwrap();
+        let before = engine.session().clone();
+        assert_eq!(engine.execute("clip.delete_one", &json!({"clip": original.id.0})).unwrap()["deleted"], original.id.0);
+        assert!(engine.session().find_clip(original.id).is_none());
+        assert_eq!(engine.session().find_clip(overlap_id).unwrap().1, &overlap);
+        assert_eq!(engine.session().track_by_name("Snare").unwrap().clips(), snare.as_slice());
+        let after = engine.session().clone();
+        assert!(engine.undo(), "delete must be undoable");
+        assert_eq!(engine.session(), &before);
+        assert!(engine.redo(), "delete must be redoable");
+        assert_eq!(engine.session(), &after);
+
+        engine.session_mut().find_clip_mut(overlap_id).unwrap().time_locked = true;
+        let locked = engine.session().clone();
+        assert!(engine.execute("clip.delete_one", &json!({"clip": overlap_id.0})).is_err());
+        assert_eq!(engine.session(), &locked);
+        assert!(engine.execute("clip.delete_one", &json!({"clip": u64::MAX})).is_err());
+        assert_eq!(engine.session(), &locked);
+    }
+
+    /// Deleting the last selected event must clear its old time range:
+    /// the next range-based command must not cut remaining overlapping clips.
+    #[test]
+    fn orvia_stage2c_delete_selected_clip_clears_stale_range() {
+        let mut engine = crate::demo::demo_engine();
+        let target = engine.session().track_by_name("Keys").unwrap().clips()[0].id;
+        engine.execute("edit.select", &json!({"clips": [target.0], "exact": true})).unwrap();
+        assert!(!engine.session().edit.selection.is_empty());
+        assert_eq!(engine.session().edit.selected_clips, vec![target]);
+
+        engine.execute("clip.delete_one", &json!({"clip": target.0})).unwrap();
+        assert!(engine.session().find_clip(target).is_none());
+        assert!(engine.session().edit.selected_clips.is_empty());
+        assert!(engine.session().edit.selection.is_empty());
+        if engine.session().edit.link_timeline_edit {
+            assert_eq!(engine.session().edit.timeline_selection, engine.session().edit.selection);
+        }
+        assert!(engine.undo());
+        assert!(engine.session().find_clip(target).is_some());
     }
 
     #[test]

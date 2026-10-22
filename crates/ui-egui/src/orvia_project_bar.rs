@@ -64,9 +64,11 @@ pub fn show(app: &mut SoundApp, ui: &mut Ui) {
                 );
                 ui.label("Bắt đầu");
                 let sr = f64::from(*rate).max(1.0);
+                // Time-lock protects Start/Length; keep gain and mute available.
+                let can_edit_time = !clip.edit_locked && !clip.time_locked;
                 let mut at = clip.start as f64 / sr;
                 let at_field = ui.add_enabled(
-                    !clip.edit_locked,
+                    can_edit_time,
                     egui::DragValue::new(&mut at).speed(0.05).range(0.0..=14_400.0).fixed_decimals(2).suffix(" s"),
                 );
                 if at_field.changed() {
@@ -85,7 +87,7 @@ pub fn show(app: &mut SoundApp, ui: &mut Ui) {
                 ui.label("Độ dài");
                 let mut length = clip.length as f64 / sr;
                 let length_field = ui.add_enabled(
-                    !clip.edit_locked,
+                    can_edit_time,
                     egui::DragValue::new(&mut length).speed(0.05).range(0.01..=14_400.0).fixed_decimals(2).suffix(" s"),
                 );
                 if length_field.changed() {
