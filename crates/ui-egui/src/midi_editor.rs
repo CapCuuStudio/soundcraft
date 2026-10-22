@@ -1,4 +1,6 @@
-//! The MIDI Editor: a piano roll with a velocity lane, docked under the Edit window.
+//! ORVIA Piano Roll and MIDI controller lanes.
+
+mod controller_lane;
 
 use crate::SoundApp;
 use crate::theme::{Tokens, bold, regular};
@@ -88,6 +90,7 @@ pub fn show(app: &mut SoundApp, ui: &mut Ui) {
     };
     let Some((track, clip)) = app.engine.session().find_clip(cid).map(|(t, c)| (t, c.clone())) else { return };
     let ClipContent::Midi { sequence } = &clip.content else { return };
+    let locked = clip.edit_locked || clip.time_locked;
     let track_color = app.engine.session().track(track).map_or([120, 120, 200], |t| t.color);
     ui.painter().text(
         pos2(header.min.x + 110.0, header.center().y),
@@ -131,7 +134,7 @@ pub fn show(app: &mut SoundApp, ui: &mut Ui) {
     if tb.small_button("Quantize").on_hover_text("Quantize to the grid").clicked() {
         op = Some(("event.quantize", json!({"grid": grid_ticks, "strength": 100})));
     }
-    if let Some((id, mut p)) = op {
+    if let Some((id, mut p)) = op.filter(|_| !locked) {
         p["clips"] = json!([cid.0]);
         let _ = app.run(id, p);
     }
@@ -141,10 +144,14 @@ pub fn show(app: &mut SoundApp, ui: &mut Ui) {
     let len_ticks = (s.tempo.samples_to_ticks(clip.end(), sr) - base_tick).max(1);
     let roll = Rect::from_min_max(pos2(full.min.x + KEY_W, header.max.y), pos2(full.max.x - 4.0, full.max.y - VEL_H - 4.0));
     let keys = Rect::from_min_max(pos2(full.min.x, roll.min.y), pos2(roll.min.x, roll.max.y));
-    let vel = Rect::from_min_max(pos2(roll.min.x, roll.max.y + 4.0), pos2(roll.max.x, full.max.y - 2.0));
+    let controller_header = Rect::from_min_size(pos2(full.min.x + 4.0, roll.max.y + 4.0), vec2(full.width() - 8.0, 24.0));
+    let vel = Rect::from_min_max(pos2(roll.min.x, controller_header.max.y), pos2(roll.max.x, full.max.y - 2.0));
     // Vertical range: centre on the notes the first time.
     let rows = (roll.height() / ROW_H).floor() as i32;
     if app.midi.clip != Some(cid) {
+        app.midi.selected.clear();
+        app.midi.drag = None;
+        app.midi.band = None;
         let hi = sequence.notes.iter().map(|n| i32::from(n.pitch)).max().unwrap_or(72);
         let lo = sequence.notes.iter().map(|n| i32::from(n.pitch)).min().unwrap_or(48);
         app.midi.scroll = (127 - (hi + lo) / 2 - rows / 2) as f32 * ROW_H;
@@ -277,7 +284,7 @@ pub fn show(app: &mut SoundApp, ui: &mut Ui) {
         d.dx_ticks = snap((p.x - d.start.x) / px_per_tick);
         d.dy_semi = -((p.y - d.start.y) / ROW_H).round() as i64;
     }
-    if resp.drag_stopped()
+    if !locked && resp.drag_stopped()
         && let Some(d) = app.midi.drag.take()
     {
         if d.resize {
@@ -303,7 +310,7 @@ pub fn show(app: &mut SoundApp, ui: &mut Ui) {
                 }
                 // Audition on the instrument would go here (needs a live MIDI input path).
             }
-            None if s.edit.tool == Tool::Pencil => {
+            None if s.edit.tool == Tool::Pencil && !locked => {
                 let pitch = pitch_at(p.y).clamp(0, 127);
                 let start = (((p.x - roll.min.x) / px_per_tick) as i64 / grid_ticks) * grid_ticks;
                 let _ = app.run(
@@ -345,34 +352,16 @@ pub fn show(app: &mut SoundApp, ui: &mut Ui) {
         } else {
             0
         };
-        if (semi != 0 || ticks != 0) && !app.midi.selected.is_empty() {
+        if !locked && (semi != 0 || ticks != 0) && !app.midi.selected.is_empty() {
             let _ = app.run("midi.notes_move", json!({"clip": cid.0, "indices": app.midi.selected, "ticks": ticks, "semitones": semi}));
         }
     }
-    if !app.midi.selected.is_empty()
+    if !locked && !app.midi.selected.is_empty()
         && !ui.ctx().egui_wants_keyboard_input()
         && ui.input(|i| i.key_pressed(egui::Key::Delete) || i.key_pressed(egui::Key::Backspace))
     {
         let _ = app.run("midi.note_delete", json!({"clip": cid.0, "indices": app.midi.selected}));
         app.midi.selected.clear();
     }
-    // Velocity lane.
-    ui.painter().rect_filled(vel, 0.0, Color32::from_rgb(28, 28, 30));
-    ui.painter().text(pos2(full.min.x + 6.0, vel.center().y), Align2::LEFT_CENTER, "Velocity", regular(10.0), t.text_dim);
-    let vresp = ui.interact(vel, ui.id().with(("vel", cid.0)), Sense::click_and_drag());
-    for (i, n) in sequence.notes.iter().enumerate() {
-        let x = x_of(n.start);
-        let h = (vel.height() - 4.0) * f32::from(n.velocity) / 127.0;
-        let col = if app.midi.selected.contains(&i) { Color32::WHITE } else { base };
-        ui.painter().line_segment([pos2(x + 1.0, vel.max.y - 2.0), pos2(x + 1.0, vel.max.y - 2.0 - h)], Stroke::new(3.0, col));
-        ui.painter().circle_filled(pos2(x + 1.0, vel.max.y - 2.0 - h), 2.5, col);
-    }
-    if (vresp.clicked() || vresp.dragged())
-        && let Some(p) = vresp.interact_pointer_pos()
-        && let Some((i, n)) = sequence.notes.iter().enumerate().min_by_key(|(_, n)| ((x_of(n.start) - p.x).abs() * 10.0) as i64)
-        && (x_of(n.start) - p.x).abs() < 8.0
-    {
-        let v = (((vel.max.y - 2.0 - p.y) / (vel.height() - 4.0)) * 127.0).round().clamp(1.0, 127.0) as i64;
-        let _ = app.engine.execute_merged("midi.note_edit", &json!({"clip": cid.0, "index": i, "velocity": v}), &format!("vel:{}", cid.0));
-    }
+    controller_lane::show(app, ui, cid, sequence, roll, controller_header, vel, base, grid_ticks, len_ticks, locked);
 }
