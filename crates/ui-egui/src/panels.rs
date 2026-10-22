@@ -240,69 +240,213 @@ pub fn orvia_browser(app: &mut SoundApp, ui: &mut Ui) {
     });
 }
 
-/// Compact, functional channel strips for the Cubase-inspired lower zone.
-/// Draws from the real session, and dispatches the same commands as the full mixer.
-pub fn orvia_lower_mixer(app: &mut SoundApp, ui: &mut Ui) {
-    panel_header(ui, "MIXCONSOLE");
-    let tracks: Vec<_> = app.engine.session().tracks.iter()
+/// Visible channel IDs in timeline order. The selection filter is a view only:
+/// it must never change the project's mixer state or hide Master permanently.
+fn orvia_mix_ids(session: &soundcraft_model::Session, selected_only: bool) -> Vec<soundcraft_model::TrackId> {
+    session.tracks.iter()
         .filter(|track| !track.hidden && track.kind != soundcraft_model::TrackKind::Video)
-        .cloned().collect();
-    egui::ScrollArea::horizontal()
-        .id_salt("orvia_lower_mix_scroll")
+        .filter(|track| !selected_only || session.edit.selected_tracks.contains(&track.id))
+        .map(|track| track.id)
+        .collect()
+}
+
+/// ORVIA 3A: a real, responsive MixConsole in the Project Lower Zone.
+/// All changes go through SoundCraft's existing engine commands and history.
+pub fn orvia_lower_mixer(app: &mut SoundApp, ui: &mut Ui) {
+    let t = Tokens::current();
+    let filter_id = egui::Id::new("orvia_stage3a_selected_only");
+    let mut selected_only = ui.ctx().data(|data| data.get_temp::<bool>(filter_id)).unwrap_or(false);
+    ui.horizontal(|ui| {
+        ui.label(egui::RichText::new("ORVIA  ·  MIXCONSOLE").strong().color(t.header_text));
+        ui.separator();
+        if ui.selectable_label(selected_only, "Track được chọn").on_hover_text("Chỉ hiển thị các track đang chọn; không thay đổi bản phối").clicked() {
+            selected_only = !selected_only;
+            ui.ctx().data_mut(|data| data.insert_temp(filter_id, selected_only));
+        }
+        let count = orvia_mix_ids(app.engine.session(), selected_only).len();
+        ui.label(egui::RichText::new(format!("{count} kênh")).small().color(t.text_dim));
+    });
+    ui.separator();
+    let ids = orvia_mix_ids(app.engine.session(), selected_only);
+    if ids.is_empty() {
+        ui.label("Không có track đang chọn. Tắt bộ lọc để xem toàn bộ MixConsole.");
+        return;
+    }
+
+    egui::ScrollArea::horizontal().id_salt("orvia_lower_mix_scroll")
         .auto_shrink([false, false])
         .show(ui, |ui| {
             ui.horizontal_top(|ui| {
                 ui.spacing_mut().item_spacing.x = 3.0;
-                for track in &tracks {
-                    egui::Frame::NONE
-                        .fill(Tokens::current().strip_bg)
-                        .stroke(Stroke::new(1.0, Tokens::current().border))
-                        .inner_margin(egui::Margin::same(4))
+                for id in ids {
+                    let Some(track) = app.engine.session().track(id).cloned() else { continue };
+                    let selected = app.engine.session().edit.selected_tracks.contains(&id);
+                    let fill = if selected { t.strip_selected } else { t.strip_bg };
+                    egui::Frame::NONE.fill(fill).stroke(Stroke::new(1.0, t.border))
+                        .inner_margin(egui::Margin::same(5))
                         .show(ui, |ui| {
-                            ui.set_min_width(99.0);
-                            ui.set_max_width(116.0);
+                            ui.set_min_width(130.0);
+                            ui.set_max_width(130.0);
                             ui.horizontal(|ui| {
-                                let (r, _) = ui.allocate_exact_size(vec2(6.0, 17.0), Sense::hover());
-                                ui.painter().rect_filled(r, 1.0, rgb(track.color));
-                                ui.label(egui::RichText::new(&track.name).small().strong());
-                            });
-                            ui.horizontal(|ui| {
-                                if ui.selectable_label(track.mixer.mute, "M").clicked() {
-                                    let _ = app.run("mix.mute", json!({"track": track.id.0}));
+                                let (marker, _) = ui.allocate_exact_size(vec2(6.0, 18.0), Sense::hover());
+                                ui.painter().rect_filled(marker, 1.0, rgb(track.color));
+                                let name = ui.add_sized(
+                                    [112.0, 21.0],
+                                    egui::Button::new(egui::RichText::new(&track.name).small().strong()).selected(selected),
+                                ).on_hover_text("Chọn Track trong Inspector");
+                                if name.clicked() {
+                                    let _ = app.run("edit.select", json!({"tracks": [id.0], "exact": true}));
                                 }
-                                if ui.selectable_label(track.mixer.solo, "S").clicked() {
-                                    let _ = app.run("mix.solo", json!({"track": track.id.0}));
+                                if name.double_clicked() {
+                                    app.dialogs.open_rename_track(id, &track.name);
                                 }
                             });
-                            let mut gain = track.mixer.volume_db.max(-60.0);
+                            ui.label(egui::RichText::new(track.kind.label()).small().color(t.text_dim));
                             ui.horizontal(|ui| {
-                                let response = ui.add_sized(
-                                    [50.0, 127.0],
-                                    egui::Slider::new(&mut gain, -60.0..=12.0).vertical().show_value(false),
+                                ui.spacing_mut().item_spacing.x = 3.0;
+                                if track.kind != soundcraft_model::TrackKind::Master {
+                                    if ui.add_sized([52.0, 20.0], egui::Button::new("M").selected(track.mixer.mute))
+                                        .on_hover_text("Tắt/bật tiếng Track").clicked()
+                                    {
+                                        let _ = app.run("mix.mute", json!({"track": id.0}));
+                                    }
+                                    if ui.add_sized([52.0, 20.0], egui::Button::new("S").selected(track.mixer.solo))
+                                        .on_hover_text("Solo Track").clicked()
+                                    {
+                                        let _ = app.run("mix.solo", json!({"track": id.0}));
+                                    }
+                                } else {
+                                    ui.label(egui::RichText::new("MASTER OUTPUT").small().color(t.text_dim));
+                                }
+                            });
+                            ui.add_space(3.0);
+
+                            // Real vertical fader and audio peak meter, not a decorative canvas.
+                            ui.horizontal(|ui| {
+                                let (fr, _) = ui.allocate_exact_size(vec2(75.0, 116.0), Sense::hover());
+                                if let Some(db) = crate::widgets::fader(ui, fr, track.mixer.volume_db, ui.id().with(("orvia-3a-fader", id.0))) {
+                                    app.gesture = Some(crate::Gesture::Fader { track: id, start_db: track.mixer.volume_db });
+                                    if let Err(error) = app.engine.execute_merged(
+                                        "mix.volume", &json!({"track": id.0, "db": db}),
+                                        &format!("orvia:3a:volume:{}", id.0),
+                                    ) {
+                                        app.ui.status = error.to_string();
+                                    }
+                                }
+                                let (mr, _) = ui.allocate_exact_size(vec2(30.0, 109.0), Sense::hover());
+                                let md = app.meters.get(&id).copied().unwrap_or_default();
+                                let width = (mr.width() - 2.0) / 2.0;
+                                crate::widgets::meter(
+                                    ui, Rect::from_min_size(mr.min, vec2(width, mr.height())),
+                                    md.level[0], md.hold[0], md.clip,
                                 );
-                                if response.changed() {
-                                    let _ = app.engine.execute_merged(
-                                        "mix.volume",
-                                        &json!({"track": track.id.0, "db": gain}),
-                                        &format!("orvia:mix:vol:{}", track.id.0),
-                                    );
-                                }
-                                ui.label(format!("{:.1}", track.mixer.volume_db));
+                                crate::widgets::meter(
+                                    ui, Rect::from_min_size(pos2(mr.min.x + width + 2.0, mr.min.y), vec2(width, mr.height())),
+                                    md.level[1], md.hold[1], md.clip,
+                                );
                             });
-                            if let Some(pan) = track.mixer.pan.first().copied() {
-                                let mut value = pan;
-                                if ui.add(egui::Slider::new(&mut value, -1.0..=1.0).show_value(false)).changed() {
-                                    let _ = app.engine.execute_merged(
-                                        "mix.pan",
-                                        &json!({"track": track.id.0, "pan": value, "index": 0}),
-                                        &format!("orvia:mix:pan:{}", track.id.0),
-                                    );
+                            ui.horizontal(|ui| {
+                                let current = track.mixer.volume_db;
+                                let display = if current <= -120.0 { "-∞".to_string() } else { format!("{current:.1} dB") };
+                                ui.label(egui::RichText::new(display).monospace().small());
+                                if ui.small_button("0 dB").on_hover_text("Đưa fader về mức 0 dB").clicked() {
+                                    let _ = app.run("mix.volume", json!({"track": id.0, "db": 0.0}));
                                 }
+                            });
+
+                            // Pan supports every actual stereo/dual-panner index, not dummy knobs.
+                            for (index, current) in track.mixer.pan.iter().copied().take(2).enumerate() {
+                                let mut value = current;
+                                let name = if track.mixer.pan.len() == 1 { "Pan" } else if index == 0 { "Pan L" } else { "Pan R" };
+                                ui.horizontal(|ui| {
+                                    ui.label(egui::RichText::new(name).small());
+                                    let response = ui.add_sized(
+                                        [75.0, 18.0],
+                                        egui::Slider::new(&mut value, -1.0..=1.0).show_value(false),
+                                    ).on_hover_text(format!("{name}: {:.0}", current * 100.0));
+                                    if response.changed() {
+                                        if let Err(error) = app.engine.execute_merged(
+                                            "mix.pan",
+                                            &json!({"track": id.0, "pan": value, "index": index}),
+                                            &format!("orvia:3a:pan:{}:{index}", id.0),
+                                        ) {
+                                            app.ui.status = error.to_string();
+                                        }
+                                    }
+                                    if response.drag_stopped() || response.lost_focus() {
+                                        app.engine.end_merge();
+                                    }
+                                    if ui.small_button("C").on_hover_text("Đưa Pan về chính giữa").clicked() {
+                                        let _ = app.run("mix.pan", json!({"track": id.0, "pan": 0.0, "index": index}));
+                                    }
+                                });
+                            }
+
+                            if track.kind != soundcraft_model::TrackKind::Master {
+                                ui.menu_button("Sends · Bus", |ui| {
+                                    for (slot, send) in track.mixer.sends.iter().enumerate().take(4) {
+                                        ui.horizontal(|ui| {
+                                            ui.label(format!("{}", slot + 1));
+                                            let route = send.as_ref().map_or_else(
+                                                || "Chọn Bus...".to_string(),
+                                                |send| crate::mix_window::route_name(app, &send.target),
+                                            );
+                                            ui.menu_button(route, |ui| {
+                                                crate::mix_window::send_route_menu(app, ui, id, slot, send.as_ref().map(|send| &send.target));
+                                            });
+                                            if let Some(send) = send {
+                                                let mut db = send.level_db.clamp(-60.0, 12.0);
+                                                let response = ui.add(egui::Slider::new(&mut db, -60.0..=12.0)
+                                                    .show_value(false)).on_hover_text(format!("Send {}: {:.1} dB", slot + 1, send.level_db));
+                                                if response.changed() {
+                                                    if let Err(error) = app.engine.execute_merged(
+                                                        "mix.send_level",
+                                                        &json!({"track": id.0, "slot": slot, "db": db}),
+                                                        &format!("orvia:3a:send:{}:{slot}", id.0),
+                                                    ) {
+                                                        app.ui.status = error.to_string();
+                                                    }
+                                                }
+                                                if response.drag_stopped() || response.lost_focus() {
+                                                    app.engine.end_merge();
+                                                }
+                                            }
+                                        });
+                                    }
+                                });
+                                let output = crate::mix_window::route_name(app, &track.mixer.output);
+                                let response = ui.add_sized(
+                                    [124.0, 20.0],
+                                    egui::Button::new(format!("OUT: {output}")),
+                                ).on_hover_text("Chọn Main hoặc Bus thực của dự án");
+                                crate::mix_window::route_popup(app, &response, id, false);
+                            } else {
+                                ui.label(egui::RichText::new("MAIN MIX").small().color(t.text_dim));
                             }
                         });
                 }
             });
         });
+}
+
+#[cfg(test)]
+mod orvia_stage3a_tests {
+    use super::*;
+    use soundcraft_model::{ChannelFormat, Session, TrackKind};
+
+    #[test]
+    fn mixconsole_filters_only_the_visible_selected_tracks_without_editing_audio() {
+        let mut session = Session::default();
+        let a = session.add_track(TrackKind::Audio, ChannelFormat::Stereo, Some("A"));
+        let b = session.add_track(TrackKind::Midi, ChannelFormat::Mono, Some("B"));
+        let hidden = session.add_track(TrackKind::Audio, ChannelFormat::Stereo, Some("Hidden"));
+        session.track_mut(hidden).unwrap().hidden = true;
+        session.edit.selected_tracks = vec![b, hidden];
+        let original = session.clone();
+        assert_eq!(orvia_mix_ids(&session, false), vec![a, b]);
+        assert_eq!(orvia_mix_ids(&session, true), vec![b]);
+        assert_eq!(session, original, "MixConsole filtering must be read-only");
+    }
 }
 
 /// The strip down the Tracks panel's right edge: the lists' scroll bars, and a clear line between
