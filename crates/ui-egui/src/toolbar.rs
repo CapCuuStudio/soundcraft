@@ -9,9 +9,16 @@ use soundcraft_engine::edit::{SHUFFLE_LOCK, SNAP_TO_GRID};
 use soundcraft_model::{EditMode, Tool};
 use soundcraft_time::{TimeFormat, format_length};
 
-/// Two compact rows: transport/time first, edit tools below.
-/// Preserve the Timeline height and allow independent horizontal scrolling on narrow screens.
+/// Use a single compact row when all groups fit; only narrow screens need two rows.
+/// Avoid wasting vertical Timeline space on a wide desktop.
 pub const HEIGHT: f32 = 140.0;
+pub const WIDE_HEIGHT: f32 = 78.0;
+const SINGLE_ROW_MIN_WIDTH: f32 = 1_550.0;
+
+/// Called by the Edit window before allocating its toolbar TopPanel.
+pub fn height_for_width(width: f32) -> f32 {
+    if width >= SINGLE_ROW_MIN_WIDTH { WIDE_HEIGHT } else { HEIGHT }
+}
 
 fn group(ui: &mut Ui, w: f32, h: f32, add: impl FnOnce(&mut Ui, Rect)) {
     let t = Tokens::current();
@@ -26,6 +33,31 @@ fn group(ui: &mut Ui, w: f32, h: f32, add: impl FnOnce(&mut Ui, Rect)) {
 pub fn show(app: &mut SoundApp, ui: &mut Ui) {
     let t = Tokens::current();
     ui.painter().rect_filled(ui.max_rect(), 0.0, t.toolbar_bg);
+
+    if ui.available_width() >= SINGLE_ROW_MIN_WIDTH {
+        // Full-size windows have enough room for every existing control in 78px.
+        // Grid is placed before edit tools so it stays easy to locate.
+        egui::ScrollArea::horizontal()
+            .id_salt("orvia_toolbar_wide_row")
+            .scroll_bar_visibility(egui::scroll_area::ScrollBarVisibility::VisibleWhenNeeded)
+            .show(ui, |ui| {
+                ui.horizontal(|ui| {
+                    ui.spacing_mut().item_spacing.x = 5.0;
+                    ui.add_space(5.0);
+                    transport(app, ui);
+                    counters(app, ui);
+                    tempo_meter(app, ui);
+                    grid_nudge(app, ui);
+                    edit_modes(app, ui);
+                    tools(app, ui);
+                    zoom_group(app, ui);
+                    output_meter(app, ui);
+                });
+            });
+        return;
+    }
+
+    // Narrow windows keep the independent scrollable two-row layout.
     ui.vertical(|ui| {
         ui.spacing_mut().item_spacing = vec2(0.0, 3.0);
         ui.add_space(3.0);
@@ -470,5 +502,18 @@ fn output_meter(app: &mut SoundApp, ui: &mut Ui) {
     for c in 0..2 {
         let rr = Rect::from_min_size(pos2(r.min.x + 2.0 + c as f32 * (w + 2.0), r.min.y), vec2(w, r.height()));
         crate::widgets::meter(ui, rr, m.level[c], m.hold[c], m.clip);
+    }
+}
+
+#[cfg(test)]
+mod orvia_4a2_layout_tests {
+    use super::*;
+    #[test]
+    fn responsive_toolbar_gives_wide_windows_more_timeline() {
+        assert_eq!(height_for_width(1366.0), HEIGHT);
+        assert_eq!(height_for_width(SINGLE_ROW_MIN_WIDTH - 1.0), HEIGHT);
+        assert_eq!(height_for_width(SINGLE_ROW_MIN_WIDTH), WIDE_HEIGHT);
+        assert_eq!(height_for_width(1738.0), WIDE_HEIGHT);
+        assert!(WIDE_HEIGHT < HEIGHT);
     }
 }
