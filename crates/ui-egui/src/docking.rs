@@ -94,10 +94,11 @@ impl Default for Workspace {
             layout: Layout {
                 // Cubase-style Project Zone: one Inspector and the existing
                 // timeline's own track headers, not a second duplicate Tracks list.
+                // Inspector starts wide enough for controls, while remaining resizable.
                 // The Lower Zone is opened on demand, leaving the timeline tall.
                 root: Some(split(
                     SplitAxis::Horizontal,
-                    SplitSize::FixedFirst(222.0),
+                    SplitSize::FixedFirst(270.0),
                     tabs(Panel::Inspector),
                     split(
                         SplitAxis::Horizontal,
@@ -493,7 +494,7 @@ pub(crate) fn minimum_body(ui: &mut egui::Ui, minimum: egui::Vec2, body: impl Fn
 fn panel_limits(panel: &Panel) -> PanelLimits {
     let (min, max_width) = match panel {
         Panel::Canvas => (egui::vec2(300.0, 240.0), 1_000_000.0),
-        Panel::Inspector => (egui::vec2(165.0, 160.0), 360.0),
+        Panel::Inspector => (egui::vec2(190.0, 160.0), 410.0),
         Panel::Browser => (egui::vec2(200.0, 160.0), 520.0),
         Panel::MixConsole => (egui::vec2(420.0, 180.0), 1_000_000.0),
         Panel::Tracks => (egui::vec2(140.0, 120.0), 520.0),
@@ -509,6 +510,18 @@ fn panel_limits(panel: &Panel) -> PanelLimits {
 #[cfg(test)]
 mod orvia_layout_tests {
     use super::{Panel, Workspace, mix_default};
+
+    #[test]
+    fn orvia_4a1_inspector_default_is_readable_but_resizable() {
+        let workspace = Workspace::default();
+        let Some(Node::Split { size: SplitSize::FixedFirst(px), .. }) = workspace.layout.root.as_ref() else {
+            panic!("The Inspector must be the left split of the edit workspace");
+        };
+        assert!(*px >= 260.0, "4A1 Inspector default must not start too narrow");
+        let limits = panel_limits(&Panel::Inspector);
+        assert!(limits.min.x <= 200.0, "Keep the inspector resizable for small displays");
+        assert!(limits.max.x >= *px, "The default must fit within the panel bounds");
+    }
 
     #[test]
     fn edit_workspace_has_inspector_timeline_and_clip_browser() {
