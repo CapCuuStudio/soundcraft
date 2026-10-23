@@ -192,3 +192,8 @@ Audit `clip.delete_one` phát hiện trạng thái chọn có thể giữ lại 
 ## ORVIA 3D — 2026-10-23
 
 Đã đọc nhật ký Drive chung và nhật ký repo, AGENTS, ROADMAP, gaps, QA 3C, kế hoạch UI và mã Track Automation. GĐ3C xác nhận Cloudflare build PASS đúng 4a8f1cf, chưa nghiệm thu Chrome/Cargo. GĐ3D được chọn để hoàn thành Track Automation khác MIDI CC 3B. Nhánh feature/orvia-3d-track-automation kế thừa 3C, Draft PR #13. Mã: module panels/orvia_automation.rs tích hợp Inspector trong panels.rs, thêm/chỉnh/xóa Volume/Pan/Mute automation tại cursor và điểm hiện hữu qua lệnh track.view, automation.set_point, automation.clear, automation.write_range thật; sử dụng Track::automation, hỗ trợ Undo/Redo và Save/Open không đổi schema. QA: docs/ORVIA-WEB-STAGE3D-QA.md. Chưa xác nhận build Cloudflare 3D hoặc Chrome audio/SaveOpen và Rust tests tại thời điểm viết. Giữ main/production và các giai đoạn cũ nguyên vẹn, không Actions/TinyFish/phí/CMD Windows.
+
+
+## ORVIA 3D nghiệm thu người dùng — 23/10/2026
+
+Người dùng đã xác nhận “xong rồi”. GitHub PR #13 vẫn Draft, Cloudflare Pages Deploy successful đúng commit 6f192bc9b454f321d5bf248471b320f014785c8c, preview https://61fdbe3b.orvia-daw-preview.pages.dev. Ghi nhận xác nhận hoàn thành bản thử web 3D nhưng không suy diễn từng hạng mục QA đã được chạy riêng. Rust Cargo unit tests chưa xác nhận PASS, không merge main hoặc production. Giai đoạn 4 tiếp theo là polish giao diện, responsive, phím tắt và kiểm thử hồi quy audio/MIDI; chỉ triển khai khi có yêu cầu mới.
