@@ -138,19 +138,17 @@ pub fn orvia_inspector(app: &mut SoundApp, ui: &mut Ui) {
                 ui.label("Đầu vào");
                 ui.label(egui::RichText::new("Chưa hỗ trợ thu âm trên web").small().weak());
             } else {
-                ui.horizontal(|ui| {
-                    ui.label("Đầu vào");
-                    let response = ui.button(crate::mix_window::input_name(app, &track))
-                        .on_hover_text("Chọn cổng âm thanh có sẵn");
-                    crate::mix_window::route_popup(app, &response, id, true);
-                });
+                ui.label("Đầu vào");
+                let response = ui.add_sized([ui.available_width(), 22.0],
+                    egui::Button::new(crate::mix_window::input_name(app, &track)))
+                    .on_hover_text("Chọn cổng âm thanh có sẵn");
+                crate::mix_window::route_popup(app, &response, id, true);
             }
-            ui.horizontal(|ui| {
-                ui.label("Đầu ra");
-                let response = ui.button(crate::mix_window::route_name(app, &track.mixer.output))
-                    .on_hover_text("Chọn Main hoặc Bus có thật trong dự án");
-                crate::mix_window::route_popup(app, &response, id, false);
-            });
+            ui.label("Đầu ra");
+            let response = ui.add_sized([ui.available_width(), 22.0],
+                egui::Button::new(crate::mix_window::route_name(app, &track.mixer.output)))
+                .on_hover_text("Chọn Main hoặc Bus có thật trong dự án");
+            crate::mix_window::route_popup(app, &response, id, false);
         });
         if track.kind == soundcraft_model::TrackKind::Instrument {
             egui::CollapsingHeader::new("Nhạc cụ").default_open(true).show(ui, |ui| {
@@ -172,35 +170,46 @@ pub fn orvia_inspector(app: &mut SoundApp, ui: &mut Ui) {
                 ui.horizontal(|ui| {
                     ui.label(format!("{:02}", slot + 1));
                     let label = send.as_ref().map_or_else(
-                        || "Chọn Bus...".to_string(),
+                        || "Chọn Bus…".to_string(),
                         |s| crate::mix_window::route_name(app, &s.target),
                     );
                     ui.menu_button(label, |ui| {
                         crate::mix_window::send_route_menu(app, ui, id, slot, send.as_ref().map(|s| &s.target));
                     });
-                    if let Some(send) = send {
-                        let mut db = send.level_db.clamp(-60.0, 12.0);
-                        if ui.add(egui::Slider::new(&mut db, -60.0..=12.0).show_value(false)).on_hover_text(
-                            format!("Send level: {:.1} dB", send.level_db)
-                        ).changed() {
-                            if let Err(error) = app.engine.execute_merged(
-                                "mix.send_level",
-                                &json!({"track": id.0, "slot": slot, "db": db}),
-                                &format!("orvia:send:{}:{}", id.0, slot),
-                            ) {
-                                app.ui.status = error.to_string();
-                            }
-                        }
-                        if ui.selectable_label(send.mute, "M").on_hover_text("Mute Send").clicked() {
-                            let _ = app.run("mix.send_level", json!({"track": id.0, "slot": slot, "mute": !send.mute}));
-                        }
-                        if ui.small_button("×").on_hover_text("Remove Send").clicked() {
-                            let _ = app.run("mix.send_remove", json!({"track": id.0, "slot": slot}));
+                });
+                if let Some(send) = send {
+                    ui.horizontal(|ui| {
+                        ui.label("Mức Send");
+                        ui.with_layout(egui::Layout::right_to_left(egui::Align::Center), |ui| {
+                            ui.label(egui::RichText::new(format!("{:.1} dB", send.level_db)).monospace());
+                        });
+                    });
+                    let mut db = send.level_db.clamp(-60.0, 12.0);
+                    if ui.add_sized([ui.available_width(), 20.0],
+                        egui::Slider::new(&mut db, -60.0..=12.0).show_value(false)).changed() {
+                        if let Err(error) = app.engine.execute_merged(
+                            "mix.send_level",
+                            &json!({"track": id.0, "slot": slot, "db": db}),
+                            &format!("orvia:send:{}:{}", id.0, slot),
+                        ) {
+                            app.ui.status = error.to_string();
                         }
                     }
-                });
+                    ui.horizontal(|ui| {
+                        if ui.selectable_label(send.mute, "M · Mute Send").clicked() {
+                            let _ = app.run("mix.send_level",
+                                json!({"track": id.0, "slot": slot, "mute": !send.mute}));
+                        }
+                        if ui.small_button("× Xóa").on_hover_text("Remove Send").clicked() {
+                            let _ = app.run("mix.send_remove", json!({"track": id.0, "slot": slot}));
+                        }
+                    });
+                }
+                ui.separator();
             }
-            ui.label(egui::RichText::new("Chọn Bus để tạo đường Send âm thanh thật.").small().weak());
+            ui.add(egui::Label::new(
+                egui::RichText::new("Chọn Bus để tạo đường Send âm thanh thật.").small().weak()
+            ).wrap());
         });
         egui::CollapsingHeader::new("Automation")
             .default_open(true)
