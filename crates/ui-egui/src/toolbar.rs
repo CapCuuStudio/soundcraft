@@ -9,7 +9,9 @@ use soundcraft_engine::edit::{SHUFFLE_LOCK, SNAP_TO_GRID};
 use soundcraft_model::{EditMode, Tool};
 use soundcraft_time::{TimeFormat, format_length};
 
-pub const HEIGHT: f32 = 78.0;
+/// Two compact rows: transport/time first, edit tools below.
+/// Preserve the Timeline height and allow independent horizontal scrolling on narrow screens.
+pub const HEIGHT: f32 = 140.0;
 
 fn group(ui: &mut Ui, w: f32, h: f32, add: impl FnOnce(&mut Ui, Rect)) {
     let t = Tokens::current();
@@ -19,28 +21,64 @@ fn group(ui: &mut Ui, w: f32, h: f32, add: impl FnOnce(&mut Ui, Rect)) {
     add(&mut child, r);
 }
 
+/// 4A.2: keep playback and timing controls visible before editing tools.
+/// The existing handlers stay unchanged; only their order, spacing and grouping differ.
 pub fn show(app: &mut SoundApp, ui: &mut Ui) {
     let t = Tokens::current();
-    let full = ui.max_rect();
-    ui.painter().rect_filled(full, 0.0, t.toolbar_bg);
-    ui.add_space(4.0);
-    egui::ScrollArea::horizontal()
-        .id_salt("edit_toolbar_scroll")
-        .scroll_bar_visibility(egui::scroll_area::ScrollBarVisibility::VisibleWhenNeeded)
-        .show(ui, |ui| {
-            ui.horizontal(|ui| {
-                ui.add_space(8.0);
-                ui.spacing_mut().item_spacing.x = 8.0;
-                transport(app, ui);
-                counters(app, ui);
-                tempo_meter(app, ui);
-                edit_modes(app, ui);
-                tools(app, ui);
-                grid_nudge(app, ui);
-                zoom_group(app, ui);
-                output_meter(app, ui);
+    ui.painter().rect_filled(ui.max_rect(), 0.0, t.toolbar_bg);
+    ui.vertical(|ui| {
+        ui.spacing_mut().item_spacing = vec2(0.0, 3.0);
+        ui.add_space(3.0);
+
+        // Row 1 is always the first thing visible: Play/Stop/Record, position,
+        // Tempo/Meter and Grid/Nudge. Other tools cannot push these off-screen.
+        egui::ScrollArea::horizontal()
+            .id_salt("orvia_toolbar_transport_row")
+            .scroll_bar_visibility(egui::scroll_area::ScrollBarVisibility::VisibleWhenNeeded)
+            .show(ui, |ui| {
+                ui.horizontal(|ui| {
+                    ui.spacing_mut().item_spacing.x = 6.0;
+                    ui.add_space(5.0);
+                    row_caption(ui, "PHÁT / NHỊP", 64.0);
+                    transport(app, ui);
+                    counters(app, ui);
+                    tempo_meter(app, ui);
+                    grid_nudge(app, ui);
+                    output_meter(app, ui);
+                });
             });
-        });
+
+        // Row 2 groups edit modes, tools and zoom. It scrolls independently
+        // when the browser is narrow, without hiding the transport controls.
+        egui::ScrollArea::horizontal()
+            .id_salt("orvia_toolbar_edit_row")
+            .scroll_bar_visibility(egui::scroll_area::ScrollBarVisibility::VisibleWhenNeeded)
+            .show(ui, |ui| {
+                ui.horizontal(|ui| {
+                    ui.spacing_mut().item_spacing.x = 6.0;
+                    ui.add_space(5.0);
+                    row_caption(ui, "CHỈNH SỬA", 52.0);
+                    edit_modes(app, ui);
+                    tools(app, ui);
+                    zoom_group(app, ui);
+                    let current = app.engine.session().edit.tool;
+                    ui.label(egui::RichText::new(format!("Công cụ: {}", current.label()))
+                        .small().color(Tokens::current().text_dim));
+                });
+            });
+    });
+}
+
+fn row_caption(ui: &mut Ui, title: &str, height: f32) {
+    let (r, _) = ui.allocate_exact_size(vec2(91.0, height), Sense::hover());
+    let t = Tokens::current();
+    ui.painter().text(
+        pos2(r.min.x + 5.0, r.center().y),
+        Align2::LEFT_CENTER,
+        title,
+        bold(11.0),
+        t.counter_label,
+    );
 }
 
 fn edit_modes(app: &mut SoundApp, ui: &mut Ui) {
@@ -315,27 +353,27 @@ fn transport(app: &mut SoundApp, ui: &mut Ui) {
     let playing = app.is_playing();
     let recording = app.engine.transport.recording;
     let looped = app.engine.session().edit.loop_playback;
-    group(ui, 176.0, 64.0, |ui, g| {
+    group(ui, 194.0, 64.0, |ui, g| {
         ui.vertical(|ui| {
             ui.spacing_mut().item_spacing = vec2(3.0, 4.0);
             ui.horizontal(|ui| {
                 ui.spacing_mut().item_spacing.x = 3.0;
-                if icon_button(ui, vec2(38.0, 28.0), "loop", looped, "Loop Playback (Cmd+Shift+L)").clicked() {
+                if icon_button(ui, vec2(42.0, 28.0), "loop", looped, "Loop Playback (Cmd+Shift+L)").clicked() {
                     let _ = app.run("options.loop_playback", json!({}));
                 }
-                let (r, resp) = ui.allocate_exact_size(vec2(38.0, 28.0), Sense::click());
+                let (r, resp) = ui.allocate_exact_size(vec2(42.0, 28.0), Sense::click());
                 key(ui.painter(), r, &resp, key_fill(&resp));
                 icons::draw(ui.painter(), r.shrink(5.0), "stop", if playing { t.text } else { t.accent });
                 if resp.on_hover_text("Stop (Space)").clicked() {
                     let _ = app.run("transport.stop", json!({}));
                 }
-                let (r, resp) = ui.allocate_exact_size(vec2(38.0, 28.0), Sense::click());
+                let (r, resp) = ui.allocate_exact_size(vec2(42.0, 28.0), Sense::click());
                 key(ui.painter(), r, &resp, if playing { Color32::from_rgb(40, 90, 50) } else { key_fill(&resp) });
                 icons::draw(ui.painter(), r.shrink(5.0), "play", if playing { Color32::from_rgb(120, 255, 140) } else { t.counter_text });
                 if resp.on_hover_text("Play (Space)").clicked() {
                     let _ = app.run("transport.play", json!({}));
                 }
-                let (r, resp) = ui.allocate_exact_size(vec2(38.0, 28.0), Sense::click());
+                let (r, resp) = ui.allocate_exact_size(vec2(42.0, 28.0), Sense::click());
                 key(ui.painter(), r, &resp, if recording { Color32::from_rgb(110, 30, 30) } else { key_fill(&resp) });
                 icons::draw(ui.painter(), r.shrink(5.0), "record", t.rec);
                 let resp = resp.on_hover_text("Record (Cmd+Space)");
@@ -356,7 +394,7 @@ fn transport(app: &mut SoundApp, ui: &mut Ui) {
                     ("ffwd", "transport.fast_forward", "Fast Forward"),
                     ("end", "transport.go_to_end", "Go to End (End)"),
                 ] {
-                    if icon_button(ui, vec2(38.0, 22.0), icon, false, tip).clicked() {
+                    if icon_button(ui, vec2(42.0, 22.0), icon, false, tip).clicked() {
                         let _ = app.run(cmd, json!({}));
                     }
                 }
