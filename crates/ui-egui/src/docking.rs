@@ -512,6 +512,18 @@ mod orvia_layout_tests {
     use super::{Panel, Workspace, mix_default};
 
     #[test]
+    fn orvia_4a1_inspector_default_is_readable_but_resizable() {
+        let workspace = Workspace::default();
+        let Some(Node::Split { size: SplitSize::FixedFirst(px), .. }) = workspace.layout.root.as_ref() else {
+            panic!("The Inspector must be the left split of the edit workspace");
+        };
+        assert!(*px >= 260.0, "4A1 Inspector default must not start too narrow");
+        let limits = panel_limits(&Panel::Inspector);
+        assert!(limits.min.x <= 200.0, "Keep the inspector resizable for small displays");
+        assert!(limits.max.x >= *px, "The default must fit within the panel bounds");
+    }
+
+    #[test]
     fn edit_workspace_has_inspector_timeline_and_clip_browser() {
         let workspace = Workspace::default();
         assert!(workspace.validate().is_ok());
