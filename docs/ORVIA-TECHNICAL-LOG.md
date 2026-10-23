@@ -197,3 +197,14 @@ Audit `clip.delete_one` phát hiện trạng thái chọn có thể giữ lại 
 ## ORVIA 3D nghiệm thu người dùng — 23/10/2026
 
 Người dùng đã xác nhận “xong rồi”. GitHub PR #13 vẫn Draft, Cloudflare Pages Deploy successful đúng commit 6f192bc9b454f321d5bf248471b320f014785c8c, preview https://61fdbe3b.orvia-daw-preview.pages.dev. Ghi nhận xác nhận hoàn thành bản thử web 3D nhưng không suy diễn từng hạng mục QA đã được chạy riêng. Rust Cargo unit tests chưa xác nhận PASS, không merge main hoặc production. Giai đoạn 4 tiếp theo là polish giao diện, responsive, phím tắt và kiểm thử hồi quy audio/MIDI; chỉ triển khai khi có yêu cầu mới.
+
+
+## ORVIA GĐ4A.1 — Nâng cấp Inspector (2026-10-23)
+
+**Quyết định:** Người dùng đã xem kế hoạch GĐ4 và phê duyệt “ok làm 4A1 đi”; ảnh chụp giao diện 1738×863 cho thấy Inspector chỉ khoảng 200px, Mute/Solo, Volume/Pan và Automation dồn/chữ bị cắt. Đây là nhánh polish UI, không phải thay audio engine. Đã đọc nhật ký kỹ thuật Google Drive trung tâm và repo, AGENTS.md, ROADMAP.md, docs/gaps.md, docs/ORVIA-CUBASE-UI-PLAN.md, QA 3D và source thực trước khi sửa. Baseline GĐ3D `feature/orvia-3d-track-automation`: người dùng xác nhận hoàn tất bản thử, Cloudflare successful đúng `6f192bc`; nhật ký tiếp theo ở commit `5f33159` chỉ là docs; chưa có bằng chứng toàn bộ Rust unit tests PASS.
+
+**Thay đổi trên nhánh riêng** `feature/orvia-4a1-inspector-layout`: ở `docking.rs`, mặc định width Inspector tăng 222px→270px, dải resize min190/max410px; workspace đã lưu vẫn được giữ, không tự ý reset. Ở `panels.rs`, Track name có wrap và thanh màu; các nút Mute/Solo/Ghi âm/Monitor 2 cột, Rename/Add Track chiếm toàn chiều ngang; Volume/Pan hiện thông số tách khỏi slider (slider không còn chen vào chữ), Routing/Instrument/Insert/Send/Automation là các nhóm, Insert mặc định thu gọn để tránh chiếm chỗ. `panels/orvia_automation.rs` đưa nút chọn lane, thêm điểm, ghi vùng chọn và slider xuống từng hàng, giúp đọc được khi sidebar hẹp; thao tác vẫn gửi engine command thật của 3D. Thêm unit regression kiểm tra kích thước mặc định và khả năng resize. QA kiểm tra và hướng dẫn legacy workspace ở `docs/ORVIA-WEB-STAGE4A1-INSPECTOR-QA.md`.
+
+**Bảo toàn:** Không sửa audio/MIDI DSP, waveform, Timeline, session serialization, VST/Kontakt host, Web Build scripts, main/production hay thay đổi dữ liệu dự án. Các lệnh `mix.volume`, `mix.pan`, `mix.mute`, `mix.solo`, `mix.record_arm`, `mix.input_monitor`, `track.view`, `automation.set_point`, `automation.clear` và `automation.write_range` giữ nguyên.
+
+**QA gate:** mã committed chưa đủ kết luận pass. Chỉ gửi link 4A1 sau Cloudflare Deploy successful **đúng SHA**; Rust Cargo tests và người dùng thử Chrome trên 1366×768/1440×900, gửi feedback. Không tự merge main/production, không GitHub Actions tự phát, TinyFish, trả phí hoặc CMD Windows.
