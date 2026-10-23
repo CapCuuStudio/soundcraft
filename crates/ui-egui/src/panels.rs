@@ -178,6 +178,9 @@ pub fn orvia_inspector(app: &mut SoundApp, ui: &mut Ui) {
             }
             ui.label(egui::RichText::new("Chọn Bus để tạo đường Send âm thanh thật.").small().weak());
         });
+        egui::CollapsingHeader::new("AUTOMATION · Volume / Pan / Mute")
+            .default_open(true)
+            .show(ui, |ui| orvia_automation::show(app, ui, &track));
         ui.add_space(6.0);
         if ui.button("+ Add Track").clicked() {
             let _ = app.dialogs.open_for_command(&app.engine, "track.new");
@@ -186,6 +189,7 @@ pub fn orvia_inspector(app: &mut SoundApp, ui: &mut Ui) {
 }
 
 mod orvia_rack;
+mod orvia_automation;
 
 /// ORVIA 3C: built-in instrument/FX browser and Insert Rack.
 /// Reuses the actual engine commands, never claims browser-native VST3 hosting.
