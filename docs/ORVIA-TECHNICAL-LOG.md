@@ -208,3 +208,8 @@ Người dùng đã xác nhận “xong rồi”. GitHub PR #13 vẫn Draft, Clo
 **Bảo toàn:** Không sửa audio/MIDI DSP, waveform, Timeline, session serialization, VST/Kontakt host, Web Build scripts, main/production hay thay đổi dữ liệu dự án. Các lệnh `mix.volume`, `mix.pan`, `mix.mute`, `mix.solo`, `mix.record_arm`, `mix.input_monitor`, `track.view`, `automation.set_point`, `automation.clear` và `automation.write_range` giữ nguyên.
 
 **QA gate:** mã committed chưa đủ kết luận pass. Chỉ gửi link 4A1 sau Cloudflare Deploy successful **đúng SHA**; Rust Cargo tests và người dùng thử Chrome trên 1366×768/1440×900, gửi feedback. Không tự merge main/production, không GitHub Actions tự phát, TinyFish, trả phí hoặc CMD Windows.
+
+
+## ORVIA GĐ4A.1 — Người dùng xác nhận xong, Cloudflare PASS (23/10/2026)
+
+Người dùng thông báo “xong rồi” sau khi nhận bản Inspector 4A.1. Đã kiểm tra Cloudflare Pages check-run completed/success đúng SHA code 42d4bbc42f881582b3b45eeaa96e7a918b11435f (so sánh nhánh với SHA identical trước khi ghi nhật ký), immutable preview https://c63b6e8d.orvia-daw-preview.pages.dev và Draft PR #14 https://github.com/CapCuuStudio/soundcraft/pull/14. Ghi nhận người dùng xác nhận 4A.1 hoàn tất bản thử và giao diện đã sẵn sàng làm mốc 4A.2; không suy diễn checklist Chrome/âm thanh/Undo/SaveOpen đã được chạy đủ từng trường hợp. Các bài Rust Cargo tests chưa có chứng cứ PASS. Không merge main/production, không tự chạy Actions, không TinyFish, phí hoặc CMD Windows. 4A.2 tiếp theo: tinh chỉnh Toolbar khi người dùng yêu cầu.
