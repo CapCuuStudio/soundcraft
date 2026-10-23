@@ -88,50 +88,52 @@ pub(super) fn show(app: &mut SoundApp, ui: &mut Ui, track: &Track) {
     let selection = app.engine.session().edit.selection;
     let samples_per_sec = app.engine.session().sample_rate.as_f64().max(1.0);
 
-    ui.horizontal(|ui| {
-        let showing = AutoParam::parse(&track.view).as_ref() == Some(&param);
-        if ui.small_button(if showing { "Đang xem Lane" } else { "Hiện Lane trên Timeline" }).clicked() && !showing {
-            let _ = app.run("track.view", json!({"track":track.id.0, "view":param_text}));
-        }
-        if showing && ui.small_button("Về Clips").clicked() {
-            let view = if track.kind == TrackKind::Instrument { "notes" } else { "waveform" };
-            let _ = app.run("track.view", json!({"track":track.id.0, "view":view}));
-        }
-    });
-    ui.label(RichText::new("Dùng Pencil trên Lane để vẽ điểm; bảng này cho phép chỉnh chính xác và xóa từng điểm.")
-        .small().color(dim));
+    let showing = AutoParam::parse(&track.view).as_ref() == Some(&param);
+    if ui.add_sized([ui.available_width(), 24.0],
+        egui::Button::new(if showing { "Đang hiện đường Automation" } else { "Hiện đường trên Timeline" })).clicked() && !showing {
+        let _ = app.run("track.view", json!({"track":track.id.0, "view":param_text}));
+    }
+    if showing && ui.add_sized([ui.available_width(), 22.0], egui::Button::new("Trở về hiển thị Clip")).clicked() {
+        let view = if track.kind == TrackKind::Instrument { "notes" } else { "waveform" };
+        let _ = app.run("track.view", json!({"track":track.id.0, "view":view}));
+    }
+    ui.add(egui::Label::new(RichText::new(
+        "Dùng công cụ Bút trên Timeline để vẽ điểm; hoặc chỉnh từng điểm bên dưới."
+    ).small().color(dim)).wrap());
     ui.separator();
 
     // A new point is located at the edit cursor; it never moves or deletes any clip.
     let value_key = egui::Id::new(("orvia-3d-value", track.id.0, param_text));
     let mut value = ui.ctx().data(|d| d.get_temp::<f32>(value_key))
         .unwrap_or_else(|| default_value(track, &param));
-    ui.horizontal(|ui| {
-        ui.label(format!("@ {:.2}s", insertion as f64 / samples_per_sec));
-        if param == AutoParam::Mute {
-            let mut enabled = value >= 0.5;
-            if ui.checkbox(&mut enabled, "Mute").changed() { value = if enabled { 1.0 } else { 0.0 }; }
-        } else {
-            ui.add(egui::Slider::new(&mut value, lo..=hi).show_value(true)
+    ui.label(RichText::new(format!("Điểm tại con trỏ: {:.2} giây", insertion as f64 / samples_per_sec))
+        .small().color(dim));
+    if param == AutoParam::Mute {
+        let mut enabled = value >= 0.5;
+        if ui.checkbox(&mut enabled, "Mute").changed() {
+            value = if enabled { 1.0 } else { 0.0 };
+        }
+    } else {
+        ui.add_sized([ui.available_width(), 21.0],
+            egui::Slider::new(&mut value, lo..=hi)
                 .suffix(if param == AutoParam::Volume { " dB" } else { "" }));
-        }
-    });
+    }
     ui.ctx().data_mut(|d| d.insert_temp(value_key, value));
-    ui.horizontal(|ui| {
-        if ui.small_button("+ Thêm điểm tại con trỏ").clicked() {
-            if let Err(err) = app.run("automation.set_point",
-                json!({"track":track.id.0,"param":param_text,"at":insertion,"value":value})) {
-                app.ui.status = err;
-            }
+    if ui.add_sized([ui.available_width(), 24.0],
+        egui::Button::new("+ Thêm điểm tại con trỏ")).clicked() {
+        if let Err(err) = app.run("automation.set_point",
+            json!({"track":track.id.0,"param":param_text,"at":insertion,"value":value})) {
+            app.ui.status = err;
         }
-        if !selection.is_empty() && ui.small_button("Ghi vào vùng chọn").clicked() {
-            if let Err(err) = app.run("automation.write_range",
-                json!({"track":track.id.0,"param":param_text,"start":selection.start,
-                        "end":selection.end,"value":value})) {
-                app.ui.status = err;
-            }
+    }
+    if !selection.is_empty() &&
+        ui.add_sized([ui.available_width(), 22.0], egui::Button::new("Ghi vào vùng chọn")).clicked() {
+        if let Err(err) = app.run("automation.write_range",
+            json!({"track":track.id.0,"param":param_text,"start":selection.start,
+                    "end":selection.end,"value":value})) {
+            app.ui.status = err;
         }
-    });
+    }
     ui.label(RichText::new(format!("{} điểm · chỉnh từng điểm bên dưới", points.len()))
         .small().color(dim));
     egui::ScrollArea::vertical().id_salt(("orvia-3d-point-list", track.id.0))
@@ -177,8 +179,9 @@ pub(super) fn show(app: &mut SoundApp, ui: &mut Ui, track: &Track) {
                 });
             }
         });
-    ui.label(RichText::new("Điểm lưu vào dự án, hỗ trợ Undo/Redo. MIDI CC nằm riêng trong Piano Roll.")
-        .small().color(dim));
+    ui.add(egui::Label::new(RichText::new(
+        "Các điểm lưu trong dự án và hỗ trợ Undo/Redo. MIDI CC chỉnh riêng trong Piano Roll."
+    ).small().color(dim)).wrap());
 }
 
 #[cfg(test)]
