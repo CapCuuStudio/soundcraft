@@ -213,3 +213,14 @@ Người dùng đã xác nhận “xong rồi”. GitHub PR #13 vẫn Draft, Clo
 ## ORVIA GĐ4A.1 — Người dùng xác nhận xong, Cloudflare PASS (23/10/2026)
 
 Người dùng thông báo “xong rồi” sau khi nhận bản Inspector 4A.1. Đã kiểm tra Cloudflare Pages check-run completed/success đúng SHA code 42d4bbc42f881582b3b45eeaa96e7a918b11435f (so sánh nhánh với SHA identical trước khi ghi nhật ký), immutable preview https://c63b6e8d.orvia-daw-preview.pages.dev và Draft PR #14 https://github.com/CapCuuStudio/soundcraft/pull/14. Ghi nhận người dùng xác nhận 4A.1 hoàn tất bản thử và giao diện đã sẵn sàng làm mốc 4A.2; không suy diễn checklist Chrome/âm thanh/Undo/SaveOpen đã được chạy đủ từng trường hợp. Các bài Rust Cargo tests chưa có chứng cứ PASS. Không merge main/production, không tự chạy Actions, không TinyFish, phí hoặc CMD Windows. 4A.2 tiếp theo: tinh chỉnh Toolbar khi người dùng yêu cầu.
+
+
+## ORVIA GĐ4A.2 — Toolbar hai hàng (2026-10-23)
+
+**Yêu cầu:** Người dùng phê duyệt 4A.2 tiếp theo bản Inspector 4A.1 đã xác nhận hoàn thành. Trước khi thao tác đã đọc nhật ký kỹ thuật trung tâm LUNOR MUSIC (Google Drive), nhật ký repo, AGENTS, ROADMAP, gaps, Cubase UI plan, QA 4A1 và mã thực `crates/ui-egui/src/toolbar.rs` + nơi hiển thị toolbar trong `edit_window.rs`. Baseline GĐ4A1 `feature/orvia-4a1-inspector-layout`: Cloudflare deployed mã 42d4bbc, người dùng xác nhận hoàn tất; các commit sau là nhật ký. Không tự merge base/main/production.
+
+**Vấn đề:** Toolbar cũ cao 78px, gồm các nhóm Transport/Counter/Tempo/Edit Modes/Tools/Grid-Nudge/Zoom/Output Meter kéo trên cùng một hàng với scroll ngang; ở màn hình 1366px trở xuống nút Grid, Tools, Zoom khó tìm vì bị đẩy về bên phải. Bố cục và khả năng thao tác là phạm vi GĐ4A2, không phát triển audio engine mới.
+
+**Triển khai:** nhánh `feature/orvia-4a2-toolbar-layout`. Sửa `toolbar.rs`: HEIGHT 78→140px và chia thành hai hàng độc lập có horizontal ScrollArea riêng. Hàng 1 `PHÁT / NHỊP`: Transport, Main/Sub counter, CountOff/Click/Tempo/Meter, Grid/Nudge, Level Meter. Hàng 2 `CHỈNH SỬA`: Edit Modes, Smart/Tool palette, Zoom, nhãn tên công cụ đang chọn. Nút vận chuyển tăng rộng 38→42px. `edit_window.rs` vốn dùng hằng `toolbar::HEIGHT` nên không cần chỉnh. Không thay cách gọi lệnh Play/Stop/Record, Tempo, Grid, Nudge, Tools, Snap, Zoom, Click/CountOff, không đụng DSP, session, waveform, MIDI, nhạc cụ/VST, Inspector, Mixer, project Save/Open hoặc Export.
+
+**Kiểm thử:** bộ QA cho 1366×768, 1440×900, màn hình hẹp và regression controls tại `docs/ORVIA-WEB-STAGE4A2-TOOLBAR-QA.md`. Chỉ kết luận web build PASS nếu Cloudflare Pages Deploy successful đúng SHA và lấy immutable preview từ bot. Cargo unit tests/Chrome tương tác âm thanh và xuất MIDI không được tự đánh dấu PASS. Giữ Draft PR, không merge production/main, không tự chạy GitHub Actions, không TinyFish, dịch vụ phí hoặc CMD Windows.
