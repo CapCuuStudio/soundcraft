@@ -51,7 +51,7 @@ pub fn orvia_inspector(app: &mut SoundApp, ui: &mut Ui) {
         ui.add_space(7.0);
         let Some(track) = selected else {
             ui.add(egui::Label::new(egui::RichText::new("Chọn một Track trên Timeline để xem và chỉnh các thông số.").color(Tokens::current().text_dim)).wrap());
-            if ui.button("+ Add Track").clicked() {
+            if ui.add_sized([ui.available_width(), 27.0], egui::Button::new("+ Thêm Track")).clicked() {
                 let _ = app.dialogs.open_for_command(&app.engine, "track.new");
             }
             return;
@@ -202,7 +202,7 @@ pub fn orvia_inspector(app: &mut SoundApp, ui: &mut Ui) {
             }
             ui.label(egui::RichText::new("Chọn Bus để tạo đường Send âm thanh thật.").small().weak());
         });
-        egui::CollapsingHeader::new("Automation · Volume / Pan / Mute")
+        egui::CollapsingHeader::new("Automation")
             .default_open(true)
             .show(ui, |ui| orvia_automation::show(app, ui, &track));
         ui.add_space(6.0);
