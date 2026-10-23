@@ -224,3 +224,8 @@ Người dùng thông báo “xong rồi” sau khi nhận bản Inspector 4A.1.
 **Triển khai:** nhánh `feature/orvia-4a2-toolbar-layout`. Sửa `toolbar.rs`: HEIGHT 78→140px và chia thành hai hàng độc lập có horizontal ScrollArea riêng. Hàng 1 `PHÁT / NHỊP`: Transport, Main/Sub counter, CountOff/Click/Tempo/Meter, Grid/Nudge, Level Meter. Hàng 2 `CHỈNH SỬA`: Edit Modes, Smart/Tool palette, Zoom, nhãn tên công cụ đang chọn. Nút vận chuyển tăng rộng 38→42px. `edit_window.rs` vốn dùng hằng `toolbar::HEIGHT` nên không cần chỉnh. Không thay cách gọi lệnh Play/Stop/Record, Tempo, Grid, Nudge, Tools, Snap, Zoom, Click/CountOff, không đụng DSP, session, waveform, MIDI, nhạc cụ/VST, Inspector, Mixer, project Save/Open hoặc Export.
 
 **Kiểm thử:** bộ QA cho 1366×768, 1440×900, màn hình hẹp và regression controls tại `docs/ORVIA-WEB-STAGE4A2-TOOLBAR-QA.md`. Chỉ kết luận web build PASS nếu Cloudflare Pages Deploy successful đúng SHA và lấy immutable preview từ bot. Cargo unit tests/Chrome tương tác âm thanh và xuất MIDI không được tự đánh dấu PASS. Giữ Draft PR, không merge production/main, không tự chạy GitHub Actions, không TinyFish, dịch vụ phí hoặc CMD Windows.
+
+
+## ORVIA 4A.2 — Chốt bản web thử ngày 23/10/2026
+
+Người dùng xác nhận “xong”. Cloudflare Pages Deploy successful đúng mã 933b6a35560294ea8bce838befb1395aa1cb32fc, preview https://1446184d.orvia-daw-preview.pages.dev; GitHub Draft PR #15. Xác nhận hoàn thành bản thử 4A.2, nhưng chưa có kết quả Rust Cargo unit tests và biên bản Chrome QA chi tiết. Không merge main/production, không Actions/TinyFish/phí/CMD Windows. Bước đề xuất sau là 4A.3 Rack, chỉ khi có yêu cầu mới.
