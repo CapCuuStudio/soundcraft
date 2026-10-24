@@ -1042,7 +1042,7 @@ fn track_header(app: &mut SoundApp, ui: &mut Ui, track: &Track, head: Rect, sele
     let indent = folder_depth(app.engine.session(), track) as f32 * 10.0;
     let name_r = at(16.0 + indent, 1.5, 97.0 - indent, 15.0);
     if selected {
-        ui.painter().rect_filled(name_r, 2.0, t.name_field_sel);
+        ui.painter().rect_filled(name_r, 4.0, orvia_timeline_surface(crate::theme::is_light()));
     }
     let shown_name = if app.engine.session().edit.flag("edit_view.track_number") {
         let n = app.engine.session().track_index(id).map_or(0, |i| i + 1);
