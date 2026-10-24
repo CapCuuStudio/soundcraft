@@ -239,7 +239,7 @@ pub(super) fn show(app: &mut SoundApp, ui: &mut Ui) {
             let same = instruments && selected.as_ref().and_then(|tr| tr.instrument.as_ref())
                 .is_some_and(|ins| ins.plugin == info.id);
             let can_assign = compatible && (instruments || slot.is_some());
-            ui.horizontal(|ui| {
+            skin.card(ui, |ui| {
                 let name = ui.add_sized([ui.available_width().max(125.0) - 66.0, 24.0],
                     egui::Button::new(info.name).selected(details == info.id));
                 if name.on_hover_text(format!("Xem thông số · {}", info.id)).clicked() {
