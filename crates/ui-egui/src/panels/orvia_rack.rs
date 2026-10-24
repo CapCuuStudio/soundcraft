@@ -48,6 +48,9 @@ fn open_editor(app: &mut SoundApp, track: TrackId, slot: usize) {
 
 pub(super) fn show(app: &mut SoundApp, ui: &mut Ui) {
     let t = Tokens::current();
+    let skin = Skin::current();
+    ui.spacing_mut().item_spacing.y = 7.0;
+    ui.painter().rect_filled(ui.max_rect(), 0.0, skin.surface);
     let mode_id = egui::Id::new("orvia_3c_rack_mode");
     let filter_id = egui::Id::new("orvia_3c_rack_filter");
     let cat_id = egui::Id::new("orvia_3c_rack_category");
