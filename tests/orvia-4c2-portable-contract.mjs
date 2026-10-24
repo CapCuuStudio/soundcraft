@@ -27,7 +27,8 @@ function check(name, expected) {
 check("explicit marker and local ORVIA-Data", [
   [config, 'root.join(".orvia-portable")'],
   [config, 'root.join("ORVIA-Data")'],
-  [config, 'portable_directory_for(root, &system_drive).map(Some)'],
+  [config, 'let physical_root = root.canonicalize()'],
+  [config, 'portable_directory_for(&physical_root, &system_drive).map(Some)'],
   [config, 'if path[0].to_ascii_uppercase() == system'],
 ]);
 check("GUI startup rejects invalid portable marker before preference I/O", [
