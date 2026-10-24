@@ -127,7 +127,7 @@ pub fn show(app: &mut SoundApp, ui: &mut Ui) {
     egui::Panel::top("edit_toolbar").exact_size(toolbar::height_for_width(ui.available_width())).frame(egui::Frame::NONE.fill(t.toolbar_bg)).show(ui, |ui| toolbar::show(app, ui));
     egui::Panel::top("orvia_project_info_line").exact_size(31.0).frame(egui::Frame::NONE.fill(t.panel_bg2)).show(ui, |ui| crate::orvia_project_bar::show(app, ui));
     egui::Panel::bottom("edit_status").exact_size(22.0).frame(egui::Frame::NONE.fill(t.toolbar_bg)).show(ui, |ui| status_bar(app, ui));
-    egui::Panel::bottom("lower_dock_tabs").exact_size(22.0).frame(egui::Frame::NONE.fill(t.panel_bg2)).show(ui, |ui| dock_tabs(app, ui));
+    egui::Panel::bottom("lower_dock_tabs").exact_size(ORVIA_LOWER_TAB_HEIGHT).frame(egui::Frame::NONE.fill(t.panel_bg2)).show(ui, |ui| dock_tabs(app, ui));
     if app.ui.show_universe {
         egui::Panel::top("universe").exact_size(64.0).frame(egui::Frame::NONE.fill(Tokens::current().universe_bg)).show(ui, |ui| universe(app, ui));
     }
@@ -173,56 +173,155 @@ fn universe(app: &mut SoundApp, ui: &mut Ui) {
     }
 }
 
+// ORVIA 4B.1: tabs share one compact visual language, not four raised buttons.
+// Keep their existing engine commands and saved docking states unchanged.
+const ORVIA_LOWER_TAB_HEIGHT: f32 = 32.0;
+
+#[derive(Clone, Copy)]
+struct OrviaLowerTabColors {
+    text: Color32,
+    muted: Color32,
+    selected_bg: Color32,
+    hover_bg: Color32,
+    accent: Color32,
+}
+
+fn orvia_lower_tab_colors(light: bool) -> OrviaLowerTabColors {
+    if light {
+        OrviaLowerTabColors {
+            text: Color32::from_rgb(18, 45, 53),
+            muted: Color32::from_rgb(69, 93, 109),
+            selected_bg: Color32::from_rgb(221, 240, 244),
+            hover_bg: Color32::from_rgb(232, 242, 247),
+            accent: Color32::from_rgb(28, 116, 125),
+        }
+    } else {
+        OrviaLowerTabColors {
+            text: Color32::from_rgb(229, 237, 244), // #E5EDF4
+            muted: Color32::from_rgb(170, 185, 198), // #AAB9C6
+            selected_bg: Color32::from_rgb(27, 66, 76), // #1B424C
+            hover_bg: Color32::from_rgb(38, 58, 72), // #263A48
+            accent: Color32::from_rgb(71, 215, 209), // #47D7D1
+        }
+    }
+}
+
+fn orvia_lower_tab(ui: &mut Ui, label: &'static str, selected: bool) -> bool {
+    let colors = orvia_lower_tab_colors(!ui.visuals().dark_mode);
+    let text_color = if selected { colors.text } else { colors.muted };
+    let text = ui.painter().layout_no_wrap(label.to_owned(), bold(12.0), text_color);
+    let (rect, response) = ui.allocate_exact_size(vec2(text.size().x + 22.0, 30.0), Sense::click());
+    if selected {
+        ui.painter().rect_filled(rect, 4.0, colors.selected_bg);
+        // Underline is the selection indicator; never cover the label with cyan.
+        let underline = Rect::from_min_max(
+            pos2(rect.min.x + 8.0, rect.max.y - 3.0),
+            pos2(rect.max.x - 8.0, rect.max.y - 1.0),
+        );
+        ui.painter().rect_filled(underline, 1.0, colors.accent);
+    } else if response.hovered() {
+        ui.painter().rect_filled(rect, 4.0, colors.hover_bg);
+    }
+    if response.has_focus() {
+        ui.painter().rect_stroke(rect.shrink(1.0), 4.0, Stroke::new(1.0, colors.accent), StrokeKind::Inside);
+    }
+    ui.painter().galley(
+        pos2(rect.center().x - text.size().x * 0.5, rect.center().y - text.size().y * 0.5 - 1.0),
+        text,
+        text_color,
+    );
+    response.clicked()
+}
+
 fn dock_tabs(app: &mut SoundApp, ui: &mut Ui) {
-    let t = Tokens::current();
-    let r = ui.max_rect();
-    let mut x = r.min.x + 10.0;
+    let rect = ui.max_rect();
     let console_open = app.ui.docking.layout.contains(&crate::docking::Panel::MixConsole);
     let key_open = app.ui.docking.layout.contains(&crate::docking::Panel::Midi);
-    for (label, on) in [("MIXCONSOLE", console_open), ("KEY EDITOR", key_open)] {
-        let g = ui.painter().layout_no_wrap(label.to_string(), bold(10.5), if on { Color32::WHITE } else { t.text_dim });
-        let tr = Rect::from_min_size(pos2(x, r.min.y + 2.0), vec2(g.size().x + 16.0, r.height() - 4.0));
-        if on {
-            ui.painter().rect_filled(tr, 3.0, t.accent_dark);
-        }
-        ui.painter().galley(pos2(tr.min.x + 8.0, tr.center().y - g.size().y * 0.5), g, Color32::WHITE);
-        if ui.interact(tr, ui.id().with(("lower-zone", label)), Sense::click()).clicked() {
-            let (panel, other) = if label == "MIXCONSOLE" { ("mixConsole", "midi") } else { ("midi", "mixConsole") };
-            if on {
-                let _ = app.run("ui.dock", json!({"operation": "close", "panel": panel}));
-            } else {
-                // The two editors share one Lower Zone. Close the previous
-                // view before opening the next rather than stacking two
-                // empty half-height regions over the timeline.
-                if console_open || key_open {
-                    let _ = app.run("ui.dock", json!({"operation": "close", "panel": other}));
-                }
-                let _ = app.run("ui.dock", json!({"operation": "open", "panel": panel}));
-            }
-        }
-        x = tr.max.x + 6.0;
+
+    // Keep Reset Layout reachable on narrow screens; the four tabs scroll
+    // horizontally inside their own clipped viewport instead of spilling over.
+    let reset_width = 122.0;
+    let tabs_right = (rect.max.x - reset_width - 10.0).max(rect.min.x + 8.0);
+    let tabs_rect = Rect::from_min_max(
+        pos2(rect.min.x + 8.0, rect.min.y),
+        pos2(tabs_right, rect.max.y),
+    );
+    ui.scope_builder(egui::UiBuilder::new().max_rect(tabs_rect), |ui| {
+        egui::ScrollArea::horizontal()
+            .id_salt("orvia-4b1-lower-tabs-scroll")
+            .scroll_bar_visibility(egui::containers::scroll_area::ScrollBarVisibility::AlwaysHidden)
+            .show(ui, |ui| {
+                ui.horizontal(|ui| {
+                    ui.spacing_mut().item_spacing.x = 5.0;
+                    for (key, title, on) in [
+                        ("MIXCONSOLE", "MixConsole", console_open),
+                        ("KEY EDITOR", "Key Editor", key_open),
+                    ] {
+                        if orvia_lower_tab(ui, title, on) {
+                            let (panel, other) = if key == "MIXCONSOLE" { ("mixConsole", "midi") } else { ("midi", "mixConsole") };
+                            if on {
+                                let _ = app.run("ui.dock", json!({"operation": "close", "panel": panel}));
+                            } else {
+                                // These two editors still share one Lower Zone.
+                                if console_open || key_open {
+                                    let _ = app.run("ui.dock", json!({"operation": "close", "panel": other}));
+                                }
+                                let _ = app.run("ui.dock", json!({"operation": "open", "panel": panel}));
+                            }
+                        }
+                    }
+                    ui.add_space(8.0);
+                    for (key, title, on, command) in [
+                        ("MEMORY LOCATIONS", "Memory Locations", app.ui.show_memory_locations, "window.memory_locations"),
+                        ("UNDO HISTORY", "Undo History", app.ui.show_undo_history, "window.undo_history"),
+                    ] {
+                        if orvia_lower_tab(ui, title, on) {
+                            let _ = app.run(command, json!({}));
+                        }
+                    }
+                });
+            });
+    });
+
+    let colors = orvia_lower_tab_colors(!ui.visuals().dark_mode);
+    let reset_rect = Rect::from_min_size(
+        pos2(rect.max.x - reset_width - 4.0, rect.min.y + 2.0),
+        vec2(reset_width, 28.0),
+    );
+    let reset = ui.interact(reset_rect, ui.id().with("orvia-layout-reset"), Sense::click())
+        .on_hover_text("Khôi phục bố cục các panel về mặc định");
+    if reset.hovered() || reset.has_focus() {
+        ui.painter().rect_filled(reset_rect, 4.0, colors.hover_bg);
     }
-    x += 12.0;
-    for (label, on, command) in [
-        ("MEMORY LOCATIONS", app.ui.show_memory_locations, "window.memory_locations"),
-        ("UNDO HISTORY", app.ui.show_undo_history, "window.undo_history"),
-    ] {
-        let g = ui.painter().layout_no_wrap(label.to_string(), bold(10.0), if on { Color32::WHITE } else { t.text_dim });
-        let tr = Rect::from_min_size(pos2(x, r.min.y + 2.0), vec2(g.size().x + 12.0, r.height() - 4.0));
-        if on {
-            ui.painter().rect_filled(tr, 2.0, t.accent_dark);
-        }
-        ui.painter().galley(pos2(tr.min.x + 6.0, tr.center().y - g.size().y * 0.5), g, Color32::WHITE);
-        if ui.interact(tr, ui.id().with(("dock-aux", label)), Sense::click()).clicked() {
-            let _ = app.run(command, json!({}));
-        }
-        x = tr.max.x + 4.0;
+    if reset.has_focus() {
+        ui.painter().rect_stroke(reset_rect.shrink(1.0), 4.0, Stroke::new(1.0, colors.accent), StrokeKind::Inside);
     }
-    let reset_rect = Rect::from_min_size(pos2(r.max.x - 106.0, r.min.y + 2.0), vec2(98.0, r.height() - 4.0));
-    if ui.interact(reset_rect, ui.id().with("orvia-layout-reset"), Sense::click()).clicked() {
+    ui.painter().text(reset_rect.center(), Align2::CENTER_CENTER, "Đặt lại bố cục", bold(11.5), colors.muted);
+    if reset.clicked() {
         let _ = app.run("ui.dock.reset", json!({}));
     }
-    ui.painter().text(reset_rect.center(), Align2::CENTER_CENTER, "RESET LAYOUT", bold(9.5), t.text_dim);
+}
+
+#[cfg(test)]
+mod orvia_4b1_lower_tabs_tests {
+    use super::{orvia_lower_tab_colors, ORVIA_LOWER_TAB_HEIGHT};
+    use egui::Color32;
+
+    #[test]
+    fn lower_tabs_have_32px_header_and_semantic_dark_palette() {
+        let dark = orvia_lower_tab_colors(false);
+        assert_eq!(ORVIA_LOWER_TAB_HEIGHT, 32.0);
+        assert_eq!(dark.accent, Color32::from_rgb(71, 215, 209));
+        assert_eq!(dark.selected_bg, Color32::from_rgb(27, 66, 76));
+        assert_ne!(dark.hover_bg, dark.selected_bg);
+    }
+
+    #[test]
+    fn light_tabs_keep_readable_text_and_separate_accent() {
+        let light = orvia_lower_tab_colors(true);
+        assert_ne!(light.text, light.muted);
+        assert_ne!(light.accent, light.selected_bg);
+    }
 }
 
 fn status_bar(app: &mut SoundApp, ui: &mut Ui) {

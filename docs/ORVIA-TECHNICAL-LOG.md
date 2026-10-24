@@ -280,3 +280,25 @@ Người dùng xác nhận “xong” sau khi thử bản 4A.4 Track Header / Ti
 **Xác minh:** Cloudflare Pages `completed/success` đúng commit `e383ebc81dc27967f62604a1285653b06cb3609e`; so sánh nhánh `feature/orvia-4a4-track-timeline` với commit này `identical` ở thời điểm kiểm tra. Preview bất biến từ Cloudflare: https://91cc60f9.orvia-daw-preview.pages.dev. Draft PR #19 https://github.com/CapCuuStudio/soundcraft/pull/19 vẫn chưa merge main/production.
 
 **Kết luận:** Người dùng đã chốt bản **web thử GĐ4A.4**, bao gồm Track Header selected cyan, phím Mute/Solo/Record/Monitor phẳng, viền Clip bo nhẹ và Grid Graphite/Cyan. Không suy diễn Cargo unit tests, Chrome QA chi tiết cho từng thao tác, audio/MIDI/Undo/Save/Open regression đều PASS khi chưa có chứng cứ riêng. Bản cập nhật nhật ký chỉ là docs-only, không chỉnh code hay sửa các bản đã nghiệm thu. Không tự chuyển sang giai đoạn 4B, không chạy GitHub Actions thủ công, không TinyFish, dịch vụ phí, CMD Windows hoặc merge production.
+
+## ORVIA Web 4B.1 — Lower Zone Tabs (24/10/2026)
+
+**Yêu cầu:** Chủ dự án duyệt “ok làm đi” cho 4B.1 — nâng cấp hàng tab dưới, không thay đổi engine hay những phần 4A.4 đã chốt. **Nguồn đối chiếu trước khi làm:** nhật ký kỹ thuật LUNOR MUSIC trên Google Drive (bản cập nhật 24/10), nhật ký repo này, AGENTS.md, ROADMAP.md, docs/gaps.md, Design Language v1, PR #19 (Draft, head docs-only `4eb63d8`, baseline code 4A.4 `e383ebc` Cloudflare PASS), mã `edit_window.rs` và `docking.rs`.
+
+**Nhánh thử:** `feature/orvia-4b1-lower-tabs`, tách trực tiếp từ 4A.4 `4eb63d8ae9facfb43986539dc872fefcb98267c0`. Không merge main/production.
+
+**Đã viết code UI-only:** `crates/ui-egui/src/edit_window.rs` tăng thanh footer `lower_dock_tabs` 22→32px, nhãn Tab 12pt dễ đọc, nền chọn Graphite + gạch cyan 2px, hover/focus rõ và màu Light riêng. Bốn tab MixConsole/Key Editor/Memory Locations/Undo History giữ engine command gốc, hai tab editor vẫn loại trừ nhau; vùng tab dùng egui 0.36 horizontal ScrollArea khi hẹp, `Đặt lại bố cục` giữ bên phải gọi `ui.dock.reset`. Thêm 2 Rust unit tests palette/height. Mã ứng dụng có commit `a5bb141` và chỉnh đường dẫn API scroll-area public `4b7611d`. Checklist tại `docs/ORVIA-WEB-STAGE4B1-LOWER-TABS-QA.md`, commit `69bdc99`. Không sửa mixer logic, DSP, MIDI, audio/session, VST3/CLAP hay Saved Workspace.
+
+**Đã xác nhận:** GitHub ghi thành công các file/commit trên nhánh riêng; kiểm tra source giữ nguyên số vị trí gọi `app.run("ui.dock",...)` trong `edit_window.rs` (5 trước/sau). API `Ui::scope_builder`, `UiBuilder::max_rect`, `ScrollArea::scroll_bar_visibility` đối chiếu tài liệu egui 0.36. **Chưa có bằng chứng Cargo unit tests, build WASM Cloudflare, kiểm thử Chrome/audio/MIDI thành công** tại thời điểm ghi log. Không coi PR đã deploy/được nghiệm thu trước khi kiểm tra đúng HEAD.
+
+**Bước kế tiếp:** tạo Draft PR nhánh 4B.1 base nhánh 4A.4, kiểm Cloudflare check-run đúng commit cuối, chỉ chia sẻ immutable preview nếu Deploy successful; sau đó UAT tab, responsive, focus, audio/MIDI và Save/Open. Không tự chạy Actions, không sử dụng TinyFish/phí mới/CMD trên máy chủ dự án.
+
+## ORVIA Web 4B.1 — Chủ dự án xác nhận nghiệm thu bản thử (24/10/2026)
+
+Chủ dự án phản hồi “xong” sau khi triển khai 4B.1. Ghi nhận nghiệm thu **tổng quát** giao diện Lower Zone tabs, không suy diễn đã kiểm từng kịch bản browser hoặc chất lượng âm thanh.
+
+**Bằng chứng live:** Cloudflare Pages check-run #120813047115 cho commit mã và tài liệu `a57faeb8b1c4844d84981e8e7cddefa2eccee521` trả `status=completed, conclusion=success` và `Deploy successful`. Preview bất biến được Cloudflare công bố: https://357d9957.orvia-daw-preview.pages.dev ; nhánh Preview: https://feature-orvia-4b1-lower-tabs.orvia-daw-preview.pages.dev . PR #21 https://github.com/CapCuuStudio/soundcraft/pull/21 đang `open/Draft/unmerged`, base `feature/orvia-4a4-track-timeline`; không thay production.
+
+**Chốt:** Thanh tab Lower Zone 32px, chữ 12pt, selected/hover/focus Graphite/Cyan và Light riêng, cuộn ngang, Reset Layout; giữ các command docking hiện có. Rust Cargo unit tests và kiểm thử Chrome audio/MIDI, Save/Open và responsive chi tiết chưa có bằng chứng PASS riêng; chỉ Cloudflare build PASS và phản hồi nghiệm thu tổng quát.
+
+**Quyết định:** giữ nguyên source 4B.1 đã chốt, chỉ thêm nhật ký (docs-only). Chưa triển khai 4B.2, chờ chỉ đạo của chủ dự án. Không merge main/production, không tự chạy Actions hoặc dịch vụ mất phí/TinyFish/CMD Windows.
