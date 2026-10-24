@@ -71,9 +71,16 @@ pub(super) fn show(app: &mut SoundApp, ui: &mut Ui) {
             .is_some_and(|t| t.kind == TrackKind::Instrument)
     });
     let mut instruments = instruments;
-    ui.horizontal(|ui| {
-        ui.selectable_value(&mut instruments, true, "♫  Nhạc cụ");
-        ui.selectable_value(&mut instruments, false, "Hiệu ứng");
+    ui.columns(2, |cols| {
+        for (i, (mode, title)) in [(true, "Nhạc cụ"), (false, "Hiệu ứng")].iter().enumerate() {
+            let active = instruments == *mode;
+            if cols[i].add_sized([cols[i].available_width(), 30.0],
+                egui::Button::new(*title)
+                    .fill(if active { skin.accent } else { skin.raised })
+                    .corner_radius(5)).clicked() {
+                instruments = *mode;
+            }
+        }
     });
     ui.ctx().data_mut(|d| d.insert_temp(mode_id, instruments));
     let mut search = ui.ctx().data(|d| d.get_temp::<String>(filter_id)).unwrap_or_default();
