@@ -410,3 +410,5 @@ Chủ dự án phản hồi “xong” sau khi xem bản Web 4B.2, ghi nhận **
 - QA matrix đầy đủ `docs/ORVIA-STAGE4C2-PORTABLE-WINDOWS-QA.md`.
 
 **Lưu ý an toàn:** App portable config path không bảo đảm Windows/driver/plugins/Kontakt không tự ghi cache lên C:. Stage Windows script chưa được chạy, executable/icon chưa rebrand, WiX vẫn SoundCraft/đơn vị upstream, chưa có MSI hoặc RC Windows. Cần Windows native Cargo QA, Windows process monitor app & third-party, kiểm thử soundcard/ASIO, VST3/Kontakt 8, project 4–6 phút, giấy phép nhà phát hành & logo trước khi phát hành. Giữ 4A–4B.4, 4C.1, main/production, không dùng CMD Windows, TinyFish, Actions thủ công/phí.
+
+**Bổ sung kiểm tra 4C.2:** đã tăng cường kiểm tra vị trí dữ liệu Portable bằng `root.canonicalize()` trước khi so sánh SystemDrive để xử lý cả trường hợp junction/symlink từ ổ E/F trỏ về ổ hệ thống. Node source contract cập nhật buộc giữ phép kiểm này và QA docs phản ánh giới hạn; vẫn chưa có Windows native run/Process Monitor/portable artifact. Mã cập nhật trước docs-only: `38661b2` config; `bd0fe0d` contract; `6d20673` QA docs. Không thay engine âm thanh/MIDI, không phát hành.
