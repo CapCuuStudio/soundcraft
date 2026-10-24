@@ -206,7 +206,7 @@ fn orvia_lower_tab_colors(light: bool) -> OrviaLowerTabColors {
     }
 }
 
-fn orvia_lower_tab(ui: &mut Ui, key: &'static str, label: &'static str, selected: bool) -> bool {
+fn orvia_lower_tab(ui: &mut Ui, label: &'static str, selected: bool) -> bool {
     let colors = orvia_lower_tab_colors(!ui.visuals().dark_mode);
     let text_color = if selected { colors.text } else { colors.muted };
     let text = ui.painter().layout_no_wrap(label.to_owned(), bold(12.0), text_color);
@@ -230,8 +230,6 @@ fn orvia_lower_tab(ui: &mut Ui, key: &'static str, label: &'static str, selected
         text,
         text_color,
     );
-    // Preserve a stable identity even if labels are localized later.
-    let _ = key;
     response.clicked()
 }
 
@@ -251,7 +249,7 @@ fn dock_tabs(app: &mut SoundApp, ui: &mut Ui) {
     ui.scope_builder(egui::UiBuilder::new().max_rect(tabs_rect), |ui| {
         egui::ScrollArea::horizontal()
             .id_salt("orvia-4b1-lower-tabs-scroll")
-            .scroll_bar_visibility(egui::scroll_area::ScrollBarVisibility::AlwaysHidden)
+            .scroll_bar_visibility(egui::containers::scroll_area::ScrollBarVisibility::AlwaysHidden)
             .show(ui, |ui| {
                 ui.horizontal(|ui| {
                     ui.spacing_mut().item_spacing.x = 5.0;
@@ -259,7 +257,7 @@ fn dock_tabs(app: &mut SoundApp, ui: &mut Ui) {
                         ("MIXCONSOLE", "MixConsole", console_open),
                         ("KEY EDITOR", "Key Editor", key_open),
                     ] {
-                        if orvia_lower_tab(ui, key, title, on) {
+                        if orvia_lower_tab(ui, title, on) {
                             let (panel, other) = if key == "MIXCONSOLE" { ("mixConsole", "midi") } else { ("midi", "mixConsole") };
                             if on {
                                 let _ = app.run("ui.dock", json!({"operation": "close", "panel": panel}));
@@ -277,7 +275,7 @@ fn dock_tabs(app: &mut SoundApp, ui: &mut Ui) {
                         ("MEMORY LOCATIONS", "Memory Locations", app.ui.show_memory_locations, "window.memory_locations"),
                         ("UNDO HISTORY", "Undo History", app.ui.show_undo_history, "window.undo_history"),
                     ] {
-                        if orvia_lower_tab(ui, key, title, on) {
+                        if orvia_lower_tab(ui, title, on) {
                             let _ = app.run(command, json!({}));
                         }
                     }
