@@ -240,8 +240,9 @@ pub(super) fn show(app: &mut SoundApp, ui: &mut Ui) {
                 .is_some_and(|ins| ins.plugin == info.id);
             let can_assign = compatible && (instruments || slot.is_some());
             skin.card(ui, |ui| {
-                let name = ui.add_sized([ui.available_width().max(125.0) - 66.0, 24.0],
-                    egui::Button::new(info.name).selected(details == info.id));
+                let name = ui.add_sized([ui.available_width(), 30.0],
+                    egui::Button::new(RichText::new(info.name).size(13.0).strong())
+                        .selected(details == info.id).corner_radius(5));
                 if name.on_hover_text(format!("Xem thông số · {}", info.id)).clicked() {
                     ui.ctx().data_mut(|d| d.insert_temp(info_id, info.id.to_string()));
                 }
