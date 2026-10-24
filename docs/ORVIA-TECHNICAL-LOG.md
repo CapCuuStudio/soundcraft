@@ -302,3 +302,18 @@ Chủ dự án phản hồi “xong” sau khi triển khai 4B.1. Ghi nhận ngh
 **Chốt:** Thanh tab Lower Zone 32px, chữ 12pt, selected/hover/focus Graphite/Cyan và Light riêng, cuộn ngang, Reset Layout; giữ các command docking hiện có. Rust Cargo unit tests và kiểm thử Chrome audio/MIDI, Save/Open và responsive chi tiết chưa có bằng chứng PASS riêng; chỉ Cloudflare build PASS và phản hồi nghiệm thu tổng quát.
 
 **Quyết định:** giữ nguyên source 4B.1 đã chốt, chỉ thêm nhật ký (docs-only). Chưa triển khai 4B.2, chờ chỉ đạo của chủ dự án. Không merge main/production, không tự chạy Actions hoặc dịch vụ mất phí/TinyFish/CMD Windows.
+
+## ORVIA Web 4B.2 — MixConsole & Key Editor UI (24/10/2026)
+
+**Chỉ đạo chủ dự án:** “ok làm đi” cho 4B.2. Trước thao tác đã đọc nhật ký trung tâm Google Drive (gồm nghiệm thu 4B.1), log repo này, AGENTS, ROADMAP, gaps, Design Language v1 và QA 4B.1; đối chiếu live GitHub PR #21 HEAD `259c49e1a1cd7b9deeec5a01b1e9877fd07233e4` và Cloudflare success mã `a57faeb8`. Đọc source thật `panels.rs` (MixConsole Stage 3A), `midi_editor.rs` (Key Editor) và `docking.rs` (splitter/layout persistence).
+
+**Nhánh riêng:** `feature/orvia-4b2-mixer-key-editor`, xuất phát từ 4B.1 `259c49e1` (mã không đổi sau chủ dự án chốt). Không merge Main/Production.
+
+**Đã triển khai UI-only:**
+- `crates/ui-egui/src/panels.rs`: header MixConsole 13pt với ghi chú kéo divider, palette Graphite/Cyan Dark và Light riêng, track strip được chọn có border cyan, chữ Track/volume dễ đọc, Mute/Solo semantic buttons và khoảng cách kênh rộng hơn. Giữ nguyên fader, pan, meter, sends, route, engine command & Undo merge; code commit `2fd85dc7`.
+- `crates/ui-egui/src/midi_editor.rs`: Key Editor chia header thành title/meta và hàng nút thật cao tổng 56px, Clip name dài được clip không che nút; giữ nguyên Quantize/Vel +/-10/Legato, note editing, note Track color. Grid/Piano Roll Dark #293744/#405363 và Light palette riêng; Việt hóa gợi ý trống. Code commit `3e59d1b9`.
+- Thêm Rust unit tests palette/header và checklist `docs/ORVIA-WEB-STAGE4B2-MIXER-KEY-EDITOR-QA.md` commit `16a9dfa1`. Native `craft_ui::docking` splitter và saved workspace, MIDI `minimum_body` giữ nguyên, không thêm cơ chế resize song song.
+
+**QA nguồn:** Đã đối chiếu số lượng/thứ tự engine invocation bên trong MixConsole và Key Editor trước/sau là tương đương (MixConsole 10, Key Editor 8), không sửa engine/DSP/MIDI/session/export, chưa có chứng cứ Cargo check/test, Cloudflare deploy hay Chrome audio UAT ở thời điểm ghi. Chưa tuyên bố hoàn thành nghiệm thu; kiểm tra check-run Cloudflare đúng commit mới và PR Draft trước khi giao preview.
+
+**Bước tiếp theo:** Nếu Cloudflare build fail, điều tra/sửa đúng lỗi; chỉ giao URL bất biến được check-run xác nhận success. Giữ 4B.1 và production nguyên vẹn. Không GitHub Actions tự phát/TinyFish/phí/CMD Windows.
