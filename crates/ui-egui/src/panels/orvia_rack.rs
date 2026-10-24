@@ -150,7 +150,7 @@ pub(super) fn show(app: &mut SoundApp, ui: &mut Ui) {
                                 .on_hover_text("Bypass/bật hiệu ứng").clicked() {
                                 let _ = app.run("mix.insert_bypass", json!({"track": track.id.0, "slot":index}));
                             }
-                            if ui.small_button("×").on_hover_text("Xóa hiệu ứng khỏi slot").clicked() {
+                            if ui.small_button("Gỡ khỏi Rack").on_hover_text("Xóa hiệu ứng khỏi slot").clicked() {
                                 if app.run("mix.insert_remove", json!({"track": track.id.0, "slot":index})).is_ok() {
                                     app.ui.plugin_windows.retain(|(id, s)| *id != track.id || *s != index);
                                 }
