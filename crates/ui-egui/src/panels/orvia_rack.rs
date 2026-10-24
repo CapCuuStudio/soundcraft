@@ -51,6 +51,10 @@ pub(super) fn show(app: &mut SoundApp, ui: &mut Ui) {
     let skin = Skin::current();
     ui.spacing_mut().item_spacing.y = 7.0;
     ui.painter().rect_filled(ui.max_rect(), 0.0, skin.surface);
+    ui.spacing_mut().button_padding = egui::vec2(8.0, 5.0);
+    ui.visuals_mut().widgets.inactive.bg_fill = skin.raised;
+    ui.visuals_mut().widgets.inactive.fg_stroke.color = skin.text;
+    ui.visuals_mut().selection.bg_fill = skin.accent;
     ui.horizontal(|ui| {
         ui.label(RichText::new("STUDIO RACK").size(13.0).strong().color(skin.text));
         ui.with_layout(egui::Layout::right_to_left(egui::Align::Center), |ui| {
