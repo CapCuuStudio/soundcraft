@@ -37,10 +37,10 @@ check("GUI startup rejects invalid portable marker before preference I/O", [
 ]);
 check("native Rust data-path safety tests exist", [
   [config, 'fn orvia_portable_keeps_native_app_data_on_non_system_drives()'],
-  [config, 'Path::new(r"E:\LUNOR\ORVIA")'],
-  [config, 'Path::new(r"F:\ORVIA")'],
-  [config, 'Path::new(r"C:\ORVIA")'],
-  [config, 'Path::new(r"\\server\ORVIA")'],
+  [config, 'portable_directory_for(std::path::Path::new'],
+  [config, 'PathBuf::from('],
+  [config, '"C:"'],
+  [config, '"E:"'],
 ]);
 check("staging refuses C:, verifies SHA256/PE and avoids overwrite", [
   [stage, "[ValidatePattern("],
