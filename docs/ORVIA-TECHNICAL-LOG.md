@@ -317,3 +317,13 @@ Chủ dự án phản hồi “xong” sau khi triển khai 4B.1. Ghi nhận ngh
 **QA nguồn:** Đã đối chiếu số lượng/thứ tự engine invocation bên trong MixConsole và Key Editor trước/sau là tương đương (MixConsole 10, Key Editor 8), không sửa engine/DSP/MIDI/session/export, chưa có chứng cứ Cargo check/test, Cloudflare deploy hay Chrome audio UAT ở thời điểm ghi. Chưa tuyên bố hoàn thành nghiệm thu; kiểm tra check-run Cloudflare đúng commit mới và PR Draft trước khi giao preview.
 
 **Bước tiếp theo:** Nếu Cloudflare build fail, điều tra/sửa đúng lỗi; chỉ giao URL bất biến được check-run xác nhận success. Giữ 4B.1 và production nguyên vẹn. Không GitHub Actions tự phát/TinyFish/phí/CMD Windows.
+
+## ORVIA 4B.2 — Người dùng xác nhận nghiệm thu và Cloudflare PASS (24/10/2026)
+
+Chủ dự án phản hồi “xong” sau khi xem bản Web 4B.2, ghi nhận **nghiệm thu tổng quát giao diện** MixConsole và Key Editor. Trước khi cập nhật đã đối chiếu nhật ký kỹ thuật repo/Google Drive, PR #22 và live GitHub Cloudflare check-run.
+
+**Chứng cứ triển khai:** Cloudflare Pages check-run của `48d35a5856b95696019129fdbb5caae29c2948e2` trả `completed/success`, “Deploy successful”; immutable Preview https://c2216b68.orvia-daw-preview.pages.dev ; branch Preview https://feature-orvia-4b2-mixer-key.orvia-daw-preview.pages.dev . PR #22 https://github.com/CapCuuStudio/soundcraft/pull/22 vẫn `open/Draft/unmerged`, base `feature/orvia-4b1-lower-tabs`.
+
+**Phạm vi chốt:** MixConsole và Key Editor đồng bộ Graphite/Cyan, layout tiêu đề/hàng nút Key Editor, strip/mute/solo Mixer và Light/Dark. Source UI-only không sửa DSP/MIDI/audio engine/session, docking saved layout, track/note color; vẫn chưa có xác nhận riêng Cargo Rust tests, Chrome QA chi tiết âm thanh/MIDI/Undo/Save/Open.
+
+**Quyết định:** giữ nguyên code 4B.2 đã nghiệm thu, chỉ ghi nhật ký docs-only. Không merge main/production, không tự bắt đầu 4B.3. Không GitHub Actions thủ công/TinyFish/phí/CMD Windows.
