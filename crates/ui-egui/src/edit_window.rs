@@ -18,7 +18,7 @@ pub const COLUMN_W: f32 = 112.0;
 /// Insert, send and instrument columns: Pro Tools' narrow stacks of slots.
 const PLUGIN_COLUMN_W: f32 = 75.0;
 /// The track colour strip at the left of each track header.
-const STRIP_W: f32 = 14.0;
+const STRIP_W: f32 = 5.0;
 
 // ORVIA Design Language v1: accents only for selection and controls.
 // User-defined track/clip colors remain the source of truth.
@@ -35,6 +35,18 @@ fn orvia_timeline_surface(light: bool) -> Color32 {
 fn orvia_header_ink(light: bool) -> Color32 {
     if light { Color32::from_rgb(18, 45, 53) }
     else { Color32::from_rgb(229, 237, 244) } // #E5EDF4
+}
+
+/// Compact ORVIA Edit Track Headers: dense neutral surfaces like a workstation,
+/// with the user's track colors restricted to the existing left identity strip.
+/// The Timeline/clip body retains its own project colors unchanged.
+fn compact_track_header_color(light: bool, selected: bool) -> Color32 {
+    match (light, selected) {
+        (false, false) => Color32::from_rgb(37, 42, 47),
+        (false, true) => Color32::from_rgb(61, 67, 72),
+        (true, false) => Color32::from_rgb(226, 232, 236),
+        (true, true) => Color32::from_rgb(198, 210, 219),
+    }
 }
 
 /// The row under the rulers that holds the column titles, when any column is shown.
@@ -962,7 +974,8 @@ fn track_row(app: &mut SoundApp, ui: &mut Ui, id: TrackId, row: Rect, tl: Rect, 
     let Some(track) = s.track(id) else { return };
     let selected = s.edit.selected_tracks.contains(&id);
     let head = Rect::from_min_max(row.min, pos2(row.min.x + HEADER_W, row.max.y));
-    let (head_bg, lane_bg) = crate::theme::track_backgrounds(track.color, selected, app.ui.track_tint);
+    let (_old_head_bg, lane_bg) = crate::theme::track_backgrounds(track.color, selected, app.ui.track_tint);
+    let head_bg = compact_track_header_color(crate::theme::is_light(), selected);
     let mut x = head.max.x;
     for &(col, _, _, w) in cols {
         header_column(app, ui, track, col, Rect::from_min_size(pos2(x, row.min.y), vec2(w, row.height())), head_bg);
@@ -973,15 +986,11 @@ fn track_row(app: &mut SoundApp, ui: &mut Ui, id: TrackId, row: Rect, tl: Rect, 
     ui.painter().rect_filled(head, 0.0, head_bg);
     ui.painter().rect_filled(Rect::from_min_size(head.min, vec2(STRIP_W, head.height())), 0.0, rgb(track.color));
     ui.painter().line_segment([pos2(head.min.x, row.max.y + 0.5), pos2(tl.max.x, row.max.y + 0.5)], Stroke::new(1.0, t.border));
-    ui.painter().hline(head.min.x + STRIP_W..=head.max.x, head.min.y + 0.5, Stroke::new(1.0, t.edge_light));
-    // Selected Track gets an ORVIA focus rail; leave the user's 14px color strip intact.
+    ui.painter().hline(head.min.x + STRIP_W..=head.max.x, head.min.y + 0.5, Stroke::new(1.0, t.border));
     track_header(app, ui, track, head, selected, head_bg);
     if selected {
-        let rail = Rect::from_min_size(
-            pos2(head.min.x + STRIP_W, head.min.y + 1.0),
-            vec2(3.0, (head.height() - 2.0).max(0.0)),
-        );
-        ui.painter().rect_filled(rail, 1.0, orvia_timeline_accent(crate::theme::is_light()));
+        // Grey selection row, not the former cyan rail / tinted full-width header.
+        ui.painter().rect_stroke(head.shrink(0.5), 0.0, Stroke::new(1.0, t.border_light), StrokeKind::Inside);
     }
     // Lane.
     ui.painter().vline(tl.min.x - 0.5, row.y_range(), Stroke::new(1.0, t.border));
