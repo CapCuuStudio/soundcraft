@@ -292,3 +292,13 @@ Người dùng xác nhận “xong” sau khi thử bản 4A.4 Track Header / Ti
 **Đã xác nhận:** GitHub ghi thành công các file/commit trên nhánh riêng; kiểm tra source giữ nguyên số vị trí gọi `app.run("ui.dock",...)` trong `edit_window.rs` (5 trước/sau). API `Ui::scope_builder`, `UiBuilder::max_rect`, `ScrollArea::scroll_bar_visibility` đối chiếu tài liệu egui 0.36. **Chưa có bằng chứng Cargo unit tests, build WASM Cloudflare, kiểm thử Chrome/audio/MIDI thành công** tại thời điểm ghi log. Không coi PR đã deploy/được nghiệm thu trước khi kiểm tra đúng HEAD.
 
 **Bước kế tiếp:** tạo Draft PR nhánh 4B.1 base nhánh 4A.4, kiểm Cloudflare check-run đúng commit cuối, chỉ chia sẻ immutable preview nếu Deploy successful; sau đó UAT tab, responsive, focus, audio/MIDI và Save/Open. Không tự chạy Actions, không sử dụng TinyFish/phí mới/CMD trên máy chủ dự án.
+
+## ORVIA Web 4B.1 — Chủ dự án xác nhận nghiệm thu bản thử (24/10/2026)
+
+Chủ dự án phản hồi “xong” sau khi triển khai 4B.1. Ghi nhận nghiệm thu **tổng quát** giao diện Lower Zone tabs, không suy diễn đã kiểm từng kịch bản browser hoặc chất lượng âm thanh.
+
+**Bằng chứng live:** Cloudflare Pages check-run #120813047115 cho commit mã và tài liệu `a57faeb8b1c4844d84981e8e7cddefa2eccee521` trả `status=completed, conclusion=success` và `Deploy successful`. Preview bất biến được Cloudflare công bố: https://357d9957.orvia-daw-preview.pages.dev ; nhánh Preview: https://feature-orvia-4b1-lower-tabs.orvia-daw-preview.pages.dev . PR #21 https://github.com/CapCuuStudio/soundcraft/pull/21 đang `open/Draft/unmerged`, base `feature/orvia-4a4-track-timeline`; không thay production.
+
+**Chốt:** Thanh tab Lower Zone 32px, chữ 12pt, selected/hover/focus Graphite/Cyan và Light riêng, cuộn ngang, Reset Layout; giữ các command docking hiện có. Rust Cargo unit tests và kiểm thử Chrome audio/MIDI, Save/Open và responsive chi tiết chưa có bằng chứng PASS riêng; chỉ Cloudflare build PASS và phản hồi nghiệm thu tổng quát.
+
+**Quyết định:** giữ nguyên source 4B.1 đã chốt, chỉ thêm nhật ký (docs-only). Chưa triển khai 4B.2, chờ chỉ đạo của chủ dự án. Không merge main/production, không tự chạy Actions hoặc dịch vụ mất phí/TinyFish/CMD Windows.
