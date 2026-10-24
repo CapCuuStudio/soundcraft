@@ -15,6 +15,8 @@ fi
 node tests/orvia-4b4-responsive-contract.mjs
 # 4C: native release source audit only; NEVER mark Windows builds as passed here.
 node tests/orvia-4c-desktop-readiness.mjs
+# 4C.2: source-only portable data and x64 QA staging guard; not Windows execution.
+node tests/orvia-4c2-portable-contract.mjs
 
 export CARGO_INCREMENTAL=0
 export CARGO_BUILD_JOBS="${CARGO_BUILD_JOBS:-2}"
