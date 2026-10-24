@@ -1,7 +1,7 @@
 //! The Edit window toolbar.
 
 use crate::theme::{Tokens, bold, mono, regular};
-use crate::widgets::{icon_button, key, key_fill};
+use crate::widgets::{icon_button, key};
 use crate::{SoundApp, icons};
 use egui::{Align2, Color32, CornerRadius, Rect, Sense, Stroke, StrokeKind, Ui, pos2, vec2};
 use serde_json::json;
