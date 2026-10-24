@@ -221,6 +221,7 @@ pub fn orvia_inspector(app: &mut SoundApp, ui: &mut Ui) {
     });
 }
 
+mod rack_skin;
 mod orvia_rack;
 mod orvia_automation;
 
