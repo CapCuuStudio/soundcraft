@@ -1,5 +1,6 @@
 //! ORVIA Stage 3C: a usable, truthful rack for SoundCraft's built-in processors.
 //! Native third-party hosts remain available only through their existing desktop menus.
+use super::rack_skin::Skin;
 use crate::SoundApp;
 use crate::theme::Tokens;
 use egui::{Ui, RichText};
@@ -47,15 +48,38 @@ fn open_editor(app: &mut SoundApp, track: TrackId, slot: usize) {
 
 pub(super) fn show(app: &mut SoundApp, ui: &mut Ui) {
     let t = Tokens::current();
+    let skin = Skin::current();
+    ui.spacing_mut().item_spacing.y = 7.0;
+    ui.spacing_mut().button_padding = egui::vec2(8.0, 5.0);
+    ui.visuals_mut().widgets.inactive.bg_fill = skin.raised;
+    ui.visuals_mut().widgets.inactive.fg_stroke.color = skin.text;
+    ui.visuals_mut().selection.bg_fill = skin.accent;
+    ui.horizontal(|ui| {
+        ui.label(RichText::new("STUDIO RACK").size(13.0).strong().color(skin.text));
+        ui.with_layout(egui::Layout::right_to_left(egui::Align::Center), |ui| {
+            ui.label(RichText::new("ORVIA").size(11.0).strong().color(skin.accent));
+        });
+    });
     let mode_id = egui::Id::new("orvia_3c_rack_mode");
     let filter_id = egui::Id::new("orvia_3c_rack_filter");
     let cat_id = egui::Id::new("orvia_3c_rack_category");
     let info_id = egui::Id::new("orvia_3c_rack_details");
-    let instruments = ui.ctx().data(|d| d.get_temp::<bool>(mode_id)).unwrap_or(true);
+    let instruments = ui.ctx().data(|d| d.get_temp::<bool>(mode_id)).unwrap_or_else(|| {
+        let s = app.engine.session();
+        s.edit.selected_tracks.first().and_then(|id| s.track(*id))
+            .is_some_and(|t| t.kind == TrackKind::Instrument)
+    });
     let mut instruments = instruments;
-    ui.horizontal(|ui| {
-        ui.selectable_value(&mut instruments, true, "Nhạc cụ");
-        ui.selectable_value(&mut instruments, false, "Hiệu ứng");
+    ui.columns(2, |cols| {
+        for (i, (mode, title)) in [(true, "Nhạc cụ"), (false, "Hiệu ứng")].iter().enumerate() {
+            let active = instruments == *mode;
+            if cols[i].add_sized([cols[i].available_width(), 30.0],
+                egui::Button::new(RichText::new(*title).color(if active { skin.ink } else { skin.text }))
+                    .fill(if active { skin.accent } else { skin.raised })
+                    .corner_radius(5)).clicked() {
+                instruments = *mode;
+            }
+        }
     });
     ui.ctx().data_mut(|d| d.insert_temp(mode_id, instruments));
     let mut search = ui.ctx().data(|d| d.get_temp::<String>(filter_id)).unwrap_or_default();
@@ -69,8 +93,8 @@ pub(super) fn show(app: &mut SoundApp, ui: &mut Ui) {
             .map(|tr| (tr.id, tr.name.clone(), tr.kind)).collect();
         (chosen, tracks)
     };
-    ui.horizontal(|ui| {
-        ui.label("Track:");
+    skin.card(ui, |ui| {
+        ui.label(RichText::new("TRACK ĐÍCH").size(11.0).strong().color(skin.secondary));
         let title = selected.as_ref().map_or("Chọn Track", |track| track.name.as_str());
         egui::ComboBox::from_id_salt("orvia_3c_track_select")
             .selected_text(title)
@@ -111,20 +135,21 @@ pub(super) fn show(app: &mut SoundApp, ui: &mut Ui) {
                 .show(ui, |ui| {
                     for (index, insert) in track.mixer.inserts.iter().enumerate() {
                         let Some(insert) = insert.as_ref() else { continue };
-                        ui.horizontal(|ui| {
-                            ui.label(RichText::new(format!("{:02}", index + 1)).small().monospace());
+                        skin.card(ui, |ui| {
+                            ui.label(RichText::new(format!("INSERT {:02}", index + 1))
+                                .size(11.0).strong().color(skin.accent));
                             let name = soundcraft_dsp::plugin_info(&insert.plugin)
                                 .map_or(insert.plugin.as_str(), |p| p.name);
-                            let resp = ui.add_sized([ui.available_width().max(75.0) - 88.0, 19.0],
+                            let resp = ui.add_sized([ui.available_width(), 28.0],
                                 egui::Button::new(name));
                             if resp.on_hover_text("Mở tham số hiệu ứng").clicked() {
                                 open_editor(app, track.id, index);
                             }
-                            if ui.small_button(if insert.bypass { "OFF" } else { "ON" })
+                            if ui.small_button(if insert.bypass { "Bật lại" } else { "Bypass" })
                                 .on_hover_text("Bypass/bật hiệu ứng").clicked() {
                                 let _ = app.run("mix.insert_bypass", json!({"track": track.id.0, "slot":index}));
                             }
-                            if ui.small_button("×").on_hover_text("Xóa hiệu ứng khỏi slot").clicked() {
+                            if ui.small_button("Gỡ khỏi Rack").on_hover_text("Xóa hiệu ứng khỏi slot").clicked() {
                                 if app.run("mix.insert_remove", json!({"track": track.id.0, "slot":index})).is_ok() {
                                     app.ui.plugin_windows.retain(|(id, s)| *id != track.id || *s != index);
                                 }
@@ -214,14 +239,20 @@ pub(super) fn show(app: &mut SoundApp, ui: &mut Ui) {
             let same = instruments && selected.as_ref().and_then(|tr| tr.instrument.as_ref())
                 .is_some_and(|ins| ins.plugin == info.id);
             let can_assign = compatible && (instruments || slot.is_some());
-            ui.horizontal(|ui| {
-                let name = ui.add_sized([ui.available_width().max(125.0) - 66.0, 24.0],
-                    egui::Button::new(info.name).selected(details == info.id));
+            skin.card(ui, |ui| {
+                let name = ui.add_sized([ui.available_width(), 30.0],
+                    egui::Button::new(RichText::new(info.name).size(13.0).strong())
+                        .selected(details == info.id).corner_radius(5));
+                ui.add(egui::Label::new(
+                    RichText::new(category_name(info.category)).size(11.5).color(skin.secondary)).wrap());
                 if name.on_hover_text(format!("Xem thông số · {}", info.id)).clicked() {
                     ui.ctx().data_mut(|d| d.insert_temp(info_id, info.id.to_string()));
                 }
                 let action = if same { "Chỉnh" } else if instruments { "Gán" } else { "Thêm" };
-                let assign = ui.add_enabled(can_assign, egui::Button::new(action).min_size(egui::vec2(55.0, 24.0)));
+                let assign = ui.add_enabled(can_assign,
+                    egui::Button::new(RichText::new(action).size(12.5).color(skin.ink))
+                        .fill(skin.accent).corner_radius(5)
+                        .min_size(egui::vec2(ui.available_width(), 30.0)));
                 if assign.clicked() {
                     if let Some(track) = selected.as_ref() {
                         if same {

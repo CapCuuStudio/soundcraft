@@ -221,13 +221,14 @@ pub fn orvia_inspector(app: &mut SoundApp, ui: &mut Ui) {
     });
 }
 
+mod rack_skin;
 mod orvia_rack;
 mod orvia_automation;
 
 /// ORVIA 3C: built-in instrument/FX browser and Insert Rack.
 /// Reuses the actual engine commands, never claims browser-native VST3 hosting.
 pub fn orvia_browser(app: &mut SoundApp, ui: &mut Ui) {
-    panel_header(ui, "NHẠC CỤ & HIỆU ỨNG");
+    panel_header(ui, "BỘ DUYỆT ÂM THANH");
     orvia_rack::show(app, ui);
 }
 
