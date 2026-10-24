@@ -1,0 +1,136 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "title": "ORVIA Design Tokens v1",
+  "description": "Reference specification only. This file is not loaded by the DAW runtime until explicitly implemented.",
+  "version": "1.0.0",
+  "date": "2026-10-24",
+  "status": "design-spec-awaiting-visual-review",
+  "brand": "ORVIA Studio",
+  "theme": "dark-graphite-cyan",
+  "color": {
+    "canvas": "#101820",
+    "panel": "#17212B",
+    "raised": "#202D39",
+    "hover": "#263A48",
+    "timeline": "#141D26",
+    "border": "#354653",
+    "grid": "#293744",
+    "barLine": "#405363",
+    "textPrimary": "#E5EDF4",
+    "textSecondary": "#AAB9C6",
+    "textHint": "#8FA9B8",
+    "accent": "#47D7D1",
+    "accentInk": "#0B2530",
+    "selection": "#1B424C",
+    "record": "#F27476",
+    "solo": "#F2B86B",
+    "success": "#97E1B2",
+    "disabledText": "#8094A4"
+  },
+  "typography": {
+    "fontPolicy": "Existing Rust egui font loader: bundled OFL Be Vietnam Pro for Web and system fonts on desktop. No new fonts bundled by this manifest.",
+    "brandPt": 17,
+    "panelTitlePt": 13,
+    "bodyPt": 13,
+    "bodyCompactPt": 12.5,
+    "secondaryPt": 12,
+    "metadataPt": 11,
+    "numericPt": 14,
+    "counterPt": 26,
+    "families": {
+      "ui": "FontFamily::Proportional",
+      "bold": "FontFamily::Name(bold)",
+      "numeric": "FontFamily::Monospace"
+    }
+  },
+  "spacePx": {
+    "base": 4,
+    "scale": [
+      4,
+      8,
+      12,
+      16,
+      24
+    ],
+    "panelPadding": 12,
+    "smallPanelPadding": 8,
+    "rowGap": 8
+  },
+  "radiusPx": {
+    "panel": 8,
+    "card": 8,
+    "control": 5
+  },
+  "strokePx": {
+    "border": 1,
+    "focus": 2,
+    "activeTabUnderline": 2,
+    "trackColorRail": 3,
+    "iconLine": 1.7
+  },
+  "sizePx": {
+    "buttonHeight": 32,
+    "secondaryButtonHeight": 30,
+    "compactIconButton": [
+      28,
+      32
+    ],
+    "icon": [
+      16,
+      18
+    ],
+    "sliderHeight": [
+      24,
+      28
+    ],
+    "tabHeight": 32,
+    "panelHeaderHeight": [
+      30,
+      34
+    ],
+    "pluginItemHeight": [
+      42,
+      52
+    ],
+    "sliderThumb": [
+      10,
+      12
+    ]
+  },
+  "layout": {
+    "toolbar": {
+      "wideMinLogicalWidth": 1550,
+      "wideHeightPx": 78,
+      "narrowHeightPx": 140,
+      "narrowTwoIndependentlyScrollableRows": true
+    },
+    "inspector": {
+      "defaultWidthPx": 270,
+      "minWidthPx": 190,
+      "maxWidthPx": 410
+    },
+    "browser": {
+      "defaultWidthApproxPx": 260
+    },
+    "persistSavedWorkspace": true
+  },
+  "trackColorPolicy": "Preserve RGB track/clip colors stored by each project. Do not globally recolor clips, waveforms or MIDI notes.",
+  "darkPrimaryContrastOnPanel": 13.77,
+  "semanticCommands": "No change to transport, timeline, MIDI, mix, automation, Save/Open or engine commands.",
+  "rustImplementationMap": {
+    "theme": "crates/ui-egui/src/theme.rs",
+    "fonts": "crates/ui-egui/src/fonts.rs",
+    "widgets": "crates/ui-egui/src/widgets.rs",
+    "icons": "crates/ui-egui/src/icons.rs",
+    "toolbar": "crates/ui-egui/src/toolbar.rs",
+    "rack": "crates/ui-egui/src/panels/orvia_rack.rs",
+    "tracks": "crates/ui-egui/src/edit_window.rs"
+  },
+  "restrictions": {
+    "docsOnly": true,
+    "noRuntimeOrEngineChange": true,
+    "doNotOverwriteLightOrSystem": true,
+    "noThirdPartyProprietaryAssets": true,
+    "noAutomaticProductionMerge": true
+  }
+}
