@@ -35,7 +35,14 @@ const parsed=f.midiRead(new Uint8Array(data));
 assert.equal(parsed.tracks.length,5);
 assert.equal(parsed.tempo,76);
 assert.equal(parsed.tracks[0].notes.length,64);
-assert.deepEqual(parsed.tracks[0].notes.map(n=>[n.p,n.t,n.d,n.v]),
- tracks[0].notes.map(n=>[n.p,n.t,n.d,n.v]));
+// A Standard MIDI File quantizes note positions and lengths to integer PPQ ticks.
+// Do not compare unquantized floating-point durations (e.g. 0.43 beats) exactly.
+for (let i=0;i<tracks[0].notes.length;i++) {
+ const got=parsed.tracks[0].notes[i],original=tracks[0].notes[i];
+ assert.equal(got.p,original.p,"melody pitch "+i);
+ assert.equal(got.v,original.v,"melody velocity "+i);
+ assert.ok(Math.abs(got.t-original.t)<=1/f.ppq+1e-9,"melody start within 1 tick "+i);
+ assert.ok(Math.abs(got.d-original.d)<=1/f.ppq+1e-9,"melody duration within 1 tick "+i);
+}
 assert.throws(()=>f.midiRead(new Uint8Array([0,1,2,3])),/Không phải tệp MIDI|MIDI bị cắt/);
 console.log("PASS ORVIA AI Arranger V0 smoke: JS syntax, chords, four accompaniment roles, deterministic seed, MIDI SMF roundtrip, malformed input");
