@@ -3,7 +3,7 @@ const assert=require("node:assert/strict");
 const fs=require("node:fs");
 const path=require("node:path");
 const root=path.resolve(__dirname,"..");
-const html=fs.readFileSync(path.join(root,"apps/orvia-ai-arranger/index.html"),"utf8");
+const html=fs.readFileSync(path.join(root,"index.html"),"utf8");
 const match=/<script>([\s\S]*?)<\/script>/.exec(html);
 assert.ok(match,"inline application script");
 const src=match[1].slice(0,match[1].indexOf('$("demo").onclick'));

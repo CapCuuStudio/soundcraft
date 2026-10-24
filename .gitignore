@@ -1,12 +1,3 @@
-*~
-plan/
-/target
-/dist
-/corpus
-/log
-.DS_Store
-/.claude/
-/target-*/
-/craft-fonts/
-plans/
+dist/
+node_modules/
 .DS_Store
