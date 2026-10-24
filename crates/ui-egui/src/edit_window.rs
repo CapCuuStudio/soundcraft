@@ -1278,7 +1278,7 @@ fn header_toggle(ui: &Ui, r: Rect, track: TrackId, key: HeaderKey, lit: bool, im
     let resp = ui.interact(r, ui.id().with((label, track.0)), Sense::click());
     resp.widget_info(|| egui::WidgetInfo::selected(egui::WidgetType::Button, ui.is_enabled(), lit, label));
     let rec = key == HeaderKey::Rec;
-    let (tint, k) = if lit {
+    let (_tint, _k) = if lit {
         (color, 0.85)
     } else if implied {
         (shade(color, -0.35), 0.55)
