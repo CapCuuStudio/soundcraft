@@ -879,7 +879,7 @@ fn track_row(app: &mut SoundApp, ui: &mut Ui, id: TrackId, row: Rect, tl: Rect, 
     track_header(app, ui, track, head, selected, head_bg);
     if selected {
         let rail = Rect::from_min_size(
-            pos2(head.max.x - 3.0, head.min.y + 1.0),
+            pos2(head.min.x + STRIP_W, head.min.y + 1.0),
             vec2(3.0, (head.height() - 2.0).max(0.0)),
         );
         ui.painter().rect_filled(rail, 1.0, orvia_timeline_accent(crate::theme::is_light()));
