@@ -426,3 +426,13 @@ Chủ dự án phản hồi “xong” sau khi xem bản Web 4B.2, ghi nhận **
 4. Thêm unit tests Rust kiểm preset TrackHeight và palette selection; `tests/orvia-track-header-compact-contract.mjs` sáu source groups; nối `scripts/cloudflare-pages-build.sh` vào gate preflight trước Rust WASM. Checklist `docs/ORVIA-CUBASE-INSPIRED-TRACK-HEADER-QA.md` ghi cụ thể Chrome viewport/command/record/audio/MIDI QA chưa chạy.
 
 **Giới hạn/điều kiện:** Học theo mật độ và bố cục Cubase, KHÔNG sao chép icon/logo/skin/assets proprietary. Không thay audio engine, MIDI/Session schema, mixer DSP, Plugin host, 4C.2 Native/Portable Windows. Chưa có Cargo native tests hoặc Chrome click/audio QA PASS; Cloudflare check-run đúng commit Head cuối và URL Preview bất biến phải được xác minh. Giữ PR Draft và không merge main/production; không kích hoạt Actions thủ công, TinyFish, phí/CMD user.
+
+## ORVIA — Nghiệm thu Compact Track Header Web Preview (25/10/2026)
+
+**Người dùng:** nhắn “xong” sau khi hoàn thành thay đổi Track Header theo bố cục tham khảo Cubase (PR #27), ghi nhận **nghiệm thu tổng quát giao diện Web thử nghiệm**. Không suy diễn chủ dự án đã thử hết M/S/R/I, tên Track dài, drag-reorder, các mức chiều cao hay mọi đường âm thanh/MIDI.
+
+**Kiểm chứng live trước chốt:** PR #27 `https://github.com/CapCuuStudio/soundcraft/pull/27` đang `open/Draft/unmerged`, base `feature/orvia-4c2-windows-portable-data`, code/docs head `cf7b29d6c1ee2e7dac55e1e9fcae9e7b50afd662`. GitHub Cloudflare Pages check-run **chính xác SHA này** trả `completed/success` lúc `2026-10-24T20:51:19Z` (Deploy successful), Preview bất biến `https://c6c3571c.orvia-daw-preview.pages.dev`; branch Preview `https://feature-orvia-track-header-c.orvia-daw-preview.pages.dev`.
+
+**Phạm vi đã chốt, không đổi code:** Track Header được sắp lại với M/S + tên ở hàng đầu, Record/Monitor/Edit/Automation hàng sau; nền xám đen, highlight Track trung tính và rail màu theo dữ liệu Track 5px; giữ TrackHeight/Timeline đồng bộ, nút thật, clip màu gốc, playlist, meters, engine/audio/MIDI/session và công việc 4C.2 Portable Desktop. Cloudflare PASS xác nhận xây dựng Web/code source checks thành công; **không thay thế** Rust native tests, browser full UAT hoặc Windows Kontakt/ASIO QA.
+
+**Hành động:** chỉ ghi nghiệm thu bằng commit tài liệu, giữ nguyên mã đã duyệt; PR #27 Draft và chưa merge Main/Production. Không tự khởi động thay đổi giao diện tiếp theo hay phát hành Desktop, không chạy manual GitHub Actions/TinyFish/phí/CMD Windows.
