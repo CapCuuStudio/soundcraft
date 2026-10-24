@@ -13,6 +13,8 @@ if ! command -v node >/dev/null 2>&1; then
   exit 1
 fi
 node tests/orvia-4b4-responsive-contract.mjs
+# 4C: native release source audit only; NEVER mark Windows builds as passed here.
+node tests/orvia-4c-desktop-readiness.mjs
 
 export CARGO_INCREMENTAL=0
 export CARGO_BUILD_JOBS="${CARGO_BUILD_JOBS:-2}"
