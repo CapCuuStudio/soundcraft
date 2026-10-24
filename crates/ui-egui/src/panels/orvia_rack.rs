@@ -243,6 +243,8 @@ pub(super) fn show(app: &mut SoundApp, ui: &mut Ui) {
                 let name = ui.add_sized([ui.available_width(), 30.0],
                     egui::Button::new(RichText::new(info.name).size(13.0).strong())
                         .selected(details == info.id).corner_radius(5));
+                ui.add(egui::Label::new(
+                    RichText::new(category_name(info.category)).size(11.5).color(skin.secondary)).wrap());
                 if name.on_hover_text(format!("Xem thông số · {}", info.id)).clicked() {
                     ui.ctx().data_mut(|d| d.insert_temp(info_id, info.id.to_string()));
                 }
