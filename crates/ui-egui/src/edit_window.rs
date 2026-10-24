@@ -1680,7 +1680,7 @@ fn draw_clip(app: &SoundApp, painter: &egui::Painter, s: &Session, track: &Track
     let name_h = clip_name_height(s, lane);
     if name_h > 0.0 {
         let nb = Rect::from_min_max(r.min, pos2(r.max.x, r.min.y + name_h));
-        painter.rect_filled(nb, CornerRadius { nw: 2, ne: 2, sw: 0, se: 0 }, if clip.muted { Color32::from_rgb(70, 70, 70) } else { bar });
+        painter.rect_filled(nb, CornerRadius { nw: 4, ne: 4, sw: 0, se: 0 }, if clip.muted { Color32::from_rgb(70, 70, 70) } else { bar });
         let name_clip = nb.intersect(lane);
         painter.with_clip_rect(name_clip).text(
             pos2(nb.min.x.max(lane.min.x) + 4.0, nb.center().y),
