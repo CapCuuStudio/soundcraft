@@ -1,0 +1,266 @@
+<!doctype html>
+<html lang="vi">
+<head>
+<meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1">
+<title>ORVIA AI Arranger • Web Lab V0</title>
+<style>
+:root{color-scheme:dark;--bg:#0a1019;--panel:#111d2a;--panel2:#182635;--line:#293d4d;--text:#e7f1f5;--muted:#94aab6;--cyan:#51dbd3;--gold:#edc181;--violet:#ac9eff}
+*{box-sizing:border-box}body{margin:0;background:radial-gradient(ellipse at 75% 0%,#152738 0%,#0a1019 48%);color:var(--text);font:14px/1.5 system-ui,"Segoe UI",sans-serif}
+button,input,select{font:inherit}button{color:inherit;cursor:pointer;border:1px solid var(--line);background:#213443;border-radius:8px;padding:9px 14px}button:hover{border-color:var(--cyan);background:#284151}button.primary{background:#117b7c;border-color:#2fbdbc;font-weight:700}button.primary:hover{background:#179e9f}button:disabled{opacity:.38;cursor:not-allowed}button.minor{padding:5px 9px;font-size:12px}.app{max-width:1640px;margin:auto;min-height:100vh}
+header{display:flex;justify-content:space-between;align-items:center;gap:16px;padding:15px 22px;border-bottom:1px solid var(--line);background:rgba(12,20,30,.88);flex-wrap:wrap}
+.brand{display:flex;gap:14px;align-items:center}.mark{width:44px;height:44px;border-radius:12px;background:linear-gradient(145deg,#197a83,#5be7cb);display:grid;place-items:center;font-size:27px;font-weight:900;color:#051e27;box-shadow:0 0 30px #23ab9b33}.brand strong{display:block;letter-spacing:1.4px;font-size:18px}.brand small{color:var(--muted);letter-spacing:1px}.chip{display:inline-block;padding:4px 9px;border-radius:30px;background:#233840;color:#abede9;border:1px solid #2f676b;font-weight:700;font-size:11px;letter-spacing:.5px}
+.topright{display:flex;gap:9px;align-items:center;flex-wrap:wrap}.layout{display:grid;grid-template-columns:250px minmax(360px,1fr) 280px;gap:14px;padding:16px}
+.panel{background:linear-gradient(180deg,#142331,#101c28);border:1px solid var(--line);border-radius:13px;min-width:0;overflow:hidden}
+.panel h2{font-size:12px;text-transform:uppercase;letter-spacing:1.7px;color:#b9ccd4;margin:0;padding:16px;border-bottom:1px solid var(--line)}.inside{padding:16px}.section{margin-bottom:20px}.section h3{font-size:13px;margin:0 0 10px}.subtle{color:var(--muted);font-size:12px}.big{font-size:27px;font-weight:750;line-height:1.1}.step{display:flex;align-items:center;gap:9px;margin:11px 0;color:#a3b8c4;font-size:12px}.step .circle{height:23px;width:23px;display:grid;place-items:center;border:1px solid #43616b;border-radius:50%}.step.current{color:var(--cyan)}.step.current .circle{background:#17565a;border-color:var(--cyan)}
+.actionhead{display:flex;gap:12px;justify-content:space-between;align-items:center;flex-wrap:wrap;margin-bottom:12px}.actionhead h1{margin:0;font-size:22px;letter-spacing:-.5px}.actionhead p{margin:4px 0 0;color:var(--muted);font-size:12px}.toolbar{display:flex;flex-wrap:wrap;align-items:center;gap:9px;padding:12px;background:var(--panel);border:1px solid var(--line);border-radius:12px}.toolbar .spacer{flex:1}
+label{display:block;color:#a9bec8;font-size:12px;margin-bottom:5px}input[type=text],input[type=number],select{width:100%;background:#091722;border:1px solid #385466;border-radius:8px;color:var(--text);padding:9px 10px}input[type=range]{accent-color:var(--cyan);width:100%}.field{margin-bottom:13px}.duo{display:grid;grid-template-columns:1fr 1fr;gap:10px}.file{display:none}
+.mainstage{margin-top:14px;background:var(--panel);border:1px solid var(--line);border-radius:13px;overflow:hidden}.stagebar{display:flex;align-items:center;justify-content:space-between;padding:11px 14px;border-bottom:1px solid var(--line);gap:10px;flex-wrap:wrap}.stagebar strong{font-size:13px}.stagebar small{color:var(--muted)}.canvaswrap{overflow:auto}.canvaswrap canvas{width:100%;height:460px;display:block}.trackitems{border-top:1px solid var(--line);display:grid;grid-template-columns:repeat(2,minmax(0,1fr))}.trackitem{padding:10px 14px;border-right:1px solid var(--line);border-bottom:1px solid var(--line);display:grid;grid-template-columns:minmax(95px,1fr) 34px 34px minmax(75px,1fr);gap:7px;align-items:center}.trackname{font-size:12px;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}.trackitem button{padding:5px 4px}.trackitem button.on{border-color:var(--cyan);color:var(--cyan)}.trackitem .vol{width:100%}.instrument{display:block;font-size:10px;color:var(--muted)}
+.note{background:#0e1b27;border:1px solid #294255;padding:10px 13px;border-radius:9px;margin-top:11px;font-size:12px;color:#b8cdd7}.note strong{color:var(--cyan)}
+.status{color:var(--cyan);font-size:12px;min-height:18px}.metrics{display:grid;grid-template-columns:1fr 1fr;gap:10px;margin-top:10px}.metric{padding:12px;background:#0b1b27;border:1px solid var(--line);border-radius:9px}.metric .value{font-size:22px;font-weight:800;color:#d1f0ef}
+footer{padding:20px 24px;color:#758d9b;font-size:11px;border-top:1px solid var(--line)}a{color:var(--cyan)}.hide{display:none}
+@media(max-width:1160px){.layout{grid-template-columns:220px 1fr}.right{grid-column:1/-1}.trackitems{grid-template-columns:1fr 1fr}}
+@media(max-width:750px){.layout{display:block;padding:10px}.panel{margin-bottom:12px}.trackitems{grid-template-columns:1fr}.canvaswrap canvas{height:400px}.actionhead h1{font-size:19px}header{padding:12px}}
+</style>
+</head>
+<body><div class="app">
+<header><div class="brand"><div class="mark">O</div><div><strong>ORVIA <span style="color:var(--cyan)">AI ARRANGER</span></strong><small>LUNOR MUSIC · WEB LAB V0.1</small></div></div><div class="topright"><span class="chip">RULE BASELINE · CHƯA PHẢI MODEL AI</span><span class="subtle">MIDI chạy trong trình duyệt · Không tải dữ liệu lên máy chủ</span></div></header>
+<div class="layout">
+<aside class="panel"><h2>Tiến độ phát triển</h2><div class="inside">
+<div class="section"><div class="subtle">Kế hoạch kỹ thuật 2026</div><div class="big">G00 → G16</div><p class="subtle">Mục tiêu cuối: AI phối khí MIDI độc lập, huấn luyện trên dữ liệu có quyền.</p></div>
+<div class="step current"><span class="circle">00</span> Khởi động & kiểm toán — đang làm</div>
+<div class="step"><span class="circle">01</span> Quyền dữ liệu — chưa nghiệm thu</div>
+<div class="step"><span class="circle">02</span> Đặc tả sản phẩm — đang phác thảo</div>
+<div class="step"><span class="circle">05</span> Phối khí quy tắc — thử nghiệm</div>
+<div class="step"><span class="circle">07</span> Mô hình AI — chưa huấn luyện</div>
+<div class="section" style="margin-top:24px"><h3>Quy tắc bảo toàn</h3><div class="subtle">Không đụng ORVIA DAW, không ghi đè project, không dùng dữ liệu huấn luyện không rõ quyền và không dùng GPU trả phí.</div></div>
+<div class="note"><strong>V0 Web-first</strong> là công cụ thử nghiệm luồng nhập MIDI → tạo các track đệm → phát/xuất MIDI. Âm thanh preview là synth đơn giản, không phải Kontakt hay VST3.</div>
+</div></aside>
+<main>
+<div class="actionhead"><div><h1>Music Arrangement Workspace</h1><p>Giai điệu gốc → hợp âm → piano · guitar · bass · drums</p></div><span id="clock" class="subtle">4/4 · Pop Ballad</span></div>
+<div class="toolbar">
+<button id="demo">♪ Tạo melody mẫu</button>
+<button id="upload">Nhập MIDI</button><input class="file" id="midFile" type="file" accept=".mid,.midi,audio/midi">
+<button id="generate" class="primary">✦ Tạo bản phối</button><div class="spacer"></div>
+<button id="play">▶ Phát</button><button id="stop">■ Dừng</button><button id="export" disabled>Xuất .mid đa track</button>
+</div>
+<div class="mainstage">
+<div class="stagebar"><div><strong id="songTitle">Chưa có giai điệu</strong><small id="timelineInfo"> · Hãy chọn Melody mẫu hoặc nhập MIDI</small></div><span id="playInfo" class="subtle">00:00 / 00:00</span></div>
+<div class="canvaswrap"><canvas id="timeline" aria-label="Piano roll thu nhỏ với các track MIDI"></canvas></div>
+<div id="tracks" class="trackitems"></div>
+</div>
+<div class="note"><strong>Giới hạn hiện tại:</strong> Bản phối được sinh bởi quy tắc nhạc lý có seed, chưa học từ dữ liệu. Bản phối dự kiến 4 track, giữ nguyên giai điệu đầu vào. File MIDI xuất được chỉnh sửa trong ORVIA/MELORIX hoặc DAW khác. Đánh giá chất lượng âm nhạc cần nghe thử trên nhạc cụ thực.</div>
+</main>
+<aside class="panel right"><h2>Arrangement Inspector</h2><div class="inside">
+<div class="field"><label for="chords">Vòng hợp âm (mỗi hợp âm / 1 ô nhịp)</label><input id="chords" type="text" value="Am F C G" spellcheck="false"><div class="subtle">Ví dụ: Am F C G · C G Am F · Dm G C Am</div></div>
+<div class="duo"><div class="field"><label for="bpm">Tempo (BPM)</label><input id="bpm" type="number" min="40" max="200" value="76"></div><div class="field"><label for="seed">Variation seed</label><input id="seed" type="number" min="1" max="99999" value="2026"></div></div>
+<div class="field"><label for="density">Mật độ phối khí <span id="densityText">55%</span></label><input id="density" type="range" min="15" max="95" value="55"></div>
+<div class="field"><label for="energy">Mức biểu cảm <span id="energyText">60%</span></label><input id="energy" type="range" min="0" max="100" value="60"></div>
+<div class="field"><label for="melodySelect">Track nguồn giữ nguyên</label><select id="melodySelect"><option>Chưa có MIDI</option></select></div>
+<div class="metrics"><div class="metric"><div class="subtle">Số ô nhịp</div><div id="bars" class="value">—</div></div><div class="metric"><div class="subtle">Số nốt MIDI</div><div id="notes" class="value">—</div></div></div>
+<div class="section" style="margin-top:19px"><h3>Trạng thái</h3><div id="status" class="status" role="status">Sẵn sàng tạo bản demo.</div></div>
+<div class="subtle">Chỉ hỗ trợ MIDI SMF type 0/1, PPQ theo nhịp 4/4 trong bản Web thử đầu tiên. Tempo map đa đoạn và các nhịp khác sẽ cần giai đoạn chuẩn hóa riêng.</div>
+</div></aside>
+</div>
+<footer>ORVIA AI ARRANGER · Prototype rule-based độc lập · G00/G05 research sandbox · Không phải cam kết AI đã huấn luyện hay bản ORVIA Desktop chính thức.</footer>
+</div>
+<script>
+"use strict";
+const $=id=>document.getElementById(id);
+const ppq=480, COLORS=["#5cdacb","#7eacf6","#ffcf85","#af9af3","#ff8da1"];
+let sources=[],melody=[],result=[],bars=8,ctx=null,voices=[],playing=false,startAt=0,raf=0,solo=false;
+let state={title:"",source:0,bpm:76,progress:0};
+const clamp=(x,a,b)=>Math.max(a,Math.min(b,x));
+const status=s=>{$("status").textContent=s};
+const note=(pitch,start,dur,velocity=86)=>({p:pitch,t:start,d:dur,v:velocity});
+const rng=(seed)=>{let x=seed>>>0;return()=>{x=(Math.imul(x,1664525)+1013904223)>>>0;return x/4294967296}};
+function midiRead(bytes){
+ const v=new DataView(bytes.buffer,bytes.byteOffset,bytes.byteLength);
+ if(bytes.length>2097152)throw Error("MIDI vượt 2 MB của bản thử nghiệm.");
+ let at=0;const need=n=>{if(at+n>bytes.length)throw Error("MIDI bị cắt/hỏng");};
+ const u8=()=>{need(1);return bytes[at++]};const u16=()=>u8()*256+u8();const u32=()=>((u16()*65536)+u16())>>>0;
+ const ascii=n=>{need(n);let s="";for(let i=0;i<n;i++)s+=String.fromCharCode(u8());return s};
+ const vlq=()=>{let z=0;for(let i=0;i<4;i++){let k=u8();z=(z<<7)|(k&127);if(!(k&128))return z;}throw Error("VLQ không hợp lệ")};
+ if(ascii(4)!=="MThd")throw Error("Không phải tệp MIDI chuẩn");
+ let hlen=u32();if(hlen<6||hlen>256)throw Error("Header MIDI lỗi");
+ const fmt=u16(),count=u16(),division=u16();at+=hlen-6;
+ if(fmt>1||!count||count>128||!division||(division&0x8000))throw Error("Chỉ hỗ trợ MIDI type 0/1 với PPQ");
+ let tracks=[],tempo=120;
+ for(let j=0;j<count;j++){
+  if(ascii(4)!=="MTrk")throw Error("Thiếu track MIDI");
+  let len=u32(),end=at+len;if(end>bytes.length)throw Error("Track MIDI lỗi");
+  let tick=0,run=0,evs=[],active=new Map(),program=0,name="MIDI "+(j+1);
+  while(at<end){
+   tick+=vlq();let b=u8(),d1=0,d2=0,st=b;
+   if(b<128){if(!run)throw Error("Running status MIDI lỗi");st=run;d1=b;}else if(b<240){run=b;}
+   if(st===255){let typ=u8(),n=vlq();need(n);if(at+n>end)throw Error("Meta event lỗi");
+      if(typ===81&&n===3&&tempo===120){let micro=bytes[at]*65536+bytes[at+1]*256+bytes[at+2];if(micro>0)tempo=clamp(Math.round(60000000/micro),40,200)}
+      if(typ===3&&n>0)name=new TextDecoder().decode(bytes.slice(at,at+n)).slice(0,70);
+      at+=n;run=0;continue}
+   if(st===240||st===247){let n=vlq();if(at+n>end)throw Error("SysEx lỗi");at+=n;run=0;continue}
+   if(st<128||st>239)throw Error("Event MIDI không hợp lệ");
+   const hi=st&240,ch=st&15;
+   if(b>=128)d1=u8();if(hi!==192&&hi!==208)d2=u8();
+   if(hi===192){program=d1;continue}
+   if(hi===144&&d2>0){let key=ch+":"+d1;let q=active.get(key)||[];q.push({tick,v:d2,ch});active.set(key,q)}
+   if(hi===128||(hi===144&&d2===0)){let key=ch+":"+d1,q=active.get(key);if(q&&q.length){let s=q.shift();let dur=(tick-s.tick)/division;if(dur>0&&dur<1024)evs.push({...note(d1,s.tick/division,dur,s.v),ch})}}
+   if(evs.length>100000)throw Error("Quá nhiều nốt MIDI");
+  }
+  at=end;
+  if(evs.length)tracks.push({name,notes:evs.sort((a,b)=>a.t-b.t),program,mute:false,solo:false,vol:85,col:COLORS[0]});
+ }
+ if(!tracks.length)throw Error("MIDI không chứa nốt hợp lệ");
+ return {tracks,tempo,fmt};
+}
+function makeDemo(){
+ let chords=[69,65,60,67],ns=[],pat=[0,2,4,7,9,7,4,2];
+ for(let b=0;b<8;b++)for(let k=0;k<8;k++){
+  let root=chords[b%4],p=root+(pat[k%8]%12)-12;
+  ns.push(note(clamp(p,48,85),b*4+k*.5,.43,82+(k%3)*5));
+ }
+ return ns;
+}
+function pickedMelody(){
+ let chosen=sources[Number($("melodySelect").value)]||sources[0];
+ if(!chosen)return[];
+ return chosen.notes.map(n=>({...n}));
+}
+function refreshSource(){
+ const select=$("melodySelect");select.replaceChildren();
+ sources.forEach((t,i)=>{let o=document.createElement("option");o.value=i;o.textContent=t.name+" ("+t.notes.length+" nốt)";select.append(o)});
+ select.value=String(clamp(state.source,0,sources.length-1));melody=pickedMelody();
+ bars=clamp(Math.ceil(Math.max(0,...melody.map(n=>n.t+n.d))/4),1,64);
+ $("bars").textContent=bars;$("notes").textContent=melody.length;
+ $("timelineInfo").textContent=" · "+bars+" bars · "+melody.length+" nốt melody";
+ draw();updateTracks();
+}
+function useDemo(){stop();sources=[{name:"Original Melody",notes:makeDemo(),program:0,mute:false,solo:false,vol:90,col:COLORS[0]}];state.source=0;state.title="ORVIA Pop Ballad · Melody demo";state.bpm=76;$("bpm").value=76;$("songTitle").textContent=state.title;result=[];$("export").disabled=true;refreshSource();status("Đã nạp melody mẫu; bấm Tạo bản phối để nghe.");}
+const chroma={C:0,D:2,E:4,F:5,G:7,A:9,B:11};
+function parseChord(c){let m=/^([A-G])([#b]?)(m7|maj7|m|7|dim|sus4)?$/i.exec(c);if(!m)throw Error("Hợp âm chưa hỗ trợ: "+c);let base=chroma[m[1].toUpperCase()]+(m[2]==="#"?1:m[2]==="b"?-1:0);base=(base+12)%12;let q=(m[3]||"").toLowerCase();let iv=q==="m"||q==="m7"?[0,3,7]:q==="dim"?[0,3,6]:q==="sus4"?[0,5,7]:[0,4,7];if(q==="m7")iv.push(10);if(q==="7")iv.push(10);if(q==="maj7")iv.push(11);return {base,intervals:iv}}
+function createArr(){
+ if(!sources.length){status("Hãy nhập MIDI hoặc tạo melody mẫu trước.");return}
+ stop();melody=pickedMelody();
+ let chordTokens=$("chords").value.trim().split(/[\s,|]+/).filter(Boolean);
+ let chords;try{if(!chordTokens.length)throw Error("Hãy nhập hợp âm");chords=chordTokens.map(parseChord)}catch(e){status(e.message);return}
+ let bpm=clamp(Number($("bpm").value)||76,40,200);
+ let sd=clamp(Math.floor(Number($("seed").value)||1),1,99999),random=rng(sd);
+ let density=Number($("density").value)/100,energy=Number($("energy").value)/100;
+ const base={name:"Melody (khóa)",notes:melody.map(n=>({...n})),program:0,mute:false,solo:false,vol:85,col:COLORS[0],ch:0};
+ const inst=(name,program,col,ch)=>({name,program,col,ch,notes:[],mute:false,solo:false,vol:77});
+ const piano=inst("Piano • Harmony",0,COLORS[1],1),gtr=inst("Guitar • Picking",24,COLORS[2],2),bass=inst("Bass • Roots",32,COLORS[3],3),drum=inst("Drums • Groove",0,COLORS[4],9);
+ const vel=(v,b)=>clamp(Math.round(v+(random()-.5)*energy*22+(b%8>=4?energy*9:0)),35,120);
+ let genBars=clamp(Math.ceil(Math.max(4,...melody.map(n=>(n.t+n.d)/4))),4,64);
+ for(let b=0;b<genBars;b++){
+   let ch=chords[b%chords.length],t=b*4,root=ch.base;
+   let pn=ch.intervals.map(x=>48+root+x);let contrast=(b%8>=4)?1:0;
+   // Piano: controllable block harmony and arpeggio with phrase dynamics.
+   for(let k=0;k<8;k++){if(k%2===1&&density<.5||random()>.5+density*.48)continue;
+     let p=pn[(k+(b%2))%pn.length]+(k%4===3?12:0);
+     piano.notes.push(note(clamp(p,40,88),t+k*.5,.45,vel(68+contrast*5,b)))}
+   // Guitar: separate offbeat picking/strum, never more than a playable triad.
+   for(let k=0;k<4;k++){if(k===3&&density<.4)continue;
+     let idx=k%3,p=60+root+ch.intervals[idx]-(k===0?12:0);
+     gtr.notes.push(note(clamp(p,42,85),t+k+(.08+random()*.06),.75,vel(62+k*2,b)))}
+   // Bass roots and fifths.
+   for(let k=0;k<4;k+=2)bass.notes.push(note(36+root+(k===2?7:0),t+k,1.75,vel(76+k*2,b)));
+   if(density>.65)bass.notes.push(note(36+root,t+3,.7,vel(67,b)));
+   // Percussion channel 10 in SMF, humanized accents but tempo aligned.
+   for(let k=0;k<8;k++){if(k%2===0)drum.notes.push(note(k===0||k===4?36:38,t+k*.5,.18,vel(k===0?96:77,b)));
+      if(density>.35||k%2===0)drum.notes.push(note(42,t+k*.5,.12,vel(k%2===0?48:41,b)))}
+ }
+ result=[base,piano,gtr,bass,drum];bars=genBars;state.bpm=bpm;
+ $("bpm").value=bpm;$("bars").textContent=bars;$("notes").textContent=result.reduce((s,t)=>s+t.notes.length,0);
+ $("export").disabled=false;updateTracks();draw();status("Đã sinh "+(result.length-1)+" track đệm bằng quy tắc (không phải AI học sâu).");
+}
+function updateTracks(){
+ const list=result.length?result:(sources.length?[{...sources[0],name:"Melody gốc",col:COLORS[0]}]:[]);
+ $("tracks").replaceChildren();
+ list.forEach((track,i)=>{
+   let line=document.createElement("div");line.className="trackitem";
+   let name=document.createElement("div");name.className="trackname";name.textContent=track.name;
+   let sm=document.createElement("span");sm.className="instrument";sm.textContent=track.notes.length+" nốt";name.append(sm);
+   let mute=document.createElement("button");mute.className="minor"+(track.mute?" on":"");mute.textContent="M";mute.title="Mute";mute.onclick=()=>{track.mute=!track.mute;updateTracks();if(playing)play()};
+   let sol=document.createElement("button");sol.className="minor"+(track.solo?" on":"");sol.textContent="S";sol.title="Solo";sol.onclick=()=>{track.solo=!track.solo;updateTracks();if(playing)play()};
+   let vol=document.createElement("input");vol.type="range";vol.className="vol";vol.min=0;vol.max=100;vol.value=track.vol;vol.title="Volume riêng";vol.oninput=()=>{track.vol=Number(vol.value)};
+   line.append(name,mute,sol,vol);list.append; $("tracks").append(line);
+ })
+}
+function draw(){
+ const canvas=$("timeline"),wrap=canvas.parentElement,rect=wrap.getBoundingClientRect(),w=Math.max(380,Math.round(rect.width)),h=canvas.clientHeight||460,dpr=Math.min(2,window.devicePixelRatio||1);
+ canvas.width=Math.round(w*dpr);canvas.height=Math.round(h*dpr);
+ const c=canvas.getContext("2d");c.scale(dpr,dpr);c.clearRect(0,0,w,h);c.fillStyle="#0b1824";c.fillRect(0,0,w,h);
+ const tracks=result.length?result:(melody.length?[{notes:melody,name:"Melody",col:COLORS[0]}]:[]);const n=Math.max(1,tracks.length),r=h/n;
+ const left=12,right=12,width=w-left-right,num=Math.max(4,bars);
+ for(let k=0;k<=num*4;k++){let x=left+k/(num*4)*width;c.strokeStyle=k%16===0?"#365366":k%4===0?"#263c4d":"#1a2c3a";c.beginPath();c.moveTo(x,0);c.lineTo(x,h);c.stroke()}
+ tracks.forEach((tr,i)=>{let top=i*r;c.fillStyle=i%2?"#0f202d":"#101b27";c.globalAlpha=.45;c.fillRect(0,top,w,r);c.globalAlpha=1;c.strokeStyle="#293a48";c.beginPath();c.moveTo(0,top+r);c.lineTo(w,top+r);c.stroke();c.fillStyle="#9eb4c0";c.font="11px system-ui";c.fillText(tr.name,left+5,top+16);
+   let vals=tr.notes||[];if(!vals.length)return;let lo=Math.min(...vals.map(e=>e.p)),hi=Math.max(...vals.map(e=>e.p));let range=Math.max(1,hi-lo);
+   for(const e of vals){let x=left+e.t/(num*4)*width,ww=Math.max(2,e.d/(num*4)*width),y=top+26+(hi-e.p)/range*Math.max(6,r-42);if(x>w)continue;c.fillStyle=tr.col||COLORS[i%COLORS.length];c.globalAlpha=.5+.5*(e.v||80)/127;c.fillRect(x,y,ww,Math.max(3,Math.min(7,r/12)));c.globalAlpha=1}
+ });
+ if(playing){let x=left+state.progress/(num*4)*width;c.strokeStyle="#fff9c7";c.lineWidth=2;c.beginPath();c.moveTo(x,0);c.lineTo(x,h);c.stroke();c.lineWidth=1}
+}
+function writeVar(n){n=Math.floor(n);let a=[n&127];while(n>>=7)a.unshift((n&127)|128);return a}
+function b16(n){return[(n>>8)&255,n&255]}function b32(n){return[(n>>>24)&255,(n>>>16)&255,(n>>>8)&255,n&255]}
+const bytes=s=>Array.from(new TextEncoder().encode(s));
+function chunk(tag,content){return [...bytes(tag),...b32(content.length),...content]}
+function trackEncode(tr,bpm,isMeta){
+ let evs=[];
+ const add=(tick,arr,order=2)=>evs.push({tick:Math.round(tick),arr,order});
+ if(isMeta){
+  let micro=Math.round(60000000/bpm);add(0,[255,81,3,(micro>>16)&255,(micro>>8)&255,micro&255],0);add(0,[255,88,4,4,2,24,8],0);
+ }else{
+   const name=bytes(tr.name||"MIDI").slice(0,100),ch=tr.ch??0;
+   add(0,[255,3,...writeVar(name.length),...name],0);
+   if(ch!==9)add(0,[192|ch,clamp(tr.program||0,0,127)],0);
+   for(const n of tr.notes){
+     if(!Number.isFinite(n.t)||!Number.isFinite(n.d)||n.d<=0||n.t<0)continue;
+     let start=Math.round(n.t*ppq),end=Math.max(start+1,Math.round((n.t+n.d)*ppq));
+     let p=clamp(n.p,0,127),v=clamp(n.v||85,1,127);
+     add(start,[144|ch,p,v],3);add(end,[128|ch,p,0],1)
+   }
+ }
+ evs.sort((a,b)=>a.tick-b.tick||a.order-b.order);let last=0,out=[];
+ for(const e of evs){out.push(...writeVar(e.tick-last),...e.arr);last=e.tick}
+ out.push(0,255,47,0);return chunk("MTrk",out)
+}
+function exportMidi(){
+ if(!result.length){status("Chưa có bản phối để xuất.");return}
+ let bpm=state.bpm,tracks=[trackEncode({},bpm,true),...result.map(tr=>trackEncode(tr,bpm,false))];
+ let data=[...bytes("MThd"),...b32(6),...b16(1),...b16(tracks.length),...b16(ppq)];
+ tracks.forEach(tr=>data.push(...tr));
+ let blob=new Blob([new Uint8Array(data)],{type:"audio/midi"}),url=URL.createObjectURL(blob),a=document.createElement("a");a.href=url;a.download="orvia-arranger-v0.mid";a.click();setTimeout(()=>URL.revokeObjectURL(url),1000);status("Đã xuất MIDI type 1: melody + 4 track, có thể sửa trong DAW.")
+}
+function stop(){if(ctx){for(const o of voices){try{o.stop()}catch(_){}}}voices=[];playing=false;cancelAnimationFrame(raf);state.progress=0;$("play").textContent="▶ Phát";draw()}
+function play(){
+ const tracks=result.length?result:(melody.length?[{notes:melody,ch:0,vol:85,mute:false,solo:false}]:[]);
+ if(!tracks.length){status("Hãy tạo melody trước khi phát");return}
+ stop();const C=window.AudioContext||window.webkitAudioContext;if(!C){status("Trình duyệt không hỗ trợ WebAudio");return}
+ ctx=ctx||new C();ctx.resume();let bpm=state.bpm||76,beat=60/bpm;
+ let anySolo=tracks.some(t=>t.solo);
+ let total=0;for(const t of tracks)for(const n of t.notes)total=Math.max(total,n.t+n.d);
+ let maxVoices=0;startAt=ctx.currentTime+.08;playing=true;
+ for(const t of tracks){if(t.mute||(anySolo&&!t.solo))continue;
+   for(const n of t.notes){if(maxVoices++>1700)break;
+     const start=startAt+n.t*beat,len=Math.max(.045,Math.min(5,n.d*beat));
+     let osc=ctx.createOscillator(),gain=ctx.createGain();
+     osc.type=t.ch===9?"triangle":t.program===32?"sine":t.program===24?"sawtooth":"triangle";
+     let f=440*Math.pow(2,(n.p-69)/12);if(t.ch===9)f=n.p===36?86:n.p===38?170:340;
+     osc.frequency.setValueAtTime(f,start);
+     let amp=Math.min(.11,(n.v/127)*.08)*(t.vol/100);
+     gain.gain.setValueAtTime(.0001,start);gain.gain.exponentialRampToValueAtTime(Math.max(.0002,amp),start+.012);
+     gain.gain.exponentialRampToValueAtTime(.0001,start+len+.12);
+     osc.connect(gain);gain.connect(ctx.destination);osc.start(start);osc.stop(start+len+.14);voices.push(osc);
+   }
+ }
+ $("play").textContent="↻ Phát lại";status("Preview sử dụng bộ synth WebAudio đơn giản, không phải Kontakt / VST3.");
+ const duration=total*beat;
+ const fmt=sec=>String(Math.floor(sec/60)).padStart(2,"0")+":"+String(Math.floor(sec%60)).padStart(2,"0");
+ function frame(){if(!playing)return;const now=clamp(ctx.currentTime-startAt,0,duration);state.progress=now/beat;$("playInfo").textContent=fmt(now)+" / "+fmt(duration);draw();if(now>=duration){stop();return}raf=requestAnimationFrame(frame)}
+ raf=requestAnimationFrame(frame);
+}
+$("demo").onclick=useDemo;$("generate").onclick=createArr;$("export").onclick=exportMidi;$("play").onclick=play;$("stop").onclick=stop;
+$("upload").onclick=()=>{$("midFile").click()};$("midFile").onchange=async ev=>{let f=ev.target.files&&ev.target.files[0];if(!f)return;stop();try{let parsed=midiRead(new Uint8Array(await f.arrayBuffer()));sources=parsed.tracks.filter(t=>t.notes.some(n=>n.ch!==9));if(!sources.length)throw Error("Không tìm thấy track giai điệu khác kênh trống");state.source=0;state.title=f.name;state.bpm=parsed.tempo;$("bpm").value=state.bpm;$("songTitle").textContent=f.name;result=[];$("export").disabled=true;refreshSource();status("Đã nạp "+sources.length+" track MIDI; chọn track melody, rồi bấm Tạo bản phối.")}catch(e){status("Lỗi nhập MIDI: "+e.message)}finally{ev.target.value=""}};
+$("melodySelect").onchange=()=>{state.source=Number($("melodySelect").value);stop();result=[];$("export").disabled=true;refreshSource()};
+for(const id of ["density","energy"])$(id).oninput=()=>{$(id==="density"?"densityText":"energyText").textContent=$(id).value+"%"};
+window.addEventListener("resize",draw);
+useDemo();
+</script>
+</body></html>
