@@ -6,6 +6,18 @@ set -Eeuo pipefail
 ROOT="$(cd "$(dirname "${BASH_SOURCE[0]}")/.." && pwd)"
 cd "$ROOT"
 
+# Dedicated branch-only Web Lab. Other branches keep the actual DAW WASM build below.
+if [[ "${CF_PAGES_BRANCH:-}" == "feature/orvia-ai-arranger-web-v0" ]]; then
+  echo '[ORVIA-AI] Standalone Web-first sandbox preview branch.'
+  command -v node >/dev/null 2>&1 || { echo '[ORVIA-AI] Node.js is required for smoke tests' >&2; exit 1; }
+  node "$ROOT/tests/orvia-ai-arranger-smoke.cjs"
+  mkdir -p "$ROOT/dist/web/ai-arranger"
+  cp "$ROOT/apps/orvia-ai-arranger/index.html" "$ROOT/dist/web/index.html"
+  cp "$ROOT/apps/orvia-ai-arranger/index.html" "$ROOT/dist/web/ai-arranger/index.html"
+  echo '[ORVIA-AI] Smoke-tested static MIDI app; no DAW production changes.'
+  exit 0
+fi
+
 export CARGO_INCREMENTAL=0
 export CARGO_BUILD_JOBS="${CARGO_BUILD_JOBS:-2}"
 export CARGO_TERM_COLOR=always
