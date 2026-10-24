@@ -6,6 +6,14 @@ set -Eeuo pipefail
 ROOT="$(cd "$(dirname "${BASH_SOURCE[0]}")/.." && pwd)"
 cd "$ROOT"
 
+# ORVIA 4B.4: fail early on documented responsive/command regressions.
+# This is a source-contract smoke test, NOT a browser/audio test.
+if ! command -v node >/dev/null 2>&1; then
+  echo '[ORVIA] Node.js missing; cannot run responsive regression checks.' >&2
+  exit 1
+fi
+node tests/orvia-4b4-responsive-contract.mjs
+
 export CARGO_INCREMENTAL=0
 export CARGO_BUILD_JOBS="${CARGO_BUILD_JOBS:-2}"
 export CARGO_TERM_COLOR=always
