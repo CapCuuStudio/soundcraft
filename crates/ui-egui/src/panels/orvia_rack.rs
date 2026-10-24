@@ -75,7 +75,7 @@ pub(super) fn show(app: &mut SoundApp, ui: &mut Ui) {
         for (i, (mode, title)) in [(true, "Nhạc cụ"), (false, "Hiệu ứng")].iter().enumerate() {
             let active = instruments == *mode;
             if cols[i].add_sized([cols[i].available_width(), 30.0],
-                egui::Button::new(*title)
+                egui::Button::new(RichText::new(*title).color(if active { skin.ink } else { skin.text }))
                     .fill(if active { skin.accent } else { skin.raised })
                     .corner_radius(5)).clicked() {
                 instruments = *mode;
