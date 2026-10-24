@@ -220,6 +220,19 @@ pub fn menu_bar(app: &mut SoundApp, ui: &mut egui::Ui) {
         ui,
         |ui| {
             egui::MenuBar::new().ui(ui, |ui| {
+                // Compact original ORVIA mark, outside the existing clickable
+                // ORVIA menu: no change to its shortcut or command dispatch.
+                let (brand, _) = ui.allocate_exact_size(egui::vec2(16.0, 16.0), egui::Sense::hover());
+                crate::icons::draw(
+                    ui.painter(),
+                    brand,
+                    "orvia_mark",
+                    if ui.visuals().dark_mode {
+                        egui::Color32::from_rgb(71, 215, 209)
+                    } else {
+                        egui::Color32::from_rgb(28, 116, 125)
+                    },
+                );
                 ui.menu_button("ORVIA", |ui| {
                     if ui.button("About ORVIA").clicked() {
                         app.ui.show_about = true;
