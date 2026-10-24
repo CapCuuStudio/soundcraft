@@ -1268,11 +1268,12 @@ enum HeaderKey {
 /// mute that another track's solo implies). Record keys stay dark red when off, as in Pro Tools.
 fn header_toggle(ui: &Ui, r: Rect, track: TrackId, key: HeaderKey, lit: bool, implied: bool) -> egui::Response {
     let t = Tokens::current();
+    let light = crate::theme::is_light();
     let (label, color) = match key {
-        HeaderKey::Rec => ("Record enable", t.rec),
-        HeaderKey::Input => ("Input monitoring", t.input),
-        HeaderKey::Solo => ("Solo", t.solo),
-        HeaderKey::Mute => ("Mute", t.mute),
+        HeaderKey::Rec => ("Record enable", if light { t.rec } else { Color32::from_rgb(242, 116, 118) }),
+        HeaderKey::Input => ("Input monitoring", if light { t.input } else { Color32::from_rgb(151, 225, 178) }),
+        HeaderKey::Solo => ("Solo", if light { t.solo } else { Color32::from_rgb(242, 184, 107) }),
+        HeaderKey::Mute => ("Mute", if light { t.mute } else { Color32::from_rgb(71, 215, 209) }),
     };
     let resp = ui.interact(r, ui.id().with((label, track.0)), Sense::click());
     resp.widget_info(|| egui::WidgetInfo::selected(egui::WidgetType::Button, ui.is_enabled(), lit, label));
