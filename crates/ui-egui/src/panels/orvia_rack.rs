@@ -141,7 +141,7 @@ pub(super) fn show(app: &mut SoundApp, ui: &mut Ui) {
                                 .size(11.0).strong().color(skin.accent));
                             let name = soundcraft_dsp::plugin_info(&insert.plugin)
                                 .map_or(insert.plugin.as_str(), |p| p.name);
-                            let resp = ui.add_sized([ui.available_width().max(75.0) - 88.0, 19.0],
+                            let resp = ui.add_sized([ui.available_width(), 28.0],
                                 egui::Button::new(name));
                             if resp.on_hover_text("Mở tham số hiệu ứng").clicked() {
                                 open_editor(app, track.id, index);
