@@ -1286,8 +1286,18 @@ fn header_toggle(ui: &Ui, r: Rect, track: TrackId, key: HeaderKey, lit: bool, im
     } else {
         (color, 0.0)
     };
-    let [top, bottom] = t.slot_face.map(|f| f.lerp_to_gamma(tint, k));
-    raised_key(ui.painter(), r, [shade(top, 0.08), shade(bottom, -0.12)], resp.hovered());
+    // ORVIA v1: flat, legible state instead of a raised imitation hardware key.
+    let base = if crate::theme::is_light() {
+        Color32::from_rgb(225, 235, 241)
+    } else {
+        Color32::from_rgb(32, 45, 57)
+    };
+    let fill = if lit { color } else if implied { base.lerp_to_gamma(color, 0.22) }
+        else if resp.hovered() { base.lerp_to_gamma(color, 0.1) } else { base };
+    ui.painter().rect_filled(r, 4.0, fill);
+    ui.painter().rect_stroke(
+        r, 4.0, Stroke::new(1.0, if lit { color } else { t.border_light }), StrokeKind::Inside,
+    );
     let ink = if lit {
         t.text_dark
     } else if implied {
