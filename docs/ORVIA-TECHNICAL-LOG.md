@@ -344,3 +344,13 @@ Chủ dự án phản hồi “xong” sau khi xem bản Web 4B.2, ghi nhận **
 **Chứng cứ/giới hạn:** thay đổi đã ghi lên GitHub qua connector. Rust Cargo tests, Cloudflare deploy HEAD, Chrome playback/MIDI/UI keyboard UAT chưa được xác minh ở thời điểm ghi; không tuyên bố PASS. Giữ nguyên các bước 4A.2–4B.2 đã nghiệm thu; không động session/DSP/audio/MIDI/editor/VST3/driver.
 
 **Tiếp theo:** tạo PR Draft vào base `feature/orvia-4b2-mixer-key-editor`; kiểm Cloudflare Deploy successful đúng SHA. Nếu build fail, sửa theo chứng cứ; chỉ sau success mới giao URL Preview 4B.3 bất biến để chủ dự án nghiệm thu. Không tự chạy Actions, dịch vụ phí, TinyFish, CMD Windows.
+
+## ORVIA 4B.3 — Nghiệm thu Web Preview và Cloudflare PASS (24/10/2026)
+
+**Người dùng:** phản hồi “xong” sau triển khai GĐ4B.3, ghi nhận nghiệm thu tổng quát **bản Web thử nghiệm** đối với logo ORVIA, biểu tượng Toolbar và trạng thái Play/Stop/Record. Không suy diễn chủ dự án đã kiểm thử từng trường hợp tương tác hay audio/MIDI regression.
+
+**Kiểm chứng live trước cập nhật:** PR #23 https://github.com/CapCuuStudio/soundcraft/pull/23 đang `open/Draft/unmerged`, nhánh `feature/orvia-4b3-brand-control-states`, mã head `d7dd37dce701752d9b7b91005d68314e10459728` và base `feature/orvia-4b2-mixer-key-editor`. Cloudflare Pages check-run trên **chính SHA này** trả `completed/success` (completed 2026-10-24T10:47:39Z), `Deploy successful`. Preview bất biến: https://38e413d4.orvia-daw-preview.pages.dev ; branch Preview https://feature-orvia-4b3-brand-cont.orvia-daw-preview.pages.dev .
+
+**Chốt phạm vi:** `orvia_mark` được vẽ procedural; toolbar buttons Graphite/Cyan có hover/pressed/selected/focus; transport có Play active cyan, Record coral, Stop neutral; Light/Dark riêng, giữ nguyên chiều cao toolbar 78/140px và engine commands. Không có bằng chứng Cargo Rust unit tests hay Chrome UI/audio/MIDI QA độc lập đã PASS; Cloudflare build thành công không thay thế kiểm thử đó.
+
+**Quyết định:** bảo toàn source 4B.3, cập nhật docs-only để ghi nghiệm thu; không merge main/production, không tự triển khai 4B.4 hoặc đổi các bản đã chốt, không Actions thủ công, TinyFish, dịch vụ phí, CMD Windows.
