@@ -1218,28 +1218,45 @@ fn track_header(app: &mut SoundApp, ui: &mut Ui, track: &Track, head: Rect, sele
         }
     });
     let m = &track.mixer;
-    if h >= 37.0 {
-        let (records, mixes) = (track.kind.has_playlist(), track.kind != TrackKind::Master);
-        let implied = !m.solo && app.engine.session().tracks.iter().any(|t| t.mixer.solo);
-        let keys = [
-            (HeaderKey::Rec, m.record_arm, false, "mix.record_arm", records),
-            (HeaderKey::Input, m.input_monitor, false, "mix.input_monitor", records),
-            (HeaderKey::Solo, m.solo, false, "mix.solo", mixes),
-            (HeaderKey::Mute, m.mute, implied, "mix.mute", mixes),
-        ];
-        for (i, (key, lit, implied, cmd, shown)) in keys.into_iter().enumerate() {
-            if shown && header_toggle(ui, at(23.0 + i as f32 * 26.0, 20.0, 16.0, 16.0), id, key, lit, implied).clicked() {
+    let records = track.kind.has_playlist();
+    let mixes = track.kind != TrackKind::Master;
+    let implied = !m.solo && app.engine.session().tracks.iter().any(|t| t.mixer.solo);
+    // Cubase-inspired density, ORVIA-owned painter and controls:
+    // row 1: M / S + name; row 2: Record / Monitor / Edit / Automation.
+    if h >= 24.0 {
+        for (key, lit, is_implied, cmd, x) in [
+            (HeaderKey::Mute, m.mute, implied, "mix.mute", 18.0),
+            (HeaderKey::Solo, m.solo, false, "mix.solo", 39.0),
+        ] {
+            if mixes && header_toggle(ui, at(x, 2.0, 17.0, 17.0), id, key, lit, is_implied).clicked() {
                 let _ = app.run(cmd, json!({"track": id.0}));
             }
         }
     }
-    if h >= 58.0 {
-        let vresp = header_selector(ui, at(17.0, 39.0, 105.0, 17.0), ui.id().with(("view", id.0)), &view_label(&track.view), t.text, true);
+    if h >= 40.0 {
+        for (key, lit, cmd, x) in [
+            (HeaderKey::Rec, m.record_arm, "mix.record_arm", 18.0),
+            (HeaderKey::Input, m.input_monitor, "mix.input_monitor", 39.0),
+        ] {
+            if records && header_toggle(ui, at(x, 21.0, 17.0, 16.0), id, key, lit, false).clicked() {
+                let _ = app.run(cmd, json!({"track": id.0}));
+            }
+        }
+        let edit_rect = at(60.0, 21.0, 17.0, 16.0);
+        let edit_resp = ui.interact(edit_rect, ui.id().with(("edit_track", id.0)), Sense::click());
+        compact_header_control(ui, edit_rect, edit_resp.hovered(), false, "Edit");
+        ui.painter().text(edit_rect.center(), Align2::CENTER_CENTER, "e", bold(11.0), t.text);
+        egui::Popup::menu(&edit_resp.on_hover_text("Track settings and editing")).show(|ui| {
+            track_context_menu(app, ui, id);
+        });
+    }
+    if h >= 62.0 {
+        let vresp = header_selector(ui, at(18.0, 41.0, 105.0, 17.0), ui.id().with(("view", id.0)), &view_label(&track.view), t.text, true);
         egui::Popup::menu(&vresp).show(|ui| view_menu(app, ui, track));
     }
-    if h >= 76.0 {
+    if h >= 82.0 {
         if matches!(track.kind, TrackKind::Audio | TrackKind::Instrument | TrackKind::Aux) {
-            let r = at(17.0, 57.0, 13.0, 17.0);
+            let r = at(18.0, 61.0, 13.0, 17.0);
             let resp = ui.interact(r, ui.id().with(("freeze", id.0)), Sense::click());
             raised_key(ui.painter(), r, if track.frozen { t.slot_bypassed } else { t.slot_face }, resp.hovered());
             for a in [0.0f32, 60.0, 120.0] {
@@ -1252,7 +1269,7 @@ fn track_header(app: &mut SoundApp, ui: &mut Ui, track: &Track, head: Rect, sele
         }
         if !matches!(track.kind, TrackKind::Master | TrackKind::Vca | TrackKind::Folder) {
             let (voice, color) = if track.inactive { ("off", t.text_dim) } else { ("dyn", t.text) };
-            let resp = header_selector(ui, at(31.0, 57.0, 31.0, 17.0), ui.id().with(("voice", id.0)), voice, color, false);
+            let resp = header_selector(ui, at(32.0, 61.0, 31.0, 17.0), ui.id().with(("voice", id.0)), voice, color, false);
             egui::Popup::menu(&resp.on_hover_text("Voice: dyn plays the track, off makes it inactive")).show(|ui| {
                 for (label, inactive) in [("dyn", false), ("off", true)] {
                     if ui.selectable_label(track.inactive == inactive, label).clicked() {
@@ -1269,7 +1286,7 @@ fn track_header(app: &mut SoundApp, ui: &mut Ui, track: &Track, head: Rect, sele
             soundcraft_model::AutomationMode::Latch => t.auto_latch,
             _ => t.text_dim,
         };
-        let aresp = header_selector(ui, at(63.0, 57.0, 59.0, 17.0), ui.id().with(("auto_mode", id.0)), mode.label(), col, true);
+        let aresp = header_selector(ui, at(64.0, 61.0, 59.0, 17.0), ui.id().with(("auto_mode", id.0)), mode.label(), col, true);
         egui::Popup::menu(&aresp).show(|ui| {
             for m in soundcraft_model::AutomationMode::ALL {
                 if ui.selectable_label(m == mode, m.label()).clicked() {
@@ -1278,9 +1295,9 @@ fn track_header(app: &mut SoundApp, ui: &mut Ui, track: &Track, head: Rect, sele
             }
         });
     }
-    if h >= 94.0 {
+    if h >= 104.0 {
         if track.kind.has_playlist() {
-            let r = at(17.0, 75.0, 13.0, 17.0);
+            let r = at(18.0, 81.0, 13.0, 17.0);
             let resp = ui.interact(r, ui.id().with(("timebase", id.0)), Sense::click());
             raised_key(ui.painter(), r, t.slot_face, resp.hovered());
             let c = r.center();
@@ -1306,7 +1323,7 @@ fn track_header(app: &mut SoundApp, ui: &mut Ui, track: &Track, head: Rect, sele
                 }
             });
         }
-        let field = at(30.0, 75.0, 92.0, 17.0);
+        let field = at(31.0, 81.0, 92.0, 17.0);
         if matches!(track.kind, TrackKind::Audio | TrackKind::Instrument) {
             let resp = ui.interact(field, ui.id().with(("field", id.0)), Sense::click());
             ui.painter().rect_filled(field, 2.0, shade(head_bg, if resp.hovered() { -0.02 } else { -0.1 }));
