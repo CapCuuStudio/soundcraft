@@ -244,21 +244,71 @@ fn orvia_mix_ids(session: &soundcraft_model::Session, selected_only: bool) -> Ve
 
 /// ORVIA 3A: a real, responsive MixConsole in the Project Lower Zone.
 /// All changes go through SoundCraft's existing engine commands and history.
+// 4B.2: presentation-only palette shared by the real lower MixConsole strips.
+#[derive(Clone, Copy)]
+struct OrviaLowerMixPalette {
+    background: Color32,
+    raised: Color32,
+    selected: Color32,
+    border: Color32,
+    text: Color32,
+    muted: Color32,
+    accent: Color32,
+    accent_ink: Color32,
+    solo: Color32,
+}
+
+fn orvia_lower_mix_palette(light: bool) -> OrviaLowerMixPalette {
+    if light {
+        OrviaLowerMixPalette {
+            background: Color32::from_rgb(235, 240, 244),
+            raised: Color32::from_rgb(222, 231, 238),
+            selected: Color32::from_rgb(214, 237, 241),
+            border: Color32::from_rgb(160, 178, 188),
+            text: Color32::from_rgb(18, 45, 53),
+            muted: Color32::from_rgb(68, 90, 102),
+            accent: Color32::from_rgb(28, 116, 125),
+            accent_ink: Color32::WHITE,
+            solo: Color32::from_rgb(151, 96, 20),
+        }
+    } else {
+        OrviaLowerMixPalette {
+            background: Color32::from_rgb(23, 33, 43), // #17212B
+            raised: Color32::from_rgb(32, 45, 57), // #202D39
+            selected: Color32::from_rgb(27, 66, 76), // #1B424C
+            border: Color32::from_rgb(53, 70, 83), // #354653
+            text: Color32::from_rgb(229, 237, 244), // #E5EDF4
+            muted: Color32::from_rgb(170, 185, 198), // #AAB9C6
+            accent: Color32::from_rgb(71, 215, 209), // #47D7D1
+            accent_ink: Color32::from_rgb(11, 37, 48), // #0B2530
+            solo: Color32::from_rgb(242, 184, 107), // #F2B86B
+        }
+    }
+}
+
 pub fn orvia_lower_mixer(app: &mut SoundApp, ui: &mut Ui) {
     let t = Tokens::current();
+    let skin = orvia_lower_mix_palette(!ui.visuals().dark_mode);
     let filter_id = egui::Id::new("orvia_stage3a_selected_only");
     let mut selected_only = ui.ctx().data(|data| data.get_temp::<bool>(filter_id)).unwrap_or(false);
-    ui.horizontal(|ui| {
-        ui.label(egui::RichText::new("ORVIA  ·  MIXCONSOLE").strong().color(t.header_text));
-        ui.separator();
-        if ui.selectable_label(selected_only, "Track được chọn").on_hover_text("Chỉ hiển thị các track đang chọn; không thay đổi bản phối").clicked() {
-            selected_only = !selected_only;
-            ui.ctx().data_mut(|data| data.insert_temp(filter_id, selected_only));
-        }
-        let count = orvia_mix_ids(app.engine.session(), selected_only).len();
-        ui.label(egui::RichText::new(format!("{count} kênh")).small().color(t.text_dim));
-    });
-    ui.separator();
+    egui::Frame::NONE.fill(skin.background)
+        .inner_margin(egui::Margin::symmetric(10, 7))
+        .show(ui, |ui| {
+            ui.horizontal(|ui| {
+                ui.label(egui::RichText::new("ORVIA · MixConsole").size(13.0).strong().color(skin.text))
+                    .on_hover_text("Kéo đường phân cách phía trên để thay đổi chiều cao MixConsole");
+                ui.separator();
+                if ui.selectable_label(selected_only, "Track được chọn")
+                    .on_hover_text("Chỉ hiển thị các track đang chọn; không thay đổi bản phối").clicked()
+                {
+                    selected_only = !selected_only;
+                    ui.ctx().data_mut(|data| data.insert_temp(filter_id, selected_only));
+                }
+                let count = orvia_mix_ids(app.engine.session(), selected_only).len();
+                ui.label(egui::RichText::new(format!("{count} kênh")).size(11.5).color(skin.muted));
+            });
+        });
+    ui.add_space(6.0);
     let ids = orvia_mix_ids(app.engine.session(), selected_only);
     if ids.is_empty() {
         ui.label("Không có track đang chọn. Tắt bộ lọc để xem toàn bộ MixConsole.");
@@ -269,13 +319,14 @@ pub fn orvia_lower_mixer(app: &mut SoundApp, ui: &mut Ui) {
         .auto_shrink([false, false])
         .show(ui, |ui| {
             ui.horizontal_top(|ui| {
-                ui.spacing_mut().item_spacing.x = 3.0;
+                ui.spacing_mut().item_spacing.x = 7.0;
                 for id in ids {
                     let Some(track) = app.engine.session().track(id).cloned() else { continue };
                     let selected = app.engine.session().edit.selected_tracks.contains(&id);
-                    let fill = if selected { t.strip_selected } else { t.strip_bg };
-                    egui::Frame::NONE.fill(fill).stroke(Stroke::new(1.0, t.border))
-                        .inner_margin(egui::Margin::same(5))
+                    let fill = if selected { skin.selected } else { skin.background };
+                    let edge = if selected { skin.accent } else { skin.border };
+                    egui::Frame::NONE.fill(fill).stroke(Stroke::new(if selected { 1.5 } else { 1.0 }, edge))
+                        .inner_margin(egui::Margin::same(6))
                         .show(ui, |ui| {
                             ui.set_min_width(130.0);
                             ui.set_max_width(130.0);
@@ -283,8 +334,10 @@ pub fn orvia_lower_mixer(app: &mut SoundApp, ui: &mut Ui) {
                                 let (marker, _) = ui.allocate_exact_size(vec2(6.0, 18.0), Sense::hover());
                                 ui.painter().rect_filled(marker, 1.0, rgb(track.color));
                                 let name = ui.add_sized(
-                                    [112.0, 21.0],
-                                    egui::Button::new(egui::RichText::new(&track.name).small().strong()).selected(selected),
+                                    [112.0, 24.0],
+                                    egui::Button::new(egui::RichText::new(&track.name).size(12.0).strong().color(skin.text))
+                                        .fill(if selected { skin.selected } else { skin.raised })
+                                        .stroke(Stroke::new(1.0, edge)),
                                 ).on_hover_text("Chọn Track trong Inspector");
                                 if name.clicked() {
                                     let _ = app.run("edit.select", json!({"tracks": [id.0], "exact": true}));
@@ -293,16 +346,20 @@ pub fn orvia_lower_mixer(app: &mut SoundApp, ui: &mut Ui) {
                                     app.dialogs.open_rename_track(id, &track.name);
                                 }
                             });
-                            ui.label(egui::RichText::new(track.kind.label()).small().color(t.text_dim));
+                            ui.label(egui::RichText::new(track.kind.label()).size(11.5).color(skin.muted));
                             ui.horizontal(|ui| {
                                 ui.spacing_mut().item_spacing.x = 3.0;
                                 if track.kind != soundcraft_model::TrackKind::Master {
-                                    if ui.add_sized([52.0, 20.0], egui::Button::new("M").selected(track.mixer.mute))
+                                    if ui.add_sized([52.0, 20.0], egui::Button::new(egui::RichText::new("M").strong()
+                                            .color(if track.mixer.mute { skin.accent_ink } else { skin.text }))
+                                            .fill(if track.mixer.mute { skin.accent } else { skin.raised }))
                                         .on_hover_text("Tắt/bật tiếng Track").clicked()
                                     {
                                         let _ = app.run("mix.mute", json!({"track": id.0}));
                                     }
-                                    if ui.add_sized([52.0, 20.0], egui::Button::new("S").selected(track.mixer.solo))
+                                    if ui.add_sized([52.0, 20.0], egui::Button::new(egui::RichText::new("S").strong()
+                                            .color(if track.mixer.solo { skin.accent_ink } else { skin.text }))
+                                            .fill(if track.mixer.solo { skin.solo } else { skin.raised }))
                                         .on_hover_text("Solo Track").clicked()
                                     {
                                         let _ = app.run("mix.solo", json!({"track": id.0}));
@@ -340,7 +397,7 @@ pub fn orvia_lower_mixer(app: &mut SoundApp, ui: &mut Ui) {
                             ui.horizontal(|ui| {
                                 let current = track.mixer.volume_db;
                                 let display = if current <= -120.0 { "-∞".to_string() } else { format!("{current:.1} dB") };
-                                ui.label(egui::RichText::new(display).monospace().small());
+                                ui.label(egui::RichText::new(display).monospace().size(12.0).color(skin.text));
                                 if ui.small_button("0 dB").on_hover_text("Đưa fader về mức 0 dB").clicked() {
                                     let _ = app.run("mix.volume", json!({"track": id.0, "db": 0.0}));
                                 }
@@ -351,7 +408,7 @@ pub fn orvia_lower_mixer(app: &mut SoundApp, ui: &mut Ui) {
                                 let mut value = current;
                                 let name = if track.mixer.pan.len() == 1 { "Pan" } else if index == 0 { "Pan L" } else { "Pan R" };
                                 ui.horizontal(|ui| {
-                                    ui.label(egui::RichText::new(name).small());
+                                    ui.label(egui::RichText::new(name).size(11.5).color(skin.muted));
                                     let response = ui.add_sized(
                                         [75.0, 18.0],
                                         egui::Slider::new(&mut value, -1.0..=1.0).show_value(false),
@@ -438,6 +495,27 @@ mod orvia_stage3a_tests {
         assert_eq!(orvia_mix_ids(&session, false), vec![a, b]);
         assert_eq!(orvia_mix_ids(&session, true), vec![b]);
         assert_eq!(session, original, "MixConsole filtering must be read-only");
+    }
+}
+
+
+#[cfg(test)]
+mod orvia_4b2_mixer_ui_tests {
+    use super::*;
+
+    #[test]
+    fn lower_mixer_palette_matches_orvia_dark_style() {
+        let colors = orvia_lower_mix_palette(false);
+        assert_eq!(colors.accent, Color32::from_rgb(71, 215, 209));
+        assert_eq!(colors.background, Color32::from_rgb(23, 33, 43));
+        assert_ne!(colors.selected, colors.raised);
+    }
+
+    #[test]
+    fn lower_mixer_light_palette_remains_independent() {
+        let colors = orvia_lower_mix_palette(true);
+        assert_ne!(colors.text, colors.background);
+        assert_ne!(colors.solo, colors.accent);
     }
 }
 
