@@ -249,7 +249,10 @@ pub(super) fn show(app: &mut SoundApp, ui: &mut Ui) {
                     ui.ctx().data_mut(|d| d.insert_temp(info_id, info.id.to_string()));
                 }
                 let action = if same { "Chỉnh" } else if instruments { "Gán" } else { "Thêm" };
-                let assign = ui.add_enabled(can_assign, egui::Button::new(action).min_size(egui::vec2(55.0, 24.0)));
+                let assign = ui.add_enabled(can_assign,
+                    egui::Button::new(RichText::new(action).size(12.5).color(skin.ink))
+                        .fill(skin.accent).corner_radius(5)
+                        .min_size(egui::vec2(ui.available_width(), 30.0)));
                 if assign.clicked() {
                     if let Some(track) = selected.as_ref() {
                         if same {
