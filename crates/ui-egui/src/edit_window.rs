@@ -876,6 +876,7 @@ fn track_row(app: &mut SoundApp, ui: &mut Ui, id: TrackId, row: Rect, tl: Rect, 
     ui.painter().line_segment([pos2(head.min.x, row.max.y + 0.5), pos2(tl.max.x, row.max.y + 0.5)], Stroke::new(1.0, t.border));
     ui.painter().hline(head.min.x + STRIP_W..=head.max.x, head.min.y + 0.5, Stroke::new(1.0, t.edge_light));
     // Selected Track gets an ORVIA focus rail; leave the user's 14px color strip intact.
+    track_header(app, ui, track, head, selected, head_bg);
     if selected {
         let rail = Rect::from_min_size(
             pos2(head.max.x - 3.0, head.min.y + 1.0),
@@ -883,7 +884,6 @@ fn track_row(app: &mut SoundApp, ui: &mut Ui, id: TrackId, row: Rect, tl: Rect, 
         );
         ui.painter().rect_filled(rail, 1.0, orvia_timeline_accent(crate::theme::is_light()));
     }
-    track_header(app, ui, track, head, selected, head_bg);
     // Lane.
     ui.painter().vline(tl.min.x - 0.5, row.y_range(), Stroke::new(1.0, t.border));
     let painter = ui.painter().with_clip_rect(lane.intersect(ui.clip_rect()));
