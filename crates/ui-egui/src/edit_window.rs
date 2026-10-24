@@ -49,6 +49,38 @@ fn compact_track_header_color(light: bool, selected: bool) -> Color32 {
     }
 }
 
+/// Exactly the same heights govern Track Header and Timeline lanes (unchanged
+/// TrackHeight). Small (46px) shows M/S, Record/Monitor, Edit and Automation;
+/// Medium (88px) adds waveform/notes and voice/automation-mode selectors.
+fn compact_track_header_rows(h: f32) -> (bool, bool, bool, bool, bool) {
+    (h >= 24.0, h >= 40.0, h >= 62.0, h >= 82.0, h >= 104.0)
+}
+
+#[cfg(test)]
+mod compact_track_header_tests {
+    use super::*;
+
+    #[test]
+    fn normal_track_heights_keep_controls_compact() {
+        assert_eq!(compact_track_header_rows(TrackHeight::Micro.points()), (false, false, false, false, false));
+        assert_eq!(compact_track_header_rows(TrackHeight::Mini.points()), (true, false, false, false, false));
+        assert_eq!(compact_track_header_rows(TrackHeight::Small.points()), (true, true, false, false, false));
+        assert_eq!(compact_track_header_rows(TrackHeight::Medium.points()), (true, true, true, true, false));
+        assert_eq!(compact_track_header_rows(TrackHeight::Large.points()), (true, true, true, true, true));
+        assert_eq!(STRIP_W, 5.0);
+        assert_eq!(HEADER_W, 136.0);
+    }
+
+    #[test]
+    fn selected_track_uses_grey_instead_of_cyan_fill() {
+        let dark = compact_track_header_color(false, false);
+        let selected = compact_track_header_color(false, true);
+        assert_ne!(dark, selected);
+        assert_eq!(selected, Color32::from_rgb(61, 67, 72));
+        assert_ne!(selected, orvia_timeline_surface(false));
+    }
+}
+
 /// The row under the rulers that holds the column titles, when any column is shown.
 const COLUMN_TITLES_H: f32 = 16.0;
 
@@ -1105,6 +1137,7 @@ fn track_header(app: &mut SoundApp, ui: &mut Ui, track: &Track, head: Rect, sele
         }
     }
     let h = head.height();
+    let (show_primary, show_actions, show_view, show_details, show_advanced) = compact_track_header_rows(h);
     // Click on header background selects the track.
     let bg = ui.interact(head, ui.id().with(("hdr", id.0)), Sense::click());
     if bg.clicked() {
@@ -1123,7 +1156,7 @@ fn track_header(app: &mut SoundApp, ui: &mut Ui, track: &Track, head: Rect, sele
     } else {
         egui::Popup::menu(&rresp.on_hover_text("Track options")).show(|ui| track_context_menu(app, ui, id));
     }
-    if h >= 40.0 && track.kind.has_playlist() {
+    if show_actions && track.kind.has_playlist() {
         // Automation lane toggle in the SECOND row, beside Record/Monitor/Edit.
         let ar = at(96.0, 21.0, 17.0, 16.0);
         let aresp = ui.interact(ar, ui.id().with(("auto_lane", id.0)), Sense::click());
@@ -1145,7 +1178,7 @@ fn track_header(app: &mut SoundApp, ui: &mut Ui, track: &Track, head: Rect, sele
     // Workstation density: M/S in the first row alongside the track name.
     // Micro tracks (16px) keep a longer name rather than unreachable buttons.
     let indent = folder_depth(app.engine.session(), track) as f32 * 7.0;
-    let title_x = if h >= 24.0 { 60.0 } else { 19.0 };
+    let title_x = if show_primary { 60.0 } else { 19.0 };
     let name_r = at(title_x + indent, 2.0, (113.0 - title_x - indent).max(12.0), 17.0);
     let shown_name = if app.engine.session().edit.flag("edit_view.track_number") {
         let n = app.engine.session().track_index(id).map_or(0, |i| i + 1);
@@ -1221,7 +1254,7 @@ fn track_header(app: &mut SoundApp, ui: &mut Ui, track: &Track, head: Rect, sele
     let implied = !m.solo && app.engine.session().tracks.iter().any(|t| t.mixer.solo);
     // Cubase-inspired density, ORVIA-owned painter and controls:
     // row 1: M / S + name; row 2: Record / Monitor / Edit / Automation.
-    if h >= 24.0 {
+    if show_primary {
         for (key, lit, is_implied, cmd, x) in [
             (HeaderKey::Mute, m.mute, implied, "mix.mute", 18.0),
             (HeaderKey::Solo, m.solo, false, "mix.solo", 39.0),
@@ -1231,7 +1264,7 @@ fn track_header(app: &mut SoundApp, ui: &mut Ui, track: &Track, head: Rect, sele
             }
         }
     }
-    if h >= 40.0 {
+    if show_actions {
         for (key, lit, cmd, x) in [
             (HeaderKey::Rec, m.record_arm, "mix.record_arm", 18.0),
             (HeaderKey::Input, m.input_monitor, "mix.input_monitor", 39.0),
@@ -1248,11 +1281,11 @@ fn track_header(app: &mut SoundApp, ui: &mut Ui, track: &Track, head: Rect, sele
             track_context_menu(app, ui, id);
         });
     }
-    if h >= 62.0 {
+    if show_view {
         let vresp = header_selector(ui, at(18.0, 41.0, 105.0, 17.0), ui.id().with(("view", id.0)), &view_label(&track.view), t.text, true);
         egui::Popup::menu(&vresp).show(|ui| view_menu(app, ui, track));
     }
-    if h >= 82.0 {
+    if show_details {
         if matches!(track.kind, TrackKind::Audio | TrackKind::Instrument | TrackKind::Aux) {
             let r = at(18.0, 61.0, 13.0, 17.0);
             let resp = ui.interact(r, ui.id().with(("freeze", id.0)), Sense::click());
@@ -1293,7 +1326,7 @@ fn track_header(app: &mut SoundApp, ui: &mut Ui, track: &Track, head: Rect, sele
             }
         });
     }
-    if h >= 104.0 {
+    if show_advanced {
         if track.kind.has_playlist() {
             let r = at(18.0, 81.0, 13.0, 17.0);
             let resp = ui.interact(r, ui.id().with(("timebase", id.0)), Sense::click());
