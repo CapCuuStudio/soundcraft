@@ -12,6 +12,49 @@ use soundcraft_time::TICKS_PER_QUARTER;
 const KEY_W: f32 = 48.0;
 const ROW_H: f32 = 9.0;
 const VEL_H: f32 = 94.0;
+// 4B.2: extra room for readable information and the existing real MIDI actions.
+const ORVIA_KEY_EDITOR_HEADER_H: f32 = 56.0;
+
+#[derive(Clone, Copy)]
+struct OrviaKeyEditorSkin {
+    background: Color32,
+    header: Color32,
+    ink: Color32,
+    muted: Color32,
+    accent: Color32,
+    row_black: Color32,
+    row_white: Color32,
+    grid: Color32,
+    bar: Color32,
+}
+
+fn orvia_key_editor_skin(light: bool) -> OrviaKeyEditorSkin {
+    if light {
+        OrviaKeyEditorSkin {
+            background: Color32::from_rgb(235, 240, 244),
+            header: Color32::from_rgb(222, 231, 238),
+            ink: Color32::from_rgb(18, 45, 53),
+            muted: Color32::from_rgb(68, 90, 102),
+            accent: Color32::from_rgb(28, 116, 125),
+            row_black: Color32::from_rgb(214, 224, 232),
+            row_white: Color32::from_rgb(225, 235, 242),
+            grid: Color32::from_rgb(191, 208, 219),
+            bar: Color32::from_rgb(157, 182, 197),
+        }
+    } else {
+        OrviaKeyEditorSkin {
+            background: Color32::from_rgb(23, 33, 43), // #17212B
+            header: Color32::from_rgb(32, 45, 57), // #202D39
+            ink: Color32::from_rgb(229, 237, 244), // #E5EDF4
+            muted: Color32::from_rgb(170, 185, 198), // #AAB9C6
+            accent: Color32::from_rgb(71, 215, 209), // #47D7D1
+            row_black: Color32::from_rgb(20, 29, 38),
+            row_white: Color32::from_rgb(26, 39, 50),
+            grid: Color32::from_rgb(41, 55, 68), // #293744
+            bar: Color32::from_rgb(64, 83, 99), // #405363
+        }
+    }
+}
 
 #[derive(Debug, Clone, Default)]
 pub struct MidiEditorState {
@@ -62,19 +105,33 @@ pub fn show(app: &mut SoundApp, ui: &mut Ui) {
     // space, including the empty state, so the dock keeps its chosen height.
     ui.take_available_space();
     let t = Tokens::current();
+    let skin = orvia_key_editor_skin(!ui.visuals().dark_mode);
     let full = ui.max_rect();
-    ui.painter().rect_filled(full, 0.0, t.panel_bg);
-    let header = Rect::from_min_size(full.min, vec2(full.width(), 22.0));
-    ui.painter().rect_filled(header, 0.0, t.panel_bg2);
-    ui.painter().text(pos2(header.min.x + 8.0, header.center().y), Align2::LEFT_CENTER, "MIDI EDITOR", bold(11.5), t.header_text);
+    ui.painter().rect_filled(full, 0.0, skin.background);
+    let header = Rect::from_min_size(full.min, vec2(full.width(), ORVIA_KEY_EDITOR_HEADER_H));
+    ui.painter().rect_filled(header, 0.0, skin.header);
+    // Visible Key Editor title and selected-clip metadata without colliding
+    // with the real Quantize/Velocity/Legato toolbar below.
+    let heading_height = 26.0;
+    ui.painter().rect_filled(
+        Rect::from_min_size(pos2(header.min.x, header.min.y + 4.0), vec2(3.0, heading_height - 8.0)),
+        1.0, skin.accent,
+    );
+    ui.painter().text(pos2(header.min.x + 10.0, header.min.y + 14.0), Align2::LEFT_CENTER,
+        "ORVIA · Key Editor", bold(13.0), skin.ink);
+    ui.painter().line_segment(
+        [pos2(header.min.x + 8.0, header.min.y + heading_height),
+         pos2(header.max.x - 8.0, header.min.y + heading_height)],
+        Stroke::new(1.0, skin.grid),
+    );
     let Some(cid) = target_clip(app) else {
         let track = {
             let s = app.engine.session();
             s.tracks.iter().find(|t| t.kind.is_midi() && s.edit.selected_tracks.contains(&t.id)).map(|t| (t.id, t.name.clone()))
         };
         let msg = match &track {
-            Some((_, name)) => format!("Click to add a MIDI clip to {name} at the insertion point."),
-            None => "Select a MIDI clip (or a MIDI track) to edit its notes.".into(),
+            Some((_, name)) => format!("Bấm để thêm Clip MIDI vào Track {name} tại vị trí con trỏ."),
+            None => "Chọn một Clip MIDI hoặc Track MIDI để chỉnh sửa nốt.".into(),
         };
         ui.painter().text(full.center(), Align2::CENTER_CENTER, msg, regular(13.0), t.text_dim);
         let body = Rect::from_min_max(pos2(full.min.x, header.max.y), full.max);
@@ -92,18 +149,20 @@ pub fn show(app: &mut SoundApp, ui: &mut Ui) {
     let ClipContent::Midi { sequence } = &clip.content else { return };
     let locked = clip.edit_locked || clip.time_locked;
     let track_color = app.engine.session().track(track).map_or([120, 120, 200], |t| t.color);
-    ui.painter().text(
-        pos2(header.min.x + 110.0, header.center().y),
-        Align2::LEFT_CENTER,
-        format!(
-            "{} · {} notes · {} selected · Pencil: add · drag: move/select · arrows: move · Delete: remove",
-            clip.name,
-            sequence.notes.len(),
-            app.midi.selected.len()
-        ),
-        regular(11.0),
-        t.text_dim,
+    // Clip information stays inside the top row; long names are clipped to
+    // the available space rather than painted over command buttons.
+    let meta = Rect::from_min_max(
+        pos2(header.min.x + 169.0, header.min.y + 2.0),
+        pos2(header.max.x - 8.0, header.min.y + 26.0),
     );
+    if meta.width() > 12.0 {
+        ui.painter().with_clip_rect(meta).text(
+            pos2(meta.min.x + 4.0, meta.center().y),
+            Align2::LEFT_CENTER,
+            format!("{} · {} nốt · {} được chọn", clip.name, sequence.notes.len(), app.midi.selected.len()),
+            regular(11.5), skin.muted,
+        );
+    }
     let grid_ticks = match app.engine.session().edit.grid {
         soundcraft_time::GridValue::Note { value, dotted, triplet } => {
             let mut g = value.ticks();
@@ -118,7 +177,12 @@ pub fn show(app: &mut SoundApp, ui: &mut Ui) {
         _ => TICKS_PER_QUARTER / 4,
     };
     // Header toolbar: whole-clip MIDI operations.
-    let bar = Rect::from_min_max(pos2(header.max.x - 330.0, header.min.y + 1.0), pos2(header.max.x - 6.0, header.max.y - 1.0));
+    // A dedicated second row keeps every original command clickable even at
+    // the dock's 420px minimum width. The piano roll starts below this header.
+    let bar = Rect::from_min_max(
+        pos2(header.min.x + 8.0, header.min.y + 29.0),
+        pos2(header.max.x - 8.0, header.max.y - 2.0),
+    );
     let mut tb = ui.new_child(egui::UiBuilder::new().max_rect(bar).layout(egui::Layout::right_to_left(egui::Align::Center)));
     tb.spacing_mut().item_spacing.x = 4.0;
     let mut op: Option<(&str, serde_json::Value)> = None;
@@ -173,7 +237,7 @@ pub fn show(app: &mut SoundApp, ui: &mut Ui) {
         let pitch = top - r;
         let y = y_of(pitch);
         let row = Rect::from_min_size(pos2(roll.min.x, y), vec2(roll.width(), ROW_H));
-        painter.rect_filled(row, 0.0, if is_black(pitch) { Color32::from_rgb(30, 30, 32) } else { Color32::from_rgb(40, 40, 42) });
+        painter.rect_filled(row, 0.0, if is_black(pitch) { skin.row_black } else { skin.row_white });
         let key = Rect::from_min_size(pos2(keys.min.x, y), vec2(KEY_W - 2.0, ROW_H - 1.0));
         painter.rect_filled(key, 1.0, if is_black(pitch) { Color32::from_rgb(20, 20, 20) } else { Color32::from_rgb(225, 225, 225) });
         if pitch.rem_euclid(12) == 0 && (0..=127).contains(&pitch) {
@@ -184,7 +248,7 @@ pub fn show(app: &mut SoundApp, ui: &mut Ui) {
                 regular(8.0),
                 Color32::from_rgb(40, 40, 40),
             );
-            painter.line_segment([pos2(roll.min.x, y + ROW_H), pos2(roll.max.x, y + ROW_H)], Stroke::new(1.0, Color32::from_rgb(64, 64, 68)));
+            painter.line_segment([pos2(roll.min.x, y + ROW_H), pos2(roll.max.x, y + ROW_H)], Stroke::new(1.0, skin.bar));
         }
     }
     // Grid.
@@ -195,7 +259,7 @@ pub fn show(app: &mut SoundApp, ui: &mut Ui) {
         if grid_ticks as f32 * px_per_tick > 4.0 || bar {
             painter.line_segment(
                 [pos2(x, roll.min.y), pos2(x, roll.max.y)],
-                Stroke::new(1.0, if bar { Color32::from_rgb(80, 80, 86) } else { Color32::from_rgb(50, 50, 54) }),
+                Stroke::new(1.0, if bar { skin.bar } else { skin.grid }),
             );
         }
         tick += grid_ticks;
@@ -364,4 +428,26 @@ pub fn show(app: &mut SoundApp, ui: &mut Ui) {
         app.midi.selected.clear();
     }
     controller_lane::show(app, ui, cid, sequence, roll, controller_header, vel, base, grid_ticks, len_ticks, locked);
+}
+
+#[cfg(test)]
+mod orvia_4b2_key_editor_ui_tests {
+    use super::*;
+
+    #[test]
+    fn header_has_room_for_real_actions_below_the_title() {
+        assert_eq!(ORVIA_KEY_EDITOR_HEADER_H, 56.0);
+        assert!(ORVIA_KEY_EDITOR_HEADER_H > 32.0);
+    }
+
+    #[test]
+    fn piano_roll_theme_preserves_graphite_grid_and_light_contrast() {
+        let dark = orvia_key_editor_skin(false);
+        assert_eq!(dark.accent, Color32::from_rgb(71, 215, 209));
+        assert_eq!(dark.grid, Color32::from_rgb(41, 55, 68));
+        assert_ne!(dark.bar, dark.grid);
+        let light = orvia_key_editor_skin(true);
+        assert_ne!(light.ink, light.background);
+        assert_ne!(light.row_black, light.row_white);
+    }
 }
