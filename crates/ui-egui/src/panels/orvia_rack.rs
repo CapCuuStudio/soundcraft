@@ -51,6 +51,12 @@ pub(super) fn show(app: &mut SoundApp, ui: &mut Ui) {
     let skin = Skin::current();
     ui.spacing_mut().item_spacing.y = 7.0;
     ui.painter().rect_filled(ui.max_rect(), 0.0, skin.surface);
+    ui.horizontal(|ui| {
+        ui.label(RichText::new("STUDIO RACK").size(13.0).strong().color(skin.text));
+        ui.with_layout(egui::Layout::right_to_left(egui::Align::Center), |ui| {
+            ui.label(RichText::new("ORVIA").size(11.0).strong().color(skin.accent));
+        });
+    });
     let mode_id = egui::Id::new("orvia_3c_rack_mode");
     let filter_id = egui::Id::new("orvia_3c_rack_filter");
     let cat_id = egui::Id::new("orvia_3c_rack_category");
