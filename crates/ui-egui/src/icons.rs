@@ -11,6 +11,16 @@ fn p(r: Rect, x: f32, y: f32) -> Pos2 {
 pub fn draw(painter: &Painter, r: Rect, name: &str, c: Color32) {
     let s = Stroke::new((r.width() / 14.0).clamp(1.2, 2.4), c);
     match name {
+        // ORVIA's own monoline sound-ring: original painter geometry,
+        // no external logo asset or third-party trademark.
+        "orvia_mark" => {
+            painter.circle_stroke(r.center(), r.width().min(r.height()) * 0.36, Stroke::new(s.width * 1.05, c));
+            let wave = [
+                p(r, 0.13, 0.50), p(r, 0.32, 0.50), p(r, 0.41, 0.34),
+                p(r, 0.51, 0.68), p(r, 0.60, 0.43), p(r, 0.69, 0.50), p(r, 0.87, 0.50),
+            ];
+            painter.add(Shape::line(wave.to_vec(), Stroke::new(s.width * 0.94, c)));
+        }
         "play" => {
             painter.add(Shape::convex_polygon(vec![p(r, 0.28, 0.18), p(r, 0.82, 0.5), p(r, 0.28, 0.82)], c, Stroke::NONE));
         }
