@@ -243,17 +243,21 @@ mod config_tests {
     #[test]
     fn orvia_portable_keeps_native_app_data_on_non_system_drives() {
         assert_eq!(
-            portable_directory_for(std::path::Path::new(r"E:\\LUNOR\\ORVIA"), "C:").unwrap(),
-            PathBuf::from(r"E:\\LUNOR\\ORVIA").join("ORVIA-Data")
+            portable_directory_for(std::path::Path::new(r"E:\LUNOR\ORVIA"), "C:").unwrap(),
+            PathBuf::from(r"E:\LUNOR\ORVIA").join("ORVIA-Data")
         );
         assert_eq!(
-            portable_directory_for(std::path::Path::new(r"F:\\ORVIA"), "C:").unwrap(),
-            PathBuf::from(r"F:\\ORVIA").join("ORVIA-Data")
+            portable_directory_for(std::path::Path::new(r"F:\ORVIA"), "C:").unwrap(),
+            PathBuf::from(r"F:\ORVIA").join("ORVIA-Data")
         );
-        assert!(portable_directory_for(std::path::Path::new(r"C:\\ORVIA"), "C:").is_err());
-        assert!(portable_directory_for(std::path::Path::new(r"E:\\ORVIA"), "E:").is_err());
+        assert!(portable_directory_for(std::path::Path::new(r"C:\ORVIA"), "C:").is_err());
+        assert!(portable_directory_for(std::path::Path::new(r"E:\ORVIA"), "E:").is_err());
         assert!(portable_directory_for(std::path::Path::new(r"\\server\ORVIA"), "C:").is_err());
         assert!(portable_directory_for(std::path::Path::new("ORVIA"), "C:").is_err());
+        assert_eq!(
+            portable_directory_for(std::path::Path::new(r"\\?\F:\ORVIA"), "C:").unwrap(),
+            PathBuf::from(r"\\?\F:\ORVIA").join("ORVIA-Data")
+        );
     }
 
     fn resolve(platform: Platform, vars: &[(&str, &str)]) -> Option<PathBuf> {
