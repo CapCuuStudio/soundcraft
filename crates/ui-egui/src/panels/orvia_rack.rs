@@ -1,5 +1,6 @@
 //! ORVIA Stage 3C: a usable, truthful rack for SoundCraft's built-in processors.
 //! Native third-party hosts remain available only through their existing desktop menus.
+use super::rack_skin::Skin;
 use crate::SoundApp;
 use crate::theme::Tokens;
 use egui::{Ui, RichText};
