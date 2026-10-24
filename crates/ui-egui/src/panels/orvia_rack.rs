@@ -136,8 +136,9 @@ pub(super) fn show(app: &mut SoundApp, ui: &mut Ui) {
                 .show(ui, |ui| {
                     for (index, insert) in track.mixer.inserts.iter().enumerate() {
                         let Some(insert) = insert.as_ref() else { continue };
-                        ui.horizontal(|ui| {
-                            ui.label(RichText::new(format!("{:02}", index + 1)).small().monospace());
+                        skin.card(ui, |ui| {
+                            ui.label(RichText::new(format!("INSERT {:02}", index + 1))
+                                .size(11.0).strong().color(skin.accent));
                             let name = soundcraft_dsp::plugin_info(&insert.plugin)
                                 .map_or(insert.plugin.as_str(), |p| p.name);
                             let resp = ui.add_sized([ui.available_width().max(75.0) - 88.0, 19.0],
