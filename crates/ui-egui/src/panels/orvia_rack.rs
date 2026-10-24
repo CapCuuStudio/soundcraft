@@ -61,7 +61,11 @@ pub(super) fn show(app: &mut SoundApp, ui: &mut Ui) {
     let filter_id = egui::Id::new("orvia_3c_rack_filter");
     let cat_id = egui::Id::new("orvia_3c_rack_category");
     let info_id = egui::Id::new("orvia_3c_rack_details");
-    let instruments = ui.ctx().data(|d| d.get_temp::<bool>(mode_id)).unwrap_or(true);
+    let instruments = ui.ctx().data(|d| d.get_temp::<bool>(mode_id)).unwrap_or_else(|| {
+        let s = app.engine.session();
+        s.edit.selected_tracks.first().and_then(|id| s.track(*id))
+            .is_some_and(|t| t.kind == TrackKind::Instrument)
+    });
     let mut instruments = instruments;
     ui.horizontal(|ui| {
         ui.selectable_value(&mut instruments, true, "Nhạc cụ");
