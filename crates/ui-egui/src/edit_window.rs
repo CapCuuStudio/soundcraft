@@ -1114,11 +1114,10 @@ fn track_header(app: &mut SoundApp, ui: &mut Ui, track: &Track, head: Rect, sele
     let at = |x: f32, y: f32, w: f32, h: f32| Rect::from_min_size(pos2(head.min.x + x, head.min.y + y), vec2(w, h));
     let strip = rgb(track.color);
     let ink = shade(strip, -0.8);
-    // The strip's round button opens a folder, or any other track's options.
-    let round = at(2.0, 2.0, 10.0, 10.0);
+    // Folder / track menu arrow stays visible even with the slimmer 5px color rail.
+    let round = at(7.0, 3.0, 11.0, 14.0);
     let rresp = ui.interact(round, ui.id().with(("options", id.0)), Sense::click());
-    ui.painter().circle_filled(round.center(), 5.0, shade(strip, if rresp.hovered() { 0.6 } else { 0.45 }));
-    arrow(ui.painter(), round.center(), !track.is_folder() || track.folder_open, ink);
+    arrow(ui.painter(), round.center(), !track.is_folder() || track.folder_open, if rresp.hovered() { t.text } else { t.text_dim });
     if track.is_folder() {
         if rresp.on_hover_text(if track.folder_open { "Close folder" } else { "Open folder" }).clicked() {
             let _ = app.run("track.folder_toggle", json!({"track": id.0}));
@@ -1127,14 +1126,13 @@ fn track_header(app: &mut SoundApp, ui: &mut Ui, track: &Track, head: Rect, sele
         egui::Popup::menu(&rresp.on_hover_text("Track options")).show(|ui| track_context_menu(app, ui, id));
     }
     if h >= 40.0 && track.kind.has_playlist() {
-        let ar = at(3.0, h - 12.0, 9.0, 9.0);
+        // Automation lane toggle in the SECOND row, beside Record/Monitor/Edit.
+        let ar = at(96.0, 21.0, 17.0, 16.0);
         let aresp = ui.interact(ar, ui.id().with(("auto_lane", id.0)), Sense::click());
         let showing = AutoParam::parse(&track.view).is_some();
-        ui.painter().rect_filled(ar, 1.5, shade(strip, if aresp.hovered() || showing { 0.6 } else { 0.45 }));
-        let (a, b) = (ar.min + vec2(2.5, 2.5), ar.max - vec2(2.5, 2.5));
-        ui.painter().line_segment([a, b], Stroke::new(1.0, ink));
-        ui.painter().circle_filled(a, 1.3, ink);
-        ui.painter().circle_filled(b, 1.3, ink);
+        compact_header_control(ui, ar, aresp.hovered(), showing, "A");
+        let color = if showing { t.auto_read } else { t.text_dim };
+        ui.painter().text(ar.center(), Align2::CENTER_CENTER, "A", bold(10.5), color);
         if aresp.on_hover_text(if showing { "Hide automation" } else { "Show volume automation" }).clicked() {
             let view = if !showing {
                 "volume"
@@ -1146,26 +1144,26 @@ fn track_header(app: &mut SoundApp, ui: &mut Ui, track: &Track, head: Rect, sele
             let _ = app.run("track.view", json!({"track": id.0, "view": view}));
         }
     }
-    // Name, highlighted when the track is selected, and the playlist menu beside it.
-    let indent = folder_depth(app.engine.session(), track) as f32 * 10.0;
-    let name_r = at(16.0 + indent, 1.5, 97.0 - indent, 15.0);
-    if selected {
-        ui.painter().rect_filled(name_r, 4.0, orvia_timeline_surface(crate::theme::is_light()));
-    }
+    // Workstation density: M/S in the first row alongside the track name.
+    // Micro tracks (16px) keep a longer name rather than unreachable buttons.
+    let indent = folder_depth(app.engine.session(), track) as f32 * 7.0;
+    let title_x = if h >= 24.0 { 60.0 } else { 19.0 };
+    let name_r = at(title_x + indent, 2.0, (113.0 - title_x - indent).max(12.0), 17.0);
     let shown_name = if app.engine.session().edit.flag("edit_view.track_number") {
         let n = app.engine.session().track_index(id).map_or(0, |i| i + 1);
         format!("{n}  {}", track.name)
     } else {
         track.name.clone()
     };
-    let name_color = if selected { orvia_header_ink(crate::theme::is_light()) } else { t.text.lerp_to_gamma(t.text_dim, 0.25) };
-    ui.painter().with_clip_rect(name_r).text(pos2(name_r.min.x + 1.5, name_r.center().y), Align2::LEFT_CENTER, &shown_name, bold(12.5), name_color);
+    let name_color = if selected { orvia_header_ink(crate::theme::is_light()) } else { t.text };
+    ui.painter().with_clip_rect(name_r).text(pos2(name_r.min.x + 1.5, name_r.center().y), Align2::LEFT_CENTER, &shown_name, bold(11.5), name_color);
     let nresp = ui.interact(name_r, ui.id().with(("name", id.0)), Sense::click_and_drag());
     if nresp.double_clicked() {
         app.dialogs.open_rename_track(id, &track.name);
     } else if nresp.clicked() {
         click_track(app, id, ui.input(|i| i.modifiers), in_edit_window);
     }
+    nresp.clone().on_hover_text(&track.name);
     nresp.context_menu(|ui| track_context_menu(app, ui, id));
     // Drag the name plate to reorder tracks.
     if nresp.dragged()
@@ -1198,9 +1196,9 @@ fn track_header(app: &mut SoundApp, ui: &mut Ui, track: &Track, head: Rect, sele
             let _ = app.run("track.move", json!({"track": id.0, "to": to}));
         }
     }
-    let pl_r = at(114.0, 1.0, 11.0, 14.5);
+    let pl_r = at(114.0, 2.0, 14.0, 15.0);
     let presp = ui.interact(pl_r, ui.id().with(("pl", id.0)), Sense::click());
-    ui.painter().rect_filled(pl_r, 1.5, shade(head_bg, if presp.hovered() { -0.2 } else { -0.35 }));
+    compact_header_control(ui, pl_r, presp.hovered(), false, "Playlists");
     arrow(ui.painter(), pos2(pl_r.center().x, pl_r.min.y + 5.75), true, t.text);
     egui::Popup::menu(&presp.on_hover_text("Playlists")).show(|ui| {
         if ui.button("New...").clicked() {
