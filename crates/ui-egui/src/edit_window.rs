@@ -19,6 +19,24 @@ pub const COLUMN_W: f32 = 112.0;
 const PLUGIN_COLUMN_W: f32 = 75.0;
 /// The track colour strip at the left of each track header.
 const STRIP_W: f32 = 14.0;
+
+// ORVIA Design Language v1: accents only for selection and controls.
+// User-defined track/clip colors remain the source of truth.
+fn orvia_timeline_accent(light: bool) -> Color32 {
+    if light { Color32::from_rgb(28, 116, 125) }
+    else { Color32::from_rgb(71, 215, 209) } // #47D7D1
+}
+
+fn orvia_timeline_surface(light: bool) -> Color32 {
+    if light { Color32::from_rgb(221, 240, 244) }
+    else { Color32::from_rgb(27, 66, 76) } // #1B424C
+}
+
+fn orvia_header_ink(light: bool) -> Color32 {
+    if light { Color32::from_rgb(18, 45, 53) }
+    else { Color32::from_rgb(229, 237, 244) } // #E5EDF4
+}
+
 /// The row under the rulers that holds the column titles, when any column is shown.
 const COLUMN_TITLES_H: f32 = 16.0;
 
