@@ -271,3 +271,12 @@ Người dùng nhắn “xong” sau khi thử giao diện Studio Rack mới. Đ
 **Scope UI-only:** ở `crates/ui-egui/src/edit_window.rs` thêm semantic palette cục bộ theo ORVIA v1, track selected rail cyan 3px vẽ **sau** header meter để không bị che, nền field Track name selected bo 4px + chữ tương phản Dark/Light; Mute/Solo/Record/Input monitoring chuyển từ nút 3D sang nút phẳng bo 4px với màu chức năng (Dark: cyan, amber, coral, green), vùng bấm và command vẫn nguyên; clip border graphite, selected stroke cyan 1.5px và góc clip/name bar bo 4px; bar/grid colors Dark `#405363`/`#293744`, Light giữ theme trước. `theme::clip_colors` và Track::color, Clip::color, waveform/MIDI data không thay. Các hàm xử lý edit/transport/undo không sửa. Thêm unit test kiểm tra palette. QA checklist `docs/ORVIA-WEB-STAGE4A4-TIMELINE-QA.md`.
 
 **QA gate:** Chỉ được cung cấp 4A.4 immutable preview sau Cloudflare Pages *Deploy successful đúng SHA*, phải thử Track selection/multi-selection, mute/solo/arm/monitor, clip/fade/crossfade, MIDI/Save/Open, Light/Dark Chrome (1366×768, 1440×900, 1738×863). Cargo unit tests và Chrome UAT chưa có bằng chứng PASS, không tự gán. Không chạy GitHub Actions tự phát, TinyFish, dịch vụ tính phí, CMD Windows, merge main/production.
+
+
+## ORVIA 4A.4 — Người dùng chốt bản thử và Cloudflare PASS (2026-10-24)
+
+Người dùng xác nhận “xong” sau khi thử bản 4A.4 Track Header / Timeline. Đã đọc và đối chiếu nhật ký kỹ thuật repo và nhật ký chung LUNOR MUSIC trên Google Drive **trước thao tác cập nhật**, đồng thời kiểm tra PR #19, Cloudflare Pages check-run và so sánh HEAD thực của nhánh.
+
+**Xác minh:** Cloudflare Pages `completed/success` đúng commit `e383ebc81dc27967f62604a1285653b06cb3609e`; so sánh nhánh `feature/orvia-4a4-track-timeline` với commit này `identical` ở thời điểm kiểm tra. Preview bất biến từ Cloudflare: https://91cc60f9.orvia-daw-preview.pages.dev. Draft PR #19 https://github.com/CapCuuStudio/soundcraft/pull/19 vẫn chưa merge main/production.
+
+**Kết luận:** Người dùng đã chốt bản **web thử GĐ4A.4**, bao gồm Track Header selected cyan, phím Mute/Solo/Record/Monitor phẳng, viền Clip bo nhẹ và Grid Graphite/Cyan. Không suy diễn Cargo unit tests, Chrome QA chi tiết cho từng thao tác, audio/MIDI/Undo/Save/Open regression đều PASS khi chưa có chứng cứ riêng. Bản cập nhật nhật ký chỉ là docs-only, không chỉnh code hay sửa các bản đã nghiệm thu. Không tự chuyển sang giai đoạn 4B, không chạy GitHub Actions thủ công, không TinyFish, dịch vụ phí, CMD Windows hoặc merge production.
