@@ -1112,8 +1112,6 @@ fn track_header(app: &mut SoundApp, ui: &mut Ui, track: &Track, head: Rect, sele
     }
     bg.context_menu(|ui| track_context_menu(app, ui, id));
     let at = |x: f32, y: f32, w: f32, h: f32| Rect::from_min_size(pos2(head.min.x + x, head.min.y + y), vec2(w, h));
-    let strip = rgb(track.color);
-    let ink = shade(strip, -0.8);
     // Folder / track menu arrow stays visible even with the slimmer 5px color rail.
     let round = at(7.0, 3.0, 11.0, 14.0);
     let rresp = ui.interact(round, ui.id().with(("options", id.0)), Sense::click());
@@ -1366,11 +1364,30 @@ fn arrow(p: &egui::Painter, c: Pos2, down: bool, color: Color32) {
     p.add(Shape::convex_polygon(pts, color, Stroke::NONE));
 }
 
+/// Compact neutral control painter; all actions remain in the existing egui
+/// responses. Only a thin border / text highlight indicates active state.
+fn compact_header_control(ui: &Ui, r: Rect, hovered: bool, active: bool, _label: &str) {
+    let light = crate::theme::is_light();
+    let fill = match (light, active, hovered) {
+        (true, true, _) => Color32::from_rgb(185, 198, 211),
+        (true, false, true) => Color32::from_rgb(208, 219, 226),
+        (true, false, false) => Color32::from_rgb(231, 236, 239),
+        (false, true, _) => Color32::from_rgb(90, 99, 107),
+        (false, false, true) => Color32::from_rgb(72, 80, 88),
+        (false, false, false) => Color32::from_rgb(48, 55, 62),
+    };
+    ui.painter().rect_filled(r, 2.0, fill);
+    ui.painter().rect_stroke(
+        r, 2.0, Stroke::new(1.0, if active { Tokens::current().text_dim } else { Tokens::current().border_light }),
+        StrokeKind::Inside,
+    );
+}
+
 /// A header selector (track view, automation mode…): the value centred, and for menus an arrow
 /// in the top-right corner.
 fn header_selector(ui: &Ui, r: Rect, id: egui::Id, text: &str, color: Color32, menu: bool) -> egui::Response {
     let resp = ui.interact(r, id, Sense::click());
-    raised_key(ui.painter(), r, Tokens::current().slot_face, resp.hovered());
+    compact_header_control(ui, r, resp.hovered(), false, "Selector");
     let tr = if menu { r.with_max_x(r.max.x - 7.0) } else { r };
     ui.painter().with_clip_rect(tr.shrink(1.0)).text(tr.center(), Align2::CENTER_CENTER, text, bold(10.0), color);
     if menu {
@@ -1401,34 +1418,18 @@ fn header_toggle(ui: &Ui, r: Rect, track: TrackId, key: HeaderKey, lit: bool, im
     let resp = ui.interact(r, ui.id().with((label, track.0)), Sense::click());
     resp.widget_info(|| egui::WidgetInfo::selected(egui::WidgetType::Button, ui.is_enabled(), lit, label));
     let rec = key == HeaderKey::Rec;
-    let (_tint, _k) = if lit {
-        (color, 0.85)
-    } else if implied {
-        (shade(color, -0.35), 0.55)
-    } else if rec {
-        (shade(color, -0.5), 0.35)
-    } else {
-        (color, 0.0)
-    };
-    // ORVIA v1: flat, legible state instead of a raised imitation hardware key.
-    let base = if crate::theme::is_light() {
-        Color32::from_rgb(225, 235, 241)
-    } else {
-        Color32::from_rgb(32, 45, 57)
-    };
-    let fill = if lit { color } else if implied { base.lerp_to_gamma(color, 0.22) }
-        else if resp.hovered() { base.lerp_to_gamma(color, 0.1) } else { base };
-    ui.painter().rect_filled(r, 4.0, fill);
-    ui.painter().rect_stroke(
-        r, 4.0, Stroke::new(1.0, if lit { color } else { t.border_light }), StrokeKind::Inside,
-    );
-    let ink = if lit {
-        t.text_dark
-    } else if implied {
-        t.text.lerp_to_gamma(color, 0.3)
-    } else {
-        t.text
-    };
+    // Restrained Cubase-like grey controls, with semantic status only when ON.
+    let neutral = if light { Color32::from_rgb(229, 234, 238) } else { Color32::from_rgb(46, 53, 59) };
+    let fill = if lit { color }
+        else if implied { neutral.lerp_to_gamma(color, 0.17) }
+        else if resp.hovered() { neutral.lerp_to_gamma(t.text_dim, 0.16) }
+        else { neutral };
+    ui.painter().rect_filled(r, 2.0, fill);
+    ui.painter().rect_stroke(r, 2.0, Stroke::new(1.0, if lit { color } else { t.border_light }), StrokeKind::Inside);
+    if resp.has_focus() {
+        ui.painter().rect_stroke(r.shrink(1.0), 2.0, Stroke::new(1.0, t.accent), StrokeKind::Inside);
+    }
+    let ink = if lit { t.text_dark } else if implied { t.text_dim } else { t.text };
     if rec {
         ui.painter().circle_filled(r.center(), 4.0, if lit { Color32::WHITE } else { t.text.lerp_to_gamma(color, 0.3) });
     } else {
