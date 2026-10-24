@@ -14,6 +14,14 @@ enum Platform {
 /// The override is the complete directory; no application-name suffix is appended. An explicitly
 /// empty value disables the settings directory instead of falling back to a personal profile.
 pub fn config_dir() -> Option<PathBuf> {
+    // The portable marker is an explicit, per-install opt-in. When launched
+    // from a non-system drive, UI preferences, autosaves, presets and logs
+    // stay beside the executable, not in the old %APPDATA%\\SoundCraft tree.
+    if cfg!(target_os = "windows") {
+        if let Ok(Some(dir)) = orvia_portable_config_dir() {
+            return Some(dir);
+        }
+    }
     let platform = if cfg!(target_os = "macos") {
         Platform::Mac
     } else if cfg!(windows) {
@@ -22,6 +30,44 @@ pub fn config_dir() -> Option<PathBuf> {
         Platform::Other
     };
     config_dir_with(platform, |name| std::env::var_os(name))
+}
+
+/// 4C.2 opt-in Desktop portable mode. Desktop main validates this before it
+/// creates a window or attaches a log file: a misplaced marker is an error,
+/// never a silent fallback to the system drive.
+///
+/// The marker must be a regular file named `.orvia-portable` located beside
+/// the native Windows executable. The application's own persistent settings
+/// live under `ORVIA-Data` next to it. Third-party plugins and Windows may
+/// still use their own OS caches; this is NOT a claim of zero system I/O.
+pub fn orvia_portable_config_dir() -> Result<Option<PathBuf>, String> {
+    if !cfg!(target_os = "windows") {
+        return Ok(None);
+    }
+    let exe = std::env::current_exe().map_err(|e| format!("Cannot find ORVIA executable path: {e}"))?;
+    let root = exe.parent().ok_or_else(|| "ORVIA executable has no folder".to_string())?;
+    let marker = root.join(".orvia-portable");
+    if !marker.exists() {
+        return Ok(None);
+    }
+    if !marker.is_file() {
+        return Err("ORVIA Portable marker must be a regular file, not a folder.".into());
+    }
+    let system_drive = std::env::var("SystemDrive").unwrap_or_else(|_| "C:".to_string());
+    portable_directory_for(root, &system_drive).map(Some)
+}
+
+fn portable_directory_for(root: &std::path::Path, system_drive: &str) -> Result<PathBuf, String> {
+    let display = root.to_string_lossy();
+    let path = display.strip_prefix(r"\\?\").unwrap_or(display.as_ref()).as_bytes();
+    if path.len() < 3 || !path[0].is_ascii_alphabetic() || path[1] != b':' || !matches!(path[2], b'\\' | b'/') {
+        return Err("ORVIA Portable requires a local drive path (e.g. E:\\ORVIA); network/relative folders are not supported.".into());
+    }
+    let system = system_drive.as_bytes().first().copied().unwrap_or(b'C').to_ascii_uppercase();
+    if path[0].to_ascii_uppercase() == system {
+        return Err("ORVIA Portable is on the Windows system drive. Move the complete portable folder to E: or F: before launching.".into());
+    }
+    Ok(root.join("ORVIA-Data"))
 }
 
 fn config_dir_with(platform: Platform, env: impl Fn(&str) -> Option<OsString>) -> Option<PathBuf> {
@@ -192,6 +238,22 @@ mod config_tests {
         assert!(save_ui(&path, &soundcraft_ui_egui::UiState::default()).is_err());
         assert_eq!(std::fs::read(&path).unwrap(), bytes);
         std::fs::remove_dir_all(directory).unwrap();
+    }
+
+    #[test]
+    fn orvia_portable_keeps_native_app_data_on_non_system_drives() {
+        assert_eq!(
+            portable_directory_for(std::path::Path::new(r"E:\\LUNOR\\ORVIA"), "C:").unwrap(),
+            PathBuf::from(r"E:\\LUNOR\\ORVIA").join("ORVIA-Data")
+        );
+        assert_eq!(
+            portable_directory_for(std::path::Path::new(r"F:\\ORVIA"), "C:").unwrap(),
+            PathBuf::from(r"F:\\ORVIA").join("ORVIA-Data")
+        );
+        assert!(portable_directory_for(std::path::Path::new(r"C:\\ORVIA"), "C:").is_err());
+        assert!(portable_directory_for(std::path::Path::new(r"E:\\ORVIA"), "E:").is_err());
+        assert!(portable_directory_for(std::path::Path::new(r"\\server\ORVIA"), "C:").is_err());
+        assert!(portable_directory_for(std::path::Path::new("ORVIA"), "C:").is_err());
     }
 
     fn resolve(platform: Platform, vars: &[(&str, &str)]) -> Option<PathBuf> {
