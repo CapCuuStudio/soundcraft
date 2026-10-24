@@ -2817,6 +2817,16 @@ mod tests {
     use egui_kittest::Harness;
 
     #[test]
+    fn orvia_4a4_selection_palette_keeps_dark_light_legible() {
+        let dark = orvia_timeline_accent(false);
+        let light = orvia_timeline_accent(true);
+        assert_eq!(dark, Color32::from_rgb(71, 215, 209));
+        assert_ne!(dark, light);
+        assert_eq!(orvia_timeline_surface(false), Color32::from_rgb(27, 66, 76));
+        assert_eq!(orvia_header_ink(false), Color32::from_rgb(229, 237, 244));
+    }
+
+    #[test]
     fn follow_jumps_to_offscreen_playhead_while_playing() {
         // Steady view, follow mode, playhead left the screen: jump to it.
         assert_eq!(follow_update(true, true, false, 1_000, 1_000, None, false, 96_000), (false, Some(96_000)));
