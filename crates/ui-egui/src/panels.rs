@@ -229,7 +229,15 @@ mod orvia_automation;
 /// Reuses the actual engine commands, never claims browser-native VST3 hosting.
 pub fn orvia_browser(app: &mut SoundApp, ui: &mut Ui) {
     panel_header(ui, "BỘ DUYỆT ÂM THANH");
-    orvia_rack::show(app, ui);
+    // 4B.4: the entire Rack must remain reachable when the Browser is resized
+    // vertically. Scrolling only the catalog left Track/Insert controls clipped.
+    egui::ScrollArea::vertical()
+        .id_salt("orvia-4b4-rack-scroll")
+        .auto_shrink([false, false])
+        .show(ui, |ui| {
+            ui.set_min_width(ui.available_width());
+            orvia_rack::show(app, ui);
+        });
 }
 
 /// Visible channel IDs in timeline order. The selection filter is a view only:
@@ -315,7 +323,10 @@ pub fn orvia_lower_mixer(app: &mut SoundApp, ui: &mut Ui) {
         return;
     }
 
-    egui::ScrollArea::horizontal().id_salt("orvia_lower_mix_scroll")
+    // Lower Zone may be only 180 logical px high after dragging its splitter.
+    // Both-axis scrolling keeps fader / Pan / routing available below the fold.
+    egui::ScrollArea::both().id_salt("orvia_lower_mix_scroll")
+        .scroll_bar_visibility(egui::scroll_area::ScrollBarVisibility::VisibleWhenNeeded)
         .auto_shrink([false, false])
         .show(ui, |ui| {
             ui.horizontal_top(|ui| {
