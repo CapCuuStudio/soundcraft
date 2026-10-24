@@ -53,8 +53,12 @@ pub fn orvia_portable_config_dir() -> Result<Option<PathBuf>, String> {
     if !marker.is_file() {
         return Err("ORVIA Portable marker must be a regular file, not a folder.".into());
     }
+    // Resolve NTFS junctions/symlinks before checking the drive. An E:\\ path
+    // must not be allowed to write to an underlying C:\\ target.
+    let physical_root = root.canonicalize()
+        .map_err(|e| format!("ORVIA Portable folder cannot be resolved safely: {e}"))?;
     let system_drive = std::env::var("SystemDrive").unwrap_or_else(|_| "C:".to_string());
-    portable_directory_for(root, &system_drive).map(Some)
+    portable_directory_for(&physical_root, &system_drive).map(Some)
 }
 
 fn portable_directory_for(root: &std::path::Path, system_drive: &str) -> Result<PathBuf, String> {
