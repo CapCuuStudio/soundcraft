@@ -229,3 +229,13 @@ Người dùng thông báo “xong rồi” sau khi nhận bản Inspector 4A.1.
 ## ORVIA 4A.2 — Chốt bản web thử ngày 23/10/2026
 
 Người dùng xác nhận “xong”. Cloudflare Pages Deploy successful đúng mã 933b6a35560294ea8bce838befb1395aa1cb32fc, preview https://1446184d.orvia-daw-preview.pages.dev; GitHub Draft PR #15. Xác nhận hoàn thành bản thử 4A.2, nhưng chưa có kết quả Rust Cargo unit tests và biên bản Chrome QA chi tiết. Không merge main/production, không Actions/TinyFish/phí/CMD Windows. Bước đề xuất sau là 4A.3 Rack, chỉ khi có yêu cầu mới.
+
+
+## ORVIA — Hotfix Toolbar 4A.2 responsive theo ảnh phản hồi (2026-10-23)
+
+Người dùng gửi ảnh đánh dấu toàn bộ Toolbar hai hàng bằng đường đỏ và vùng khoảng trống lớn bên phải bằng đường vàng. Nhận diện: GĐ4A2 cố định chiều cao 140px ở mọi chiều ngang dù trên desktop rộng nội dung có thể vừa 1 hàng; Timeline bị mất chiều cao không cần thiết. Trước sửa đã đọc log kỹ thuật Drive chung và repo, AGENTS, roadmap, gaps, UI plan, QA 4A2 cùng source toolbar.rs và edit_window.rs. Tạo nhánh **fix/orvia-4a2-responsive-toolbar** từ mốc 4A2 đã Cloudflare PASS và người dùng xác nhận; không đụng nhánh gốc. Chỉnh toolbar.rs thêm height_for_width: >=1550 logical px dùng 1 hàng cao 78px, thứ tự Transport→Counter→Tempo→Grid→Edit Mode→Tools→Zoom→Meter; màn hình hẹp dùng 2 hàng 140px và cuộn độc lập. Edit window lấy kích thước TopPanel trực tiếp từ hàm trên. Đã đối chiếu giữ nguyên cả 20 lệnh app.run/execute_merged trong file Toolbar; thêm unit test breakpoint. QA: docs/ORVIA-WEB-STAGE4A2-RESPONSIVE-HOTFIX-QA.md. Cổng kiểm thử: chờ Cloudflare Deploy successful đúng commit hotfix mới gửi link, Chrome thực tế và Cargo Rust tests chưa xác minh. Không sửa DSP/audio/MIDI/session/production, không merge main, Actions tự phát/TinyFish/phí/CMD Windows.
+
+
+## ORVIA 4A.2 responsive — người dùng xác nhận hoàn thành (23/10/2026)
+
+Người dùng trả lời “xong” sau bản sửa Toolbar từ ảnh phản hồi. Đã xác minh Cloudflare Pages check-run completed/success đúng SHA daad2c84a10edd074dd5fe41afb4a09da8504669; GitHub compare nhánh fix/orvia-4a2-responsive-toolbar với SHA này là identical trước khi ghi nhật ký. Preview bất biến: https://da537bda.orvia-daw-preview.pages.dev. Draft PR #16: https://github.com/CapCuuStudio/soundcraft/pull/16 chưa merge main/production. Ghi nhận user chốt bản thử hotfix 4A.2: Toolbar 78px một hàng nếu đủ chiều rộng và 140px hai hàng khi hẹp, giữ đủ lệnh điều khiển. Không suy diễn Rust Cargo tests đã PASS hoặc toàn bộ QA audio/MIDI regression được xác minh riêng. Cập nhật chỉ nhật ký, không chỉnh mã sản phẩm; không tự chuyển sang giai đoạn 4A.3.
