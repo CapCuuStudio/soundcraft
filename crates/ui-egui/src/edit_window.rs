@@ -1666,7 +1666,17 @@ fn draw_clip(app: &SoundApp, painter: &egui::Painter, s: &Session, track: &Track
         wave = Color32::from_rgb(70, 70, 70);
     }
     let body = if s.edit.flag("view.clip.transparency") { body.gamma_multiply(0.55) } else { body };
-    painter.rect(r, CornerRadius::same(2), body, Stroke::new(1.0, Color32::from_rgb(10, 10, 10)), StrokeKind::Inside);
+    // Keep clip fill and waveform in their project-assigned colors; ORVIA only
+    // adds a subtle selected outline and softer corners for visual hierarchy.
+    let clip_border = if selected {
+        orvia_timeline_accent(crate::theme::is_light())
+    } else if crate::theme::is_light() {
+        Color32::from_rgb(105, 119, 130)
+    } else {
+        Color32::from_rgb(53, 70, 83)
+    };
+    painter.rect(r, CornerRadius::same(4), body,
+        Stroke::new(if selected { 1.5 } else { 1.0 }, clip_border), StrokeKind::Inside);
     let name_h = clip_name_height(s, lane);
     if name_h > 0.0 {
         let nb = Rect::from_min_max(r.min, pos2(r.max.x, r.min.y + name_h));
