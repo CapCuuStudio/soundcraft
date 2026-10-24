@@ -59,4 +59,12 @@ while IFS= read -r -d '' file; do
   fi
 done < <(find "$DIST" -type f -print0)
 
+# Isolated rule-based AI Arranger research UI; no changes to Rust/DAW engine.
+# This subpath only exists in this experimental branch and preserves the real DAW root.
+ARRANGER_SOURCE="$ROOT/apps/orvia-ai-arranger/index.html"
+[[ -s "$ARRANGER_SOURCE" ]] || { echo '[ORVIA-AI] Missing research UI entrypoint' >&2; exit 1; }
+mkdir -p "$DIST/ai-arranger"
+cp "$ARRANGER_SOURCE" "$DIST/ai-arranger/index.html"
+echo "[ORVIA-AI] Standalone browser MIDI arranger copied to $DIST/ai-arranger"
+
 echo "[ORVIA] Real DAW bundle validated: $DIST"
