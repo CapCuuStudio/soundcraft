@@ -327,3 +327,30 @@ Chủ dự án phản hồi “xong” sau khi xem bản Web 4B.2, ghi nhận **
 **Phạm vi chốt:** MixConsole và Key Editor đồng bộ Graphite/Cyan, layout tiêu đề/hàng nút Key Editor, strip/mute/solo Mixer và Light/Dark. Source UI-only không sửa DSP/MIDI/audio engine/session, docking saved layout, track/note color; vẫn chưa có xác nhận riêng Cargo Rust tests, Chrome QA chi tiết âm thanh/MIDI/Undo/Save/Open.
 
 **Quyết định:** giữ nguyên code 4B.2 đã nghiệm thu, chỉ ghi nhật ký docs-only. Không merge main/production, không tự bắt đầu 4B.3. Không GitHub Actions thủ công/TinyFish/phí/CMD Windows.
+
+## ORVIA Web — GĐ4B.3 Brand Mark / Icons / Control States (24/10/2026)
+
+**Chỉ đạo:** chủ dự án yêu cầu “làm đi” cho 4B.3 — hoàn thiện biểu tượng, nhận diện thương hiệu và trạng thái nút. Trước triển khai đã đọc nhật ký trung tâm Google Drive, log repo này, AGENTS.md/ROADMAP.md/docs/gaps.md, ORVIA Design Language v1, PR #22 (4B.2 accepted, Cloudflare success code `48d35a5`, docs-only head `1ffa967`), và source thật `icons.rs`, `menus.rs`, `widgets.rs`, `toolbar.rs`, `edit_window.rs` cùng cơ chế theme.
+
+**Nhánh:** `feature/orvia-4b3-brand-control-states` tách từ `feature/orvia-4b2-mixer-key-editor` tại commit `1ffa9672f03985a3bc1fad44d1300ea4e40cf1de`. Không sửa/merge 4B.2, main, production.
+
+**Code UI-only đã lưu:**
+1. `icons.rs`: biểu tượng nguyên bản `orvia_mark` (sound-ring/wave) tự vẽ procedural bằng egui Painter, không dùng logo/hình ảnh/copyright từ Cubase/Pro Tools.
+2. `menus.rs`: wordmark menu ORVIA được bổ sung icon 16px bên cạnh, chữ/menu/actions giữ nguyên.
+3. `widgets.rs`: toolbar `icon_button` từ kiểu nổi 3D sang flat Graphite/Cyan, các trạng thái normal/hover/pressed/selected/focus phân biệt, selected underline 2px, Light palette độc lập. Giữ command dispatch của callers; những widget không thuộc toolbar không đổi.
+4. `toolbar.rs`: Play/Stop/Record dùng flat semantic painter, Play active cyan, Record active coral, Stop neutral; không đổi event handlers, shortcuts, toolbar responsive rộng 78px/hẹp 140px hoặc phím bật Loop/Seek. Thêm unit tests palette và trạng thái.
+5. Checklist `docs/ORVIA-WEB-STAGE4B3-BRAND-CONTROLS-QA.md`. So sánh source trước/sau xác nhận số engine/control call không đổi ở mỗi file có lệnh (widgets 3, toolbar 24, menus 10).
+
+**Chứng cứ/giới hạn:** thay đổi đã ghi lên GitHub qua connector. Rust Cargo tests, Cloudflare deploy HEAD, Chrome playback/MIDI/UI keyboard UAT chưa được xác minh ở thời điểm ghi; không tuyên bố PASS. Giữ nguyên các bước 4A.2–4B.2 đã nghiệm thu; không động session/DSP/audio/MIDI/editor/VST3/driver.
+
+**Tiếp theo:** tạo PR Draft vào base `feature/orvia-4b2-mixer-key-editor`; kiểm Cloudflare Deploy successful đúng SHA. Nếu build fail, sửa theo chứng cứ; chỉ sau success mới giao URL Preview 4B.3 bất biến để chủ dự án nghiệm thu. Không tự chạy Actions, dịch vụ phí, TinyFish, CMD Windows.
+
+## ORVIA 4B.3 — Nghiệm thu Web Preview và Cloudflare PASS (24/10/2026)
+
+**Người dùng:** phản hồi “xong” sau triển khai GĐ4B.3, ghi nhận nghiệm thu tổng quát **bản Web thử nghiệm** đối với logo ORVIA, biểu tượng Toolbar và trạng thái Play/Stop/Record. Không suy diễn chủ dự án đã kiểm thử từng trường hợp tương tác hay audio/MIDI regression.
+
+**Kiểm chứng live trước cập nhật:** PR #23 https://github.com/CapCuuStudio/soundcraft/pull/23 đang `open/Draft/unmerged`, nhánh `feature/orvia-4b3-brand-control-states`, mã head `d7dd37dce701752d9b7b91005d68314e10459728` và base `feature/orvia-4b2-mixer-key-editor`. Cloudflare Pages check-run trên **chính SHA này** trả `completed/success` (completed 2026-10-24T10:47:39Z), `Deploy successful`. Preview bất biến: https://38e413d4.orvia-daw-preview.pages.dev ; branch Preview https://feature-orvia-4b3-brand-cont.orvia-daw-preview.pages.dev .
+
+**Chốt phạm vi:** `orvia_mark` được vẽ procedural; toolbar buttons Graphite/Cyan có hover/pressed/selected/focus; transport có Play active cyan, Record coral, Stop neutral; Light/Dark riêng, giữ nguyên chiều cao toolbar 78/140px và engine commands. Không có bằng chứng Cargo Rust unit tests hay Chrome UI/audio/MIDI QA độc lập đã PASS; Cloudflare build thành công không thay thế kiểm thử đó.
+
+**Quyết định:** bảo toàn source 4B.3, cập nhật docs-only để ghi nghiệm thu; không merge main/production, không tự triển khai 4B.4 hoặc đổi các bản đã chốt, không Actions thủ công, TinyFish, dịch vụ phí, CMD Windows.
