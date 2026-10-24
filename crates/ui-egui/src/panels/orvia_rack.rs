@@ -146,7 +146,7 @@ pub(super) fn show(app: &mut SoundApp, ui: &mut Ui) {
                             if resp.on_hover_text("Mở tham số hiệu ứng").clicked() {
                                 open_editor(app, track.id, index);
                             }
-                            if ui.small_button(if insert.bypass { "OFF" } else { "ON" })
+                            if ui.small_button(if insert.bypass { "Bật lại" } else { "Bypass" })
                                 .on_hover_text("Bypass/bật hiệu ứng").clicked() {
                                 let _ = app.run("mix.insert_bypass", json!({"track": track.id.0, "slot":index}));
                             }
