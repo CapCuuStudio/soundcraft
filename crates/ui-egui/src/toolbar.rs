@@ -380,8 +380,65 @@ fn value_menu(app: &mut SoundApp, resp: &egui::Response, cmd: &str) {
     });
 }
 
+// ORVIA 4B.3 transport paint is isolated from the click/shortcut handlers.
+#[derive(Clone, Copy)]
+struct OrviaTransportSkin {
+    base: Color32,
+    hover: Color32,
+    border: Color32,
+    ink: Color32,
+    active_surface: Color32,
+    accent: Color32,
+}
+
+fn orvia_transport_skin(light: bool, kind: &str) -> OrviaTransportSkin {
+    let record = kind == "record";
+    let stop = kind == "stop";
+    if light {
+        OrviaTransportSkin {
+            base: Color32::from_rgb(222, 231, 238),
+            hover: Color32::from_rgb(232, 242, 247),
+            border: Color32::from_rgb(160, 178, 188),
+            ink: Color32::from_rgb(18, 45, 53),
+            active_surface: if record { Color32::from_rgb(255, 222, 222) } else { Color32::from_rgb(214, 237, 241) },
+            accent: if record { Color32::from_rgb(176, 47, 60) }
+                else if stop { Color32::from_rgb(18, 45, 53) }
+                else { Color32::from_rgb(28, 116, 125) },
+        }
+    } else {
+        OrviaTransportSkin {
+            base: Color32::from_rgb(32, 45, 57), // #202D39
+            hover: Color32::from_rgb(38, 58, 72), // #263A48
+            border: Color32::from_rgb(53, 70, 83), // #354653
+            ink: Color32::from_rgb(229, 237, 244), // #E5EDF4
+            active_surface: if record { Color32::from_rgb(83, 38, 47) } else { Color32::from_rgb(27, 66, 76) },
+            accent: if record { Color32::from_rgb(242, 116, 118) } // #F27476
+                else if stop { Color32::from_rgb(229, 237, 244) }
+                else { Color32::from_rgb(71, 215, 209) }, // #47D7D1
+        }
+    }
+}
+
+fn orvia_transport_face(ui: &Ui, r: Rect, resp: &egui::Response, kind: &str, active: bool) -> Color32 {
+    let skin = orvia_transport_skin(!ui.visuals().dark_mode, kind);
+    let base = if active { skin.active_surface }
+        else if resp.hovered() { skin.hover } else { skin.base };
+    let fill = if resp.is_pointer_button_down_on() { base.lerp_to_gamma(Color32::BLACK, 0.09) } else { base };
+    ui.painter().rect_filled(r.shrink(1.0), CornerRadius::same(5), fill);
+    ui.painter().rect_stroke(r, CornerRadius::same(5), Stroke::new(1.0, skin.border), StrokeKind::Inside);
+    if active {
+        ui.painter().rect_filled(
+            Rect::from_min_max(pos2(r.min.x + 9.0, r.max.y - 3.0), pos2(r.max.x - 9.0, r.max.y - 1.0)),
+            1.0, skin.accent,
+        );
+    }
+    if resp.has_focus() {
+        ui.painter().rect_stroke(r.shrink(1.0), CornerRadius::same(5), Stroke::new(2.0, skin.accent), StrokeKind::Inside);
+    }
+    if active || kind == "record" { skin.accent } else { skin.ink }
+}
+
 fn transport(app: &mut SoundApp, ui: &mut Ui) {
-    let t = Tokens::current();
     let playing = app.is_playing();
     let recording = app.engine.transport.recording;
     let looped = app.engine.session().edit.loop_playback;
@@ -394,20 +451,20 @@ fn transport(app: &mut SoundApp, ui: &mut Ui) {
                     let _ = app.run("options.loop_playback", json!({}));
                 }
                 let (r, resp) = ui.allocate_exact_size(vec2(42.0, 28.0), Sense::click());
-                key(ui.painter(), r, &resp, key_fill(&resp));
-                icons::draw(ui.painter(), r.shrink(5.0), "stop", if playing { t.text } else { t.accent });
+                let icon_color = orvia_transport_face(ui, r, &resp, "stop", false);
+                icons::draw(ui.painter(), r.shrink(6.0), "stop", icon_color);
                 if resp.on_hover_text("Stop (Space)").clicked() {
                     let _ = app.run("transport.stop", json!({}));
                 }
                 let (r, resp) = ui.allocate_exact_size(vec2(42.0, 28.0), Sense::click());
-                key(ui.painter(), r, &resp, if playing { Color32::from_rgb(40, 90, 50) } else { key_fill(&resp) });
-                icons::draw(ui.painter(), r.shrink(5.0), "play", if playing { Color32::from_rgb(120, 255, 140) } else { t.counter_text });
+                let icon_color = orvia_transport_face(ui, r, &resp, "play", playing);
+                icons::draw(ui.painter(), r.shrink(6.0), "play", icon_color);
                 if resp.on_hover_text("Play (Space)").clicked() {
                     let _ = app.run("transport.play", json!({}));
                 }
                 let (r, resp) = ui.allocate_exact_size(vec2(42.0, 28.0), Sense::click());
-                key(ui.painter(), r, &resp, if recording { Color32::from_rgb(110, 30, 30) } else { key_fill(&resp) });
-                icons::draw(ui.painter(), r.shrink(5.0), "record", t.rec);
+                let icon_color = orvia_transport_face(ui, r, &resp, "record", recording);
+                icons::draw(ui.painter(), r.shrink(6.0), "record", icon_color);
                 let resp = resp.on_hover_text("Record (Cmd+Space)");
                 if let Some(why) = app.record_hint() {
                     // Below the whole group, so the hint covers none of its buttons.
@@ -502,6 +559,27 @@ fn output_meter(app: &mut SoundApp, ui: &mut Ui) {
     for c in 0..2 {
         let rr = Rect::from_min_size(pos2(r.min.x + 2.0 + c as f32 * (w + 2.0), r.min.y), vec2(w, r.height()));
         crate::widgets::meter(ui, rr, m.level[c], m.hold[c], m.clip);
+    }
+}
+
+#[cfg(test)]
+mod orvia_4b3_transport_skin_tests {
+    use super::*;
+
+    #[test]
+    fn play_and_record_states_have_distinct_semantic_colors() {
+        let play = orvia_transport_skin(false, "play");
+        let record = orvia_transport_skin(false, "record");
+        assert_eq!(play.accent, Color32::from_rgb(71, 215, 209));
+        assert_eq!(record.accent, Color32::from_rgb(242, 116, 118));
+        assert_ne!(play.active_surface, record.active_surface);
+    }
+
+    #[test]
+    fn light_transport_palette_has_visible_hover() {
+        let play = orvia_transport_skin(true, "play");
+        assert_ne!(play.hover, play.base);
+        assert_ne!(play.accent, play.ink);
     }
 }
 
