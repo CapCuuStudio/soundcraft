@@ -94,8 +94,8 @@ pub(super) fn show(app: &mut SoundApp, ui: &mut Ui) {
             .map(|tr| (tr.id, tr.name.clone(), tr.kind)).collect();
         (chosen, tracks)
     };
-    ui.horizontal(|ui| {
-        ui.label("Track:");
+    skin.card(ui, |ui| {
+        ui.label(RichText::new("TRACK ĐÍCH").size(11.0).strong().color(skin.secondary));
         let title = selected.as_ref().map_or("Chọn Track", |track| track.name.as_str());
         egui::ComboBox::from_id_salt("orvia_3c_track_select")
             .selected_text(title)
