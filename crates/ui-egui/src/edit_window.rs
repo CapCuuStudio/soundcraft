@@ -19,6 +19,24 @@ pub const COLUMN_W: f32 = 112.0;
 const PLUGIN_COLUMN_W: f32 = 75.0;
 /// The track colour strip at the left of each track header.
 const STRIP_W: f32 = 14.0;
+
+// ORVIA Design Language v1: accents only for selection and controls.
+// User-defined track/clip colors remain the source of truth.
+fn orvia_timeline_accent(light: bool) -> Color32 {
+    if light { Color32::from_rgb(28, 116, 125) }
+    else { Color32::from_rgb(71, 215, 209) } // #47D7D1
+}
+
+fn orvia_timeline_surface(light: bool) -> Color32 {
+    if light { Color32::from_rgb(221, 240, 244) }
+    else { Color32::from_rgb(27, 66, 76) } // #1B424C
+}
+
+fn orvia_header_ink(light: bool) -> Color32 {
+    if light { Color32::from_rgb(18, 45, 53) }
+    else { Color32::from_rgb(229, 237, 244) } // #E5EDF4
+}
+
 /// The row under the rulers that holds the column titles, when any column is shown.
 const COLUMN_TITLES_H: f32 = 16.0;
 
@@ -857,7 +875,15 @@ fn track_row(app: &mut SoundApp, ui: &mut Ui, id: TrackId, row: Rect, tl: Rect, 
     ui.painter().rect_filled(Rect::from_min_size(head.min, vec2(STRIP_W, head.height())), 0.0, rgb(track.color));
     ui.painter().line_segment([pos2(head.min.x, row.max.y + 0.5), pos2(tl.max.x, row.max.y + 0.5)], Stroke::new(1.0, t.border));
     ui.painter().hline(head.min.x + STRIP_W..=head.max.x, head.min.y + 0.5, Stroke::new(1.0, t.edge_light));
+    // Selected Track gets an ORVIA focus rail; leave the user's 14px color strip intact.
     track_header(app, ui, track, head, selected, head_bg);
+    if selected {
+        let rail = Rect::from_min_size(
+            pos2(head.min.x + STRIP_W, head.min.y + 1.0),
+            vec2(3.0, (head.height() - 2.0).max(0.0)),
+        );
+        ui.painter().rect_filled(rail, 1.0, orvia_timeline_accent(crate::theme::is_light()));
+    }
     // Lane.
     ui.painter().vline(tl.min.x - 0.5, row.y_range(), Stroke::new(1.0, t.border));
     let painter = ui.painter().with_clip_rect(lane.intersect(ui.clip_rect()));
@@ -1016,7 +1042,7 @@ fn track_header(app: &mut SoundApp, ui: &mut Ui, track: &Track, head: Rect, sele
     let indent = folder_depth(app.engine.session(), track) as f32 * 10.0;
     let name_r = at(16.0 + indent, 1.5, 97.0 - indent, 15.0);
     if selected {
-        ui.painter().rect_filled(name_r, 2.0, t.name_field_sel);
+        ui.painter().rect_filled(name_r, 4.0, orvia_timeline_surface(crate::theme::is_light()));
     }
     let shown_name = if app.engine.session().edit.flag("edit_view.track_number") {
         let n = app.engine.session().track_index(id).map_or(0, |i| i + 1);
@@ -1024,7 +1050,7 @@ fn track_header(app: &mut SoundApp, ui: &mut Ui, track: &Track, head: Rect, sele
     } else {
         track.name.clone()
     };
-    let name_color = if selected { t.text_dark } else { t.text.lerp_to_gamma(t.text_dim, 0.4) };
+    let name_color = if selected { orvia_header_ink(crate::theme::is_light()) } else { t.text.lerp_to_gamma(t.text_dim, 0.25) };
     ui.painter().with_clip_rect(name_r).text(pos2(name_r.min.x + 1.5, name_r.center().y), Align2::LEFT_CENTER, &shown_name, bold(12.5), name_color);
     let nresp = ui.interact(name_r, ui.id().with(("name", id.0)), Sense::click_and_drag());
     if nresp.double_clicked() {
@@ -1242,16 +1268,17 @@ enum HeaderKey {
 /// mute that another track's solo implies). Record keys stay dark red when off, as in Pro Tools.
 fn header_toggle(ui: &Ui, r: Rect, track: TrackId, key: HeaderKey, lit: bool, implied: bool) -> egui::Response {
     let t = Tokens::current();
+    let light = crate::theme::is_light();
     let (label, color) = match key {
-        HeaderKey::Rec => ("Record enable", t.rec),
-        HeaderKey::Input => ("Input monitoring", t.input),
-        HeaderKey::Solo => ("Solo", t.solo),
-        HeaderKey::Mute => ("Mute", t.mute),
+        HeaderKey::Rec => ("Record enable", if light { t.rec } else { Color32::from_rgb(242, 116, 118) }),
+        HeaderKey::Input => ("Input monitoring", if light { t.input } else { Color32::from_rgb(151, 225, 178) }),
+        HeaderKey::Solo => ("Solo", if light { t.solo } else { Color32::from_rgb(242, 184, 107) }),
+        HeaderKey::Mute => ("Mute", if light { t.mute } else { Color32::from_rgb(71, 215, 209) }),
     };
     let resp = ui.interact(r, ui.id().with((label, track.0)), Sense::click());
     resp.widget_info(|| egui::WidgetInfo::selected(egui::WidgetType::Button, ui.is_enabled(), lit, label));
     let rec = key == HeaderKey::Rec;
-    let (tint, k) = if lit {
+    let (_tint, _k) = if lit {
         (color, 0.85)
     } else if implied {
         (shade(color, -0.35), 0.55)
@@ -1260,8 +1287,18 @@ fn header_toggle(ui: &Ui, r: Rect, track: TrackId, key: HeaderKey, lit: bool, im
     } else {
         (color, 0.0)
     };
-    let [top, bottom] = t.slot_face.map(|f| f.lerp_to_gamma(tint, k));
-    raised_key(ui.painter(), r, [shade(top, 0.08), shade(bottom, -0.12)], resp.hovered());
+    // ORVIA v1: flat, legible state instead of a raised imitation hardware key.
+    let base = if crate::theme::is_light() {
+        Color32::from_rgb(225, 235, 241)
+    } else {
+        Color32::from_rgb(32, 45, 57)
+    };
+    let fill = if lit { color } else if implied { base.lerp_to_gamma(color, 0.22) }
+        else if resp.hovered() { base.lerp_to_gamma(color, 0.1) } else { base };
+    ui.painter().rect_filled(r, 4.0, fill);
+    ui.painter().rect_stroke(
+        r, 4.0, Stroke::new(1.0, if lit { color } else { t.border_light }), StrokeKind::Inside,
+    );
     let ink = if lit {
         t.text_dark
     } else if implied {
@@ -1516,7 +1553,9 @@ fn grid_lines(painter: &egui::Painter, s: &Session, tl: Rect, lane: Rect) {
     let bar = GridValue::Note { value: NoteValue::Bar, dotted: false, triplet: false };
     let bar_px = bar.step_samples(view.start, sr, &s.tempo, s.frame_rate) as f64 / s.edit.zoom.samples_per_px;
     if bar_px > 6.0 {
-        let col = grid_veil(t.bar_line, t.playlist_bg);
+        let bar_color = if crate::theme::is_light() { t.bar_line }
+            else { Color32::from_rgb(64, 83, 99) }; // ORVIA #405363
+        let col = grid_veil(bar_color, t.playlist_bg);
         for at in bar.lines(view.start, view.end, sr, &s.tempo, s.frame_rate, 600) {
             let x = x_of(s, tl, at);
             painter.line_segment([pos2(x, lane.min.y), pos2(x, lane.max.y)], Stroke::new(1.0, col));
@@ -1525,7 +1564,7 @@ fn grid_lines(painter: &egui::Painter, s: &Session, tl: Rect, lane: Rect) {
     if s.edit.grid_lines {
         let step_px = s.edit.grid.step_samples(view.start, sr, &s.tempo, s.frame_rate) as f64 / s.edit.zoom.samples_per_px;
         if step_px > 7.0 {
-            let col = grid_veil(t.grid_line, t.playlist_bg);
+            let col = grid_veil(if crate::theme::is_light() { t.grid_line } else { Color32::from_rgb(41, 55, 68) }, t.playlist_bg);
             for at in s.edit.grid.lines(view.start, view.end, sr, &s.tempo, s.frame_rate, 2000) {
                 let x = x_of(s, tl, at);
                 painter.line_segment([pos2(x, lane.min.y), pos2(x, lane.max.y)], Stroke::new(1.0, col));
@@ -1629,11 +1668,21 @@ fn draw_clip(app: &SoundApp, painter: &egui::Painter, s: &Session, track: &Track
         wave = Color32::from_rgb(70, 70, 70);
     }
     let body = if s.edit.flag("view.clip.transparency") { body.gamma_multiply(0.55) } else { body };
-    painter.rect(r, CornerRadius::same(2), body, Stroke::new(1.0, Color32::from_rgb(10, 10, 10)), StrokeKind::Inside);
+    // Keep clip fill and waveform in their project-assigned colors; ORVIA only
+    // adds a subtle selected outline and softer corners for visual hierarchy.
+    let clip_border = if selected {
+        orvia_timeline_accent(crate::theme::is_light())
+    } else if crate::theme::is_light() {
+        Color32::from_rgb(105, 119, 130)
+    } else {
+        Color32::from_rgb(53, 70, 83)
+    };
+    painter.rect(r, CornerRadius::same(4), body,
+        Stroke::new(if selected { 1.5 } else { 1.0 }, clip_border), StrokeKind::Inside);
     let name_h = clip_name_height(s, lane);
     if name_h > 0.0 {
         let nb = Rect::from_min_max(r.min, pos2(r.max.x, r.min.y + name_h));
-        painter.rect_filled(nb, CornerRadius { nw: 2, ne: 2, sw: 0, se: 0 }, if clip.muted { Color32::from_rgb(70, 70, 70) } else { bar });
+        painter.rect_filled(nb, CornerRadius { nw: 4, ne: 4, sw: 0, se: 0 }, if clip.muted { Color32::from_rgb(70, 70, 70) } else { bar });
         let name_clip = nb.intersect(lane);
         painter.with_clip_rect(name_clip).text(
             pos2(nb.min.x.max(lane.min.x) + 4.0, nb.center().y),
@@ -2766,6 +2815,16 @@ fn overlay(app: &mut SoundApp, ui: &mut Ui, tl: Rect, area: Rect) {
 mod tests {
     use super::*;
     use egui_kittest::Harness;
+
+    #[test]
+    fn orvia_4a4_selection_palette_keeps_dark_light_legible() {
+        let dark = orvia_timeline_accent(false);
+        let light = orvia_timeline_accent(true);
+        assert_eq!(dark, Color32::from_rgb(71, 215, 209));
+        assert_ne!(dark, light);
+        assert_eq!(orvia_timeline_surface(false), Color32::from_rgb(27, 66, 76));
+        assert_eq!(orvia_header_ink(false), Color32::from_rgb(229, 237, 244));
+    }
 
     #[test]
     fn follow_jumps_to_offscreen_playhead_while_playing() {
