@@ -369,3 +369,13 @@ Chủ dự án phản hồi “xong” sau khi xem bản Web 4B.2, ghi nhận **
 **Bằng chứng đã có:** GitHub ghi thành công các file; so số call `app.run` trong 2 file P1 trước/sau giữ nguyên (panels.rs 35, orvia_rack.rs 5). Đối chiếu 8 nhóm ký hiệu source/docking ở HEAD mới khớp (preflight source review); chưa được quyền đồng nhất preflight này với Node chạy trên Cloudflare. Checklist đầy đủ ở `docs/ORVIA-WEB-STAGE4B4-RESPONSIVE-QA.md`.
 
 **Giới hạn và việc tiếp:** Cloudflare check-run/preview 4B.4 cần kiểm đúng HEAD cuối; Cargo unit tests, ảnh thật Chrome nhiều viewport, actual playback, MIDI/note editing, Save/Open và plugin runtime chưa xác minh PASS. Không tự tuyên bố nghiệm thu; chỉ trả Preview bất biến Cloudflare xác nhận success. Không GitHub Actions thủ công, không TinyFish, phí mới, CMD Windows hoặc merge main/production.
+
+## ORVIA 4B.4 — Owner Acceptance & Verified Cloudflare Deploy (24/10/2026)
+
+**Người dùng:** phản hồi “xong” cho GĐ4B.4 (responsive tổng thể), được ghi nhận là **nghiệm thu tổng quát bản Web thử nghiệm**. Không tự suy diễn mọi kiểm thử manual Chrome, nghe audio, MIDI hay Save/Open đều đã PASS.
+
+**Xác minh thực tế trước khi chốt:** PR #24 https://github.com/CapCuuStudio/soundcraft/pull/24 tại commit mã `282639bc37e75cbf81aa384d1639044dd3103f53`, base `feature/orvia-4b3-brand-control-states`, vẫn `open/Draft/unmerged`. Cloudflare Pages check-run #120856664504 đúng code SHA này trả `completed/success`, hoàn thành 2026-10-24T11:21:26Z, `Deploy successful`. Immutable Preview chính thức https://ef7761c3.orvia-daw-preview.pages.dev ; branch preview https://feature-orvia-4b4-responsive.orvia-daw-preview.pages.dev . Script build được sửa để chạy Node source-contract trước Rust/Trunk, nên check-run thành công chứng thực build pipeline không exit lỗi; không có log test chi tiết độc lập từ Chrome/Cargo.
+
+**Mã được chốt không đổi:** MixConsole cuộn cả ngang/dọc trong Lower Zone hẹp, Studio Rack cuộn toàn bộ Browser/Track/Insert/catalog; giữ lệnh thực, các giai đoạn 4A–4B.3, breakpoint Toolbar, saved docking và dữ liệu người dùng. Các QA source contract/Cloudflare build PASS ở phạm vi nêu trên, không coi đó là kết quả thực nghiệm playback/recording/Chrome nhiều viewport, Rust Cargo unit tests hoặc audio/MIDI regression.
+
+**Quyết định:** chỉ cập nhật nhật ký nghiệm thu docs-only; giữ nguyên code 4B.4 đã chốt và không merge main/production. Chưa tự bắt đầu giai đoạn khác, không sử dụng GitHub Actions thủ công/TinyFish/phí/CMD Windows.
