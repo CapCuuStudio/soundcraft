@@ -101,16 +101,94 @@ fn button_style(selected_fill: Color32, normal_icon: Color32, radius: u8) -> Ico
     }
 }
 
-/// A toolbar button with an icon; `on` draws the blue selected state.
+/// 4B.3 toolbar-only semantic states. Other mixer/button skins remain unchanged.
+#[derive(Clone, Copy)]
+struct OrviaIconPalette {
+    normal: Color32,
+    hover: Color32,
+    pressed: Color32,
+    selected: Color32,
+    border: Color32,
+    text: Color32,
+    selection_ink: Color32,
+    accent: Color32,
+}
+
+fn orvia_icon_palette(light: bool) -> OrviaIconPalette {
+    if light {
+        OrviaIconPalette {
+            normal: Color32::from_rgb(222, 231, 238),
+            hover: Color32::from_rgb(232, 242, 247),
+            pressed: Color32::from_rgb(199, 221, 227),
+            selected: Color32::from_rgb(214, 237, 241),
+            border: Color32::from_rgb(160, 178, 188),
+            text: Color32::from_rgb(18, 45, 53),
+            selection_ink: Color32::from_rgb(18, 45, 53),
+            accent: Color32::from_rgb(28, 116, 125),
+        }
+    } else {
+        OrviaIconPalette {
+            normal: Color32::from_rgb(32, 45, 57), // #202D39
+            hover: Color32::from_rgb(38, 58, 72), // #263A48
+            pressed: Color32::from_rgb(20, 34, 43),
+            selected: Color32::from_rgb(27, 66, 76), // #1B424C
+            border: Color32::from_rgb(53, 70, 83), // #354653
+            text: Color32::from_rgb(229, 237, 244), // #E5EDF4
+            selection_ink: Color32::from_rgb(229, 237, 244),
+            accent: Color32::from_rgb(71, 215, 209), // #47D7D1
+        }
+    }
+}
+
+/// Toolbar icon button: flat Graphite/Cyan with distinct hover, pressed,
+/// active underline and keyboard focus. The caller retains every command.
 pub fn icon_button(ui: &mut Ui, size: egui::Vec2, icon: &str, on: bool, tip: &str) -> Response {
-    let t = Tokens::current();
-    let style = button_style(t.accent, t.text, 3);
+    let c = orvia_icon_palette(!ui.visuals().dark_mode);
+    let stroke = |color| Stroke::new(1.0, color);
+    let visuals = |fill, ink| ButtonVisuals { fill, stroke: stroke(c.border), icon: ink };
+    let style = IconButtonStyle {
+        normal: visuals(c.normal, c.text),
+        hovered: visuals(c.hover, c.text),
+        pressed: Some(visuals(c.pressed, c.text)),
+        selected: visuals(c.selected, c.selection_ink),
+        corner_radius: CornerRadius::same(5),
+        focus_stroke: Stroke::new(2.0, c.accent),
+    };
     let resp = IconButton::new(tip, size, &style).selected(on).single_shape_frame().show(ui, |ui, r, tint| {
-        key_light(ui.painter(), r.shrink(1.0));
-        let s = r.height().min(r.width()) * 0.78;
-        icons::draw(ui.painter(), Rect::from_center_size(r.center(), vec2(s, s)), icon, tint);
+        if on {
+            ui.painter().rect_filled(
+                Rect::from_min_max(
+                    pos2(r.min.x + 6.0, r.max.y - 3.0),
+                    pos2(r.max.x - 6.0, r.max.y - 1.0),
+                ),
+                1.0, c.accent,
+            );
+        }
+        let size = r.height().min(r.width()) * 0.70;
+        icons::draw(ui.painter(), Rect::from_center_size(r.center(), vec2(size, size)), icon, tint);
     });
     resp.on_hover_text(tip)
+}
+
+#[cfg(test)]
+mod orvia_4b3_icon_palette_tests {
+    use super::*;
+
+    #[test]
+    fn toolbar_active_hover_and_focus_are_distinguishable() {
+        let c = orvia_icon_palette(false);
+        assert_eq!(c.accent, Color32::from_rgb(71, 215, 209));
+        assert_ne!(c.hover, c.normal);
+        assert_ne!(c.selected, c.normal);
+        assert_ne!(c.pressed, c.hover);
+    }
+
+    #[test]
+    fn toolbar_light_mode_is_not_forced_dark() {
+        let c = orvia_icon_palette(true);
+        assert_eq!(c.accent, Color32::from_rgb(28, 116, 125));
+        assert_ne!(c.selection_ink, c.selected);
+    }
 }
 
 /// Square text toggle used for S / M / I / record etc.
