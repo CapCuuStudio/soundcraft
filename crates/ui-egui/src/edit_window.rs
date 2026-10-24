@@ -1553,7 +1553,9 @@ fn grid_lines(painter: &egui::Painter, s: &Session, tl: Rect, lane: Rect) {
     let bar = GridValue::Note { value: NoteValue::Bar, dotted: false, triplet: false };
     let bar_px = bar.step_samples(view.start, sr, &s.tempo, s.frame_rate) as f64 / s.edit.zoom.samples_per_px;
     if bar_px > 6.0 {
-        let col = grid_veil(t.bar_line, t.playlist_bg);
+        let bar_color = if crate::theme::is_light() { t.bar_line }
+            else { Color32::from_rgb(64, 83, 99) }; // ORVIA #405363
+        let col = grid_veil(bar_color, t.playlist_bg);
         for at in bar.lines(view.start, view.end, sr, &s.tempo, s.frame_rate, 600) {
             let x = x_of(s, tl, at);
             painter.line_segment([pos2(x, lane.min.y), pos2(x, lane.max.y)], Stroke::new(1.0, col));
