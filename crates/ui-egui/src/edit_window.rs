@@ -1050,7 +1050,7 @@ fn track_header(app: &mut SoundApp, ui: &mut Ui, track: &Track, head: Rect, sele
     } else {
         track.name.clone()
     };
-    let name_color = if selected { t.text_dark } else { t.text.lerp_to_gamma(t.text_dim, 0.4) };
+    let name_color = if selected { orvia_header_ink(crate::theme::is_light()) } else { t.text.lerp_to_gamma(t.text_dim, 0.25) };
     ui.painter().with_clip_rect(name_r).text(pos2(name_r.min.x + 1.5, name_r.center().y), Align2::LEFT_CENTER, &shown_name, bold(12.5), name_color);
     let nresp = ui.interact(name_r, ui.id().with(("name", id.0)), Sense::click_and_drag());
     if nresp.double_clicked() {
