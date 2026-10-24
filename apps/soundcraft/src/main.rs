@@ -212,6 +212,19 @@ fn main() -> eframe::Result {
         println!("ORVIA Studio (SoundCraft engine) {}", env!("CARGO_PKG_VERSION"));
         return Ok(());
     }
+    // A misplaced .orvia-portable marker must fail closed rather than saving
+    // silently to the Windows profile on C:. Show a native GUI error so a
+    // double-click launch remains understandable without CMD/PowerShell.
+    #[cfg(target_os = "windows")]
+    if let Err(why) = config::orvia_portable_config_dir() {
+        log::error!("Portable mode blocked: {why}");
+        rfd::MessageDialog::new()
+            .set_title("ORVIA Portable")
+            .set_description(&why)
+            .set_level(rfd::MessageLevel::Error)
+            .show();
+        return Ok(());
+    }
     let demo = args.iter().any(|a| a == "--demo" || a == "--sample");
     let no_audio = args.iter().any(|a| a == "--no-audio");
     let control_port: Option<u16> = args
