@@ -354,3 +354,18 @@ Chủ dự án phản hồi “xong” sau khi xem bản Web 4B.2, ghi nhận **
 **Chốt phạm vi:** `orvia_mark` được vẽ procedural; toolbar buttons Graphite/Cyan có hover/pressed/selected/focus; transport có Play active cyan, Record coral, Stop neutral; Light/Dark riêng, giữ nguyên chiều cao toolbar 78/140px và engine commands. Không có bằng chứng Cargo Rust unit tests hay Chrome UI/audio/MIDI QA độc lập đã PASS; Cloudflare build thành công không thay thế kiểm thử đó.
 
 **Quyết định:** bảo toàn source 4B.3, cập nhật docs-only để ghi nghiệm thu; không merge main/production, không tự triển khai 4B.4 hoặc đổi các bản đã chốt, không Actions thủ công, TinyFish, dịch vụ phí, CMD Windows.
+
+## ORVIA Web 4B.4 — Responsive Audit & Smoke Gate (24/10/2026)
+
+**Chỉ đạo:** chủ dự án duyệt “ok làm đi” GĐ4B.4 để kiểm thử tổng thể và hoàn thiện responsive từ 4B.3. Trước sửa đã đọc nhật ký trung tâm Google Drive (bao gồm nghiệm thu 4B.3), nhật ký repo, AGENTS.md, ROADMAP.md, docs/gaps.md, Design Language v1 và 4B.3 QA; đối chiếu PR #23 head docs-only `6cc460e6a52a7a18de5188e9e51b8f5367733d4e`, Cloudflare build successful code `d7dd37d`. Đọc source thật `panels.rs`, `panels/orvia_rack.rs`, `docking.rs`, `midi_editor.rs`, `edit_window.rs`, `toolbar.rs`, `scripts/cloudflare-pages-build.sh`.
+
+**Nhánh thử:** `feature/orvia-4b4-responsive-qa` tách đúng từ docs-only HEAD 4B.3 `6cc460e`. Giữ nguyên source 4B.3, production, không merge.
+
+**Lỗi responsive và khắc phục bằng mã:**
+1. `panels.rs`: MixConsole panel có min-height 180 nhưng scroll chỉ ngang, fader/pan/send/output có thể bị cắt theo chiều dọc. Thay bằng `ScrollArea::both()` + scrollbar VisibleWhenNeeded. Giữ nguyên filter theo Track, fader/meter/pan, engine commands và history merge.
+2. `panels.rs` + `panels/orvia_rack.rs`: Rack header, chọn Track, Insert/FX có thể nằm ngoài viewport khi Browser min-height 160 vì chỉ catalog có vùng cuộn. Đặt một ScrollArea dọc ở Browser bao trọn Rack; đổi nested ScrollArea catalog thành container vertical, giữ handler, chức năng gán hiệu ứng và nhạc cụ nguyên trạng.
+3. `tests/orvia-4b4-responsive-contract.mjs`: thêm 7 nhóm source contract cho MixConsole, Studio Rack, Inspector, Key Editor, Toolbar 78/140px, Timeline/docking commands và brand/control states. `scripts/cloudflare-pages-build.sh` bắt buộc Node script PASS trước khi Rust toolchain + Trunk WASM build. Node built-ins, không thêm dịch vụ/trình duyệt hoặc package phí.
+
+**Bằng chứng đã có:** GitHub ghi thành công các file; so số call `app.run` trong 2 file P1 trước/sau giữ nguyên (panels.rs 35, orvia_rack.rs 5). Đối chiếu 8 nhóm ký hiệu source/docking ở HEAD mới khớp (preflight source review); chưa được quyền đồng nhất preflight này với Node chạy trên Cloudflare. Checklist đầy đủ ở `docs/ORVIA-WEB-STAGE4B4-RESPONSIVE-QA.md`.
+
+**Giới hạn và việc tiếp:** Cloudflare check-run/preview 4B.4 cần kiểm đúng HEAD cuối; Cargo unit tests, ảnh thật Chrome nhiều viewport, actual playback, MIDI/note editing, Save/Open và plugin runtime chưa xác minh PASS. Không tự tuyên bố nghiệm thu; chỉ trả Preview bất biến Cloudflare xác nhận success. Không GitHub Actions thủ công, không TinyFish, phí mới, CMD Windows hoặc merge main/production.
