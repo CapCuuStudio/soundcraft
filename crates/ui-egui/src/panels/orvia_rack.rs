@@ -231,7 +231,10 @@ pub(super) fn show(app: &mut SoundApp, ui: &mut Ui) {
             });
     }
 
-    egui::ScrollArea::vertical().id_salt("orvia_3c_rack_catalog").show(ui, |ui| {
+    // The Browser already owns the one vertical ScrollArea (4B.4).
+    // Nested vertical scrolling trapped the pointer and clipped Track/Insert
+    // controls when the Rack height became smaller than the fixed header.
+    ui.vertical(|ui| {
         if plugins.is_empty() {
             ui.label("Không tìm thấy plugin tích hợp phù hợp.");
         }
