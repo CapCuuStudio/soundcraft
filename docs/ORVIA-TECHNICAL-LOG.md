@@ -475,3 +475,21 @@ Chủ dự án phản hồi “xong” sau khi xem bản Web 4B.2, ghi nhận **
 **Current CI:** GitHub auto-triggered new Windows x64 hosted run https://github.com/CapCuuStudio/soundcraft/actions/runs/40385281178 for latest test code SHA 829f2ee57a1cc599ebc904530476757688383841; at last observation, source preflight PASS, native Rust tests in_progress, EXE/PE checks pending. A previous run for 3e8d62c was auto-cancelled by concurrency, not a failure. Draft PR #29 remains unmerged. Desktop native build and physical Windows ASIO/Kontakt 8 NKI/owner laptop/Drive E-F/branding release continue HOLD until exact evidence. No CMD on user's Windows, no manual Actions, production merge or download artifact publication.
 
 **Next single step:** check latest Windows build run native test result and PE/SHA; only fix further real regression if evidenced.
+
+
+## ORVIA 4C.4 — Windows x64 NATIVE BUILD SUCCESS — signed off for CI-only (27/10/2026)
+
+**Verified exact hosted GitHub Actions run:** https://github.com/CapCuuStudio/soundcraft/actions/runs/40385281178 — workflow code SHA `829f2ee57a1cc599ebc904530476757688383841`; windows-x64 job ID `121792113177` COMPLETED/SUCCESS after ~15m57s. GitHub job steps explicitly confirmed SOURCE CHECK PASS; actual Rust native test PASS; GUI/CLI cargo build PASS; PE32+ x64 / SHA256 provenance PASS.
+
+**Actual logs, not inference from screenshot:**
+- Node static source contracts 5/5 PASS.
+- `cargo test --locked --release -p soundcraft-engine --test orvia_4c_release_smoke`: **3/3 passed**.
+- `cargo test --locked --release -p soundcraft-midi --test smf`: **16/16 passed**.
+- `cargo test --locked --release -p soundcraft --bin soundcraft config_tests`: **7/7 passed**, including both previously failing docking persistence tests.
+- `cargo build --locked --release -p soundcraft -p soundcraft-cli`: **COMPLETED/SUCCESS**, compiled actual Win x64 native GUI and CLI.
+- Provenance: `soundcraft.exe` is Win64 GUI PE32+ `28,413,952` bytes / SHA256 `41724ddf74e876d9d2f8ad32d622c8c7a183e49909e968ff3ff0131d01244e40`. `soundcraft-cli.exe` is Win64 console PE32+ `800,512` bytes / SHA256 `53d945abf488ccdff04123454d5343d8a017409818d87ebad721782a79cd0fae`.
+- There are 4 compiler warnings for unused code/variables. There is also a nonblocking GitHub checkout action Node.js 20 deprecation warning; neither caused FAIL. Source-only Windows UI test file `crates/ui-egui/tests/docking_workflows.rs` was edited in fix commit 829f2ee but **not run by this 4C.4 workflow**. Do not imply the full UI suite passed.
+
+**Boundary:** this verifies internal native *compilation and narrow Rust tests*, not GUI launch or usability on user PC. No executable uploaded as release/artifact; no signed/branded ORVIA Windows installer. Real soundcard, ASIO driver selection, Kontakt 8 VST3 scanning/plugin GUI, legally owned NKI, recording/bounce, E:/F: portable data/no writes to C:, 4–6-minute soak and reloading a live project remain **HOLD**. Existing SoundCraft upstream icon/name/publisher still require original ORVIA brand and attribution. PR #29 https://github.com/CapCuuStudio/soundcraft/pull/29 remains OPEN/DRAFT/unmerged. **4C.4 narrow hosted Windows CI gate PASS; Desktop runtime/RELEASE HOLD.** No owner CMD, paid runner, manual Actions, installer release or production merge.
+
+**Next gate, proposal only:** 4C.5 — original ORVIA branding and verified E:/F: portable Windows UAT package with explicit approval; then physical Kontakt8/VST3 + ASIO hardware tests. Do not mislabel hosted build PASS as these later gates.
