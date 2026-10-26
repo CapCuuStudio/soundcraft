@@ -1,0 +1,74 @@
+name: ORVIA 4C.4 Native Windows QA (internal only)
+
+# Real native Windows x64 compilation; NOT an ORVIA public release.
+# Branch-only auto push trigger; never run release.yml or manual Actions.
+on:
+  push:
+    branches:
+      - feature/orvia-4c4-windows-native-build
+    paths:
+      - '.github/workflows/orvia-4c4-windows-native.yml'
+      - 'scripts/orvia-4c4-pe-provenance.ps1'
+      - 'tests/orvia-4c4-win-build-contract.mjs'
+      - 'apps/soundcraft/**'
+      - 'crates/**'
+      - 'Cargo.toml'
+      - 'Cargo.lock'
+
+permissions:
+  contents: read
+
+concurrency:
+  group: orvia-4c4-native-${{ github.ref }}
+  cancel-in-progress: true
+
+jobs:
+  windows-x64:
+    if: github.repository == 'CapCuuStudio/soundcraft'
+    runs-on: windows-2022
+    timeout-minutes: 90
+    env:
+      CARGO_PROFILE_RELEASE_LTO: 'false'
+      CARGO_BUILD_JOBS: '2'
+      CARGO_TERM_COLOR: 'always'
+      SOUNDCRAFT_REQUIRE_WINRES: '1'
+      RUST_BACKTRACE: '1'
+    steps:
+      - name: Checkout isolated PR branch
+        uses: actions/checkout@11bd71901bbe5b1630ceea73d27597364c9af683
+        with:
+          persist-credentials: false
+      - name: Confirm runner and toolchain
+        shell: pwsh
+        run: |
+          rustup toolchain install 1.95.0 --profile minimal
+          rustup default 1.95.0
+          rustc --version
+          cargo --version
+          rustc -vV
+          if (-not [Environment]::Is64BitOperatingSystem) { throw 'Windows x64 host required.' }
+      - name: Source-only Windows QA contract
+        shell: pwsh
+        run: node tests/orvia-4c4-win-build-contract.mjs
+      - name: Actual native Windows integration tests
+        shell: pwsh
+        run: |
+          cargo test --locked --release -p soundcraft-engine --test orvia_4c_release_smoke
+          if ($LASTEXITCODE -ne 0) { throw 'Native Engine smoke FAILED.' }
+          cargo test --locked --release -p soundcraft-midi --test smf
+          if ($LASTEXITCODE -ne 0) { throw 'Native SMF roundtrip FAILED.' }
+          cargo test --locked --release -p soundcraft --bin soundcraft config_tests
+          if ($LASTEXITCODE -ne 0) { throw 'Native Windows config tests FAILED.' }
+      - name: Build real Windows x64 GUI plus CLI (internal QA only)
+        shell: pwsh
+        run: |
+          cargo build --locked --release -p soundcraft -p soundcraft-cli
+          if ($LASTEXITCODE -ne 0) { throw 'Windows x64 native build FAILED.' }
+      - name: Verify Windows PE format, SHA256 and release HOLD
+        shell: pwsh
+        run: |
+          & ./scripts/orvia-4c4-pe-provenance.ps1 -GuiBinaryPath './target/release/soundcraft.exe' -CliBinaryPath './target/release/soundcraft-cli.exe' -ExpectedCommit $env:GITHUB_SHA -ReportFile './orvia-4c4-internal-qa.json'
+          if ($LASTEXITCODE -and $LASTEXITCODE -ne 0) { throw 'PE SHA provenance verification FAILED.' }
+          '### ORVIA 4C.4 native Windows build QA' | Out-File -FilePath $env:GITHUB_STEP_SUMMARY -Append -Encoding utf8
+          'Native source/Windows compiler + PE evidence only. Kontakt 8, ASIO, owner PC and branding: **HOLD**.' | Out-File -FilePath $env:GITHUB_STEP_SUMMARY -Append -Encoding utf8
+          'No executable/installer/asset is uploaded or released.' | Out-File -FilePath $env:GITHUB_STEP_SUMMARY -Append -Encoding utf8
