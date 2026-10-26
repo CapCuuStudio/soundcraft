@@ -412,3 +412,27 @@ Chủ dự án phản hồi “xong” sau khi xem bản Web 4B.2, ghi nhận **
 **Lưu ý an toàn:** App portable config path không bảo đảm Windows/driver/plugins/Kontakt không tự ghi cache lên C:. Stage Windows script chưa được chạy, executable/icon chưa rebrand, WiX vẫn SoundCraft/đơn vị upstream, chưa có MSI hoặc RC Windows. Cần Windows native Cargo QA, Windows process monitor app & third-party, kiểm thử soundcard/ASIO, VST3/Kontakt 8, project 4–6 phút, giấy phép nhà phát hành & logo trước khi phát hành. Giữ 4A–4B.4, 4C.1, main/production, không dùng CMD Windows, TinyFish, Actions thủ công/phí.
 
 **Bổ sung kiểm tra 4C.2:** đã tăng cường kiểm tra vị trí dữ liệu Portable bằng `root.canonicalize()` trước khi so sánh SystemDrive để xử lý cả trường hợp junction/symlink từ ổ E/F trỏ về ổ hệ thống. Node source contract cập nhật buộc giữ phép kiểm này và QA docs phản ánh giới hạn; vẫn chưa có Windows native run/Process Monitor/portable artifact. Mã cập nhật trước docs-only: `38661b2` config; `bd0fe0d` contract; `6d20673` QA docs. Không thay engine âm thanh/MIDI, không phát hành.
+
+## ORVIA — Cubase-inspired Compact Track Header (25/10/2026)
+
+**Yêu cầu thực tế:** chủ dự án cung cấp ba ảnh so sánh Cubase, mockup trợ lý và ORVIA; nêu rõ thích thiết kế **Track Header của Cubase** hơn, sau đó duyệt “ok làm theo đi”. Đây là lệnh **sửa UI thật**, không làm thêm ảnh. Phạm vi một component Track Header/track list của Edit Window, không đụng tổng thể 4C Desktop.
+
+**Quy trình nguồn:** trước sửa đã đọc cả nhật ký kỹ thuật Google Drive và repo này, AGENTS.md, ROADMAP.md, docs/gaps.md, Design Language v1 và source thật `crates/ui-egui/src/edit_window.rs`/model TrackHeight. PR #26 4C.2 vẫn open/Draft/unmerged, HEAD docs-only `b949af96d0c36df4766a960f0bf80a46ed6706dc`; tách branch `feature/orvia-track-header-cubase-inspired` từ HEAD đó, giữ 4C.2 và Main/Production nguyên trạng.
+
+**Thay đổi mã:**
+1. `crates/ui-egui/src/edit_window.rs` sửa Track Header từ track-color fill sang nền xám neutral `#252A2F`, selected `#3D4348` Dark và palette Light riêng. Strip màu Track vẫn lấy dữ liệu người dùng nhưng thu từ 14px xuống **5px**, Timeline body/clip màu nguyên trạng, HEADER_W=136px. Track/Timeline vẫn dùng `track.height.points()` nên không lệch dọc khi kéo cao/thấp.
+2. M/S dời về hàng đầu cạnh tên Track; hàng 2 có Record, Input Monitor, Edit (mở đúng context menu), Automation (toggle `track.view`). Nút nhỏ gọn bo góc 2px, active M/S/R/I dùng màu ngữ nghĩa, không đổ bóng neon. Với Track Small 46px có cả hai hàng; Medium 88px hiện waveform/notes, freeze/dyn/automation-mode selector; Large 132px hiện thêm timebase và instrument/elastic. Micro/Mini vẫn có fallback; tên dài chỉ cắt hiển thị, không đổi tên thực; tooltip/full name, double click rename và drag reorder giữ nguyên.
+3. Giữ điều khiển thật và menu Folder, resize `track.height`, Move, Playlist, Automation, Freeze, Inactive, Timebase, Elastic, plugin selection, level meter. Source compare trước/sau xác nhận **13 command occurrences ngoài M/S/R/I** có cùng tên/số; `mix.mute`, `mix.solo`, `mix.record_arm`, `mix.input_monitor` vẫn gắn tới app.run.
+4. Thêm unit tests Rust kiểm preset TrackHeight và palette selection; `tests/orvia-track-header-compact-contract.mjs` sáu source groups; nối `scripts/cloudflare-pages-build.sh` vào gate preflight trước Rust WASM. Checklist `docs/ORVIA-CUBASE-INSPIRED-TRACK-HEADER-QA.md` ghi cụ thể Chrome viewport/command/record/audio/MIDI QA chưa chạy.
+
+**Giới hạn/điều kiện:** Học theo mật độ và bố cục Cubase, KHÔNG sao chép icon/logo/skin/assets proprietary. Không thay audio engine, MIDI/Session schema, mixer DSP, Plugin host, 4C.2 Native/Portable Windows. Chưa có Cargo native tests hoặc Chrome click/audio QA PASS; Cloudflare check-run đúng commit Head cuối và URL Preview bất biến phải được xác minh. Giữ PR Draft và không merge main/production; không kích hoạt Actions thủ công, TinyFish, phí/CMD user.
+
+## ORVIA — Nghiệm thu Compact Track Header Web Preview (25/10/2026)
+
+**Người dùng:** nhắn “xong” sau khi hoàn thành thay đổi Track Header theo bố cục tham khảo Cubase (PR #27), ghi nhận **nghiệm thu tổng quát giao diện Web thử nghiệm**. Không suy diễn chủ dự án đã thử hết M/S/R/I, tên Track dài, drag-reorder, các mức chiều cao hay mọi đường âm thanh/MIDI.
+
+**Kiểm chứng live trước chốt:** PR #27 `https://github.com/CapCuuStudio/soundcraft/pull/27` đang `open/Draft/unmerged`, base `feature/orvia-4c2-windows-portable-data`, code/docs head `cf7b29d6c1ee2e7dac55e1e9fcae9e7b50afd662`. GitHub Cloudflare Pages check-run **chính xác SHA này** trả `completed/success` lúc `2026-10-24T20:51:19Z` (Deploy successful), Preview bất biến `https://c6c3571c.orvia-daw-preview.pages.dev`; branch Preview `https://feature-orvia-track-header-c.orvia-daw-preview.pages.dev`.
+
+**Phạm vi đã chốt, không đổi code:** Track Header được sắp lại với M/S + tên ở hàng đầu, Record/Monitor/Edit/Automation hàng sau; nền xám đen, highlight Track trung tính và rail màu theo dữ liệu Track 5px; giữ TrackHeight/Timeline đồng bộ, nút thật, clip màu gốc, playlist, meters, engine/audio/MIDI/session và công việc 4C.2 Portable Desktop. Cloudflare PASS xác nhận xây dựng Web/code source checks thành công; **không thay thế** Rust native tests, browser full UAT hoặc Windows Kontakt/ASIO QA.
+
+**Hành động:** chỉ ghi nghiệm thu bằng commit tài liệu, giữ nguyên mã đã duyệt; PR #27 Draft và chưa merge Main/Production. Không tự khởi động thay đổi giao diện tiếp theo hay phát hành Desktop, không chạy manual GitHub Actions/TinyFish/phí/CMD Windows.

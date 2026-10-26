@@ -18,7 +18,7 @@ pub const COLUMN_W: f32 = 112.0;
 /// Insert, send and instrument columns: Pro Tools' narrow stacks of slots.
 const PLUGIN_COLUMN_W: f32 = 75.0;
 /// The track colour strip at the left of each track header.
-const STRIP_W: f32 = 14.0;
+const STRIP_W: f32 = 5.0;
 
 // ORVIA Design Language v1: accents only for selection and controls.
 // User-defined track/clip colors remain the source of truth.
@@ -35,6 +35,50 @@ fn orvia_timeline_surface(light: bool) -> Color32 {
 fn orvia_header_ink(light: bool) -> Color32 {
     if light { Color32::from_rgb(18, 45, 53) }
     else { Color32::from_rgb(229, 237, 244) } // #E5EDF4
+}
+
+/// Compact ORVIA Edit Track Headers: dense neutral surfaces like a workstation,
+/// with the user's track colors restricted to the existing left identity strip.
+/// The Timeline/clip body retains its own project colors unchanged.
+fn compact_track_header_color(light: bool, selected: bool) -> Color32 {
+    match (light, selected) {
+        (false, false) => Color32::from_rgb(37, 42, 47),
+        (false, true) => Color32::from_rgb(61, 67, 72),
+        (true, false) => Color32::from_rgb(226, 232, 236),
+        (true, true) => Color32::from_rgb(198, 210, 219),
+    }
+}
+
+/// Exactly the same heights govern Track Header and Timeline lanes (unchanged
+/// TrackHeight). Small (46px) shows M/S, Record/Monitor, Edit and Automation;
+/// Medium (88px) adds waveform/notes and voice/automation-mode selectors.
+fn compact_track_header_rows(h: f32) -> (bool, bool, bool, bool, bool) {
+    (h >= 24.0, h >= 40.0, h >= 62.0, h >= 82.0, h >= 104.0)
+}
+
+#[cfg(test)]
+mod compact_track_header_tests {
+    use super::*;
+
+    #[test]
+    fn normal_track_heights_keep_controls_compact() {
+        assert_eq!(compact_track_header_rows(TrackHeight::Micro.points()), (false, false, false, false, false));
+        assert_eq!(compact_track_header_rows(TrackHeight::Mini.points()), (true, false, false, false, false));
+        assert_eq!(compact_track_header_rows(TrackHeight::Small.points()), (true, true, false, false, false));
+        assert_eq!(compact_track_header_rows(TrackHeight::Medium.points()), (true, true, true, true, false));
+        assert_eq!(compact_track_header_rows(TrackHeight::Large.points()), (true, true, true, true, true));
+        assert_eq!(STRIP_W, 5.0);
+        assert_eq!(HEADER_W, 136.0);
+    }
+
+    #[test]
+    fn selected_track_uses_grey_instead_of_cyan_fill() {
+        let dark = compact_track_header_color(false, false);
+        let selected = compact_track_header_color(false, true);
+        assert_ne!(dark, selected);
+        assert_eq!(selected, Color32::from_rgb(61, 67, 72));
+        assert_ne!(selected, orvia_timeline_surface(false));
+    }
 }
 
 /// The row under the rulers that holds the column titles, when any column is shown.
@@ -962,7 +1006,8 @@ fn track_row(app: &mut SoundApp, ui: &mut Ui, id: TrackId, row: Rect, tl: Rect, 
     let Some(track) = s.track(id) else { return };
     let selected = s.edit.selected_tracks.contains(&id);
     let head = Rect::from_min_max(row.min, pos2(row.min.x + HEADER_W, row.max.y));
-    let (head_bg, lane_bg) = crate::theme::track_backgrounds(track.color, selected, app.ui.track_tint);
+    let (_old_head_bg, lane_bg) = crate::theme::track_backgrounds(track.color, selected, app.ui.track_tint);
+    let head_bg = compact_track_header_color(crate::theme::is_light(), selected);
     let mut x = head.max.x;
     for &(col, _, _, w) in cols {
         header_column(app, ui, track, col, Rect::from_min_size(pos2(x, row.min.y), vec2(w, row.height())), head_bg);
@@ -973,15 +1018,11 @@ fn track_row(app: &mut SoundApp, ui: &mut Ui, id: TrackId, row: Rect, tl: Rect, 
     ui.painter().rect_filled(head, 0.0, head_bg);
     ui.painter().rect_filled(Rect::from_min_size(head.min, vec2(STRIP_W, head.height())), 0.0, rgb(track.color));
     ui.painter().line_segment([pos2(head.min.x, row.max.y + 0.5), pos2(tl.max.x, row.max.y + 0.5)], Stroke::new(1.0, t.border));
-    ui.painter().hline(head.min.x + STRIP_W..=head.max.x, head.min.y + 0.5, Stroke::new(1.0, t.edge_light));
-    // Selected Track gets an ORVIA focus rail; leave the user's 14px color strip intact.
+    ui.painter().hline(head.min.x + STRIP_W..=head.max.x, head.min.y + 0.5, Stroke::new(1.0, t.border));
     track_header(app, ui, track, head, selected, head_bg);
     if selected {
-        let rail = Rect::from_min_size(
-            pos2(head.min.x + STRIP_W, head.min.y + 1.0),
-            vec2(3.0, (head.height() - 2.0).max(0.0)),
-        );
-        ui.painter().rect_filled(rail, 1.0, orvia_timeline_accent(crate::theme::is_light()));
+        // Grey selection row, not the former cyan rail / tinted full-width header.
+        ui.painter().rect_stroke(head.shrink(0.5), 0.0, Stroke::new(1.0, t.border_light), StrokeKind::Inside);
     }
     // Lane.
     ui.painter().vline(tl.min.x - 0.5, row.y_range(), Stroke::new(1.0, t.border));
@@ -1096,6 +1137,7 @@ fn track_header(app: &mut SoundApp, ui: &mut Ui, track: &Track, head: Rect, sele
         }
     }
     let h = head.height();
+    let (show_primary, show_actions, show_view, show_details, show_advanced) = compact_track_header_rows(h);
     // Click on header background selects the track.
     let bg = ui.interact(head, ui.id().with(("hdr", id.0)), Sense::click());
     if bg.clicked() {
@@ -1103,13 +1145,10 @@ fn track_header(app: &mut SoundApp, ui: &mut Ui, track: &Track, head: Rect, sele
     }
     bg.context_menu(|ui| track_context_menu(app, ui, id));
     let at = |x: f32, y: f32, w: f32, h: f32| Rect::from_min_size(pos2(head.min.x + x, head.min.y + y), vec2(w, h));
-    let strip = rgb(track.color);
-    let ink = shade(strip, -0.8);
-    // The strip's round button opens a folder, or any other track's options.
-    let round = at(2.0, 2.0, 10.0, 10.0);
+    // Folder / track menu arrow stays visible even with the slimmer 5px color rail.
+    let round = at(7.0, 3.0, 11.0, 14.0);
     let rresp = ui.interact(round, ui.id().with(("options", id.0)), Sense::click());
-    ui.painter().circle_filled(round.center(), 5.0, shade(strip, if rresp.hovered() { 0.6 } else { 0.45 }));
-    arrow(ui.painter(), round.center(), !track.is_folder() || track.folder_open, ink);
+    arrow(ui.painter(), round.center(), !track.is_folder() || track.folder_open, if rresp.hovered() { t.text } else { t.text_dim });
     if track.is_folder() {
         if rresp.on_hover_text(if track.folder_open { "Close folder" } else { "Open folder" }).clicked() {
             let _ = app.run("track.folder_toggle", json!({"track": id.0}));
@@ -1117,15 +1156,14 @@ fn track_header(app: &mut SoundApp, ui: &mut Ui, track: &Track, head: Rect, sele
     } else {
         egui::Popup::menu(&rresp.on_hover_text("Track options")).show(|ui| track_context_menu(app, ui, id));
     }
-    if h >= 40.0 && track.kind.has_playlist() {
-        let ar = at(3.0, h - 12.0, 9.0, 9.0);
+    if show_actions && track.kind.has_playlist() {
+        // Automation lane toggle in the SECOND row, beside Record/Monitor/Edit.
+        let ar = at(96.0, 21.0, 17.0, 16.0);
         let aresp = ui.interact(ar, ui.id().with(("auto_lane", id.0)), Sense::click());
         let showing = AutoParam::parse(&track.view).is_some();
-        ui.painter().rect_filled(ar, 1.5, shade(strip, if aresp.hovered() || showing { 0.6 } else { 0.45 }));
-        let (a, b) = (ar.min + vec2(2.5, 2.5), ar.max - vec2(2.5, 2.5));
-        ui.painter().line_segment([a, b], Stroke::new(1.0, ink));
-        ui.painter().circle_filled(a, 1.3, ink);
-        ui.painter().circle_filled(b, 1.3, ink);
+        compact_header_control(ui, ar, aresp.hovered(), showing, "A");
+        let color = if showing { t.auto_read } else { t.text_dim };
+        ui.painter().text(ar.center(), Align2::CENTER_CENTER, "A", bold(10.5), color);
         if aresp.on_hover_text(if showing { "Hide automation" } else { "Show volume automation" }).clicked() {
             let view = if !showing {
                 "volume"
@@ -1137,26 +1175,26 @@ fn track_header(app: &mut SoundApp, ui: &mut Ui, track: &Track, head: Rect, sele
             let _ = app.run("track.view", json!({"track": id.0, "view": view}));
         }
     }
-    // Name, highlighted when the track is selected, and the playlist menu beside it.
-    let indent = folder_depth(app.engine.session(), track) as f32 * 10.0;
-    let name_r = at(16.0 + indent, 1.5, 97.0 - indent, 15.0);
-    if selected {
-        ui.painter().rect_filled(name_r, 4.0, orvia_timeline_surface(crate::theme::is_light()));
-    }
+    // Workstation density: M/S in the first row alongside the track name.
+    // Micro tracks (16px) keep a longer name rather than unreachable buttons.
+    let indent = folder_depth(app.engine.session(), track) as f32 * 7.0;
+    let title_x = if show_primary { 60.0 } else { 19.0 };
+    let name_r = at(title_x + indent, 2.0, (113.0 - title_x - indent).max(12.0), 17.0);
     let shown_name = if app.engine.session().edit.flag("edit_view.track_number") {
         let n = app.engine.session().track_index(id).map_or(0, |i| i + 1);
         format!("{n}  {}", track.name)
     } else {
         track.name.clone()
     };
-    let name_color = if selected { orvia_header_ink(crate::theme::is_light()) } else { t.text.lerp_to_gamma(t.text_dim, 0.25) };
-    ui.painter().with_clip_rect(name_r).text(pos2(name_r.min.x + 1.5, name_r.center().y), Align2::LEFT_CENTER, &shown_name, bold(12.5), name_color);
+    let name_color = if selected { orvia_header_ink(crate::theme::is_light()) } else { t.text };
+    ui.painter().with_clip_rect(name_r).text(pos2(name_r.min.x + 1.5, name_r.center().y), Align2::LEFT_CENTER, &shown_name, bold(11.5), name_color);
     let nresp = ui.interact(name_r, ui.id().with(("name", id.0)), Sense::click_and_drag());
     if nresp.double_clicked() {
         app.dialogs.open_rename_track(id, &track.name);
     } else if nresp.clicked() {
         click_track(app, id, ui.input(|i| i.modifiers), in_edit_window);
     }
+    nresp.clone().on_hover_text(&track.name);
     nresp.context_menu(|ui| track_context_menu(app, ui, id));
     // Drag the name plate to reorder tracks.
     if nresp.dragged()
@@ -1189,9 +1227,9 @@ fn track_header(app: &mut SoundApp, ui: &mut Ui, track: &Track, head: Rect, sele
             let _ = app.run("track.move", json!({"track": id.0, "to": to}));
         }
     }
-    let pl_r = at(114.0, 1.0, 11.0, 14.5);
+    let pl_r = at(114.0, 2.0, 14.0, 15.0);
     let presp = ui.interact(pl_r, ui.id().with(("pl", id.0)), Sense::click());
-    ui.painter().rect_filled(pl_r, 1.5, shade(head_bg, if presp.hovered() { -0.2 } else { -0.35 }));
+    compact_header_control(ui, pl_r, presp.hovered(), false, "Playlists");
     arrow(ui.painter(), pos2(pl_r.center().x, pl_r.min.y + 5.75), true, t.text);
     egui::Popup::menu(&presp.on_hover_text("Playlists")).show(|ui| {
         if ui.button("New...").clicked() {
@@ -1211,28 +1249,45 @@ fn track_header(app: &mut SoundApp, ui: &mut Ui, track: &Track, head: Rect, sele
         }
     });
     let m = &track.mixer;
-    if h >= 37.0 {
-        let (records, mixes) = (track.kind.has_playlist(), track.kind != TrackKind::Master);
-        let implied = !m.solo && app.engine.session().tracks.iter().any(|t| t.mixer.solo);
-        let keys = [
-            (HeaderKey::Rec, m.record_arm, false, "mix.record_arm", records),
-            (HeaderKey::Input, m.input_monitor, false, "mix.input_monitor", records),
-            (HeaderKey::Solo, m.solo, false, "mix.solo", mixes),
-            (HeaderKey::Mute, m.mute, implied, "mix.mute", mixes),
-        ];
-        for (i, (key, lit, implied, cmd, shown)) in keys.into_iter().enumerate() {
-            if shown && header_toggle(ui, at(23.0 + i as f32 * 26.0, 20.0, 16.0, 16.0), id, key, lit, implied).clicked() {
+    let records = track.kind.has_playlist();
+    let mixes = track.kind != TrackKind::Master;
+    let implied = !m.solo && app.engine.session().tracks.iter().any(|t| t.mixer.solo);
+    // Cubase-inspired density, ORVIA-owned painter and controls:
+    // row 1: M / S + name; row 2: Record / Monitor / Edit / Automation.
+    if show_primary {
+        for (key, lit, is_implied, cmd, x) in [
+            (HeaderKey::Mute, m.mute, implied, "mix.mute", 18.0),
+            (HeaderKey::Solo, m.solo, false, "mix.solo", 39.0),
+        ] {
+            if mixes && header_toggle(ui, at(x, 2.0, 17.0, 17.0), id, key, lit, is_implied).clicked() {
                 let _ = app.run(cmd, json!({"track": id.0}));
             }
         }
     }
-    if h >= 58.0 {
-        let vresp = header_selector(ui, at(17.0, 39.0, 105.0, 17.0), ui.id().with(("view", id.0)), &view_label(&track.view), t.text, true);
+    if show_actions {
+        for (key, lit, cmd, x) in [
+            (HeaderKey::Rec, m.record_arm, "mix.record_arm", 18.0),
+            (HeaderKey::Input, m.input_monitor, "mix.input_monitor", 39.0),
+        ] {
+            if records && header_toggle(ui, at(x, 21.0, 17.0, 16.0), id, key, lit, false).clicked() {
+                let _ = app.run(cmd, json!({"track": id.0}));
+            }
+        }
+        let edit_rect = at(60.0, 21.0, 17.0, 16.0);
+        let edit_resp = ui.interact(edit_rect, ui.id().with(("edit_track", id.0)), Sense::click());
+        compact_header_control(ui, edit_rect, edit_resp.hovered(), false, "Edit");
+        ui.painter().text(edit_rect.center(), Align2::CENTER_CENTER, "e", bold(11.0), t.text);
+        egui::Popup::menu(&edit_resp.on_hover_text("Track settings and editing")).show(|ui| {
+            track_context_menu(app, ui, id);
+        });
+    }
+    if show_view {
+        let vresp = header_selector(ui, at(18.0, 41.0, 105.0, 17.0), ui.id().with(("view", id.0)), &view_label(&track.view), t.text, true);
         egui::Popup::menu(&vresp).show(|ui| view_menu(app, ui, track));
     }
-    if h >= 76.0 {
+    if show_details {
         if matches!(track.kind, TrackKind::Audio | TrackKind::Instrument | TrackKind::Aux) {
-            let r = at(17.0, 57.0, 13.0, 17.0);
+            let r = at(18.0, 61.0, 13.0, 17.0);
             let resp = ui.interact(r, ui.id().with(("freeze", id.0)), Sense::click());
             raised_key(ui.painter(), r, if track.frozen { t.slot_bypassed } else { t.slot_face }, resp.hovered());
             for a in [0.0f32, 60.0, 120.0] {
@@ -1245,7 +1300,7 @@ fn track_header(app: &mut SoundApp, ui: &mut Ui, track: &Track, head: Rect, sele
         }
         if !matches!(track.kind, TrackKind::Master | TrackKind::Vca | TrackKind::Folder) {
             let (voice, color) = if track.inactive { ("off", t.text_dim) } else { ("dyn", t.text) };
-            let resp = header_selector(ui, at(31.0, 57.0, 31.0, 17.0), ui.id().with(("voice", id.0)), voice, color, false);
+            let resp = header_selector(ui, at(32.0, 61.0, 31.0, 17.0), ui.id().with(("voice", id.0)), voice, color, false);
             egui::Popup::menu(&resp.on_hover_text("Voice: dyn plays the track, off makes it inactive")).show(|ui| {
                 for (label, inactive) in [("dyn", false), ("off", true)] {
                     if ui.selectable_label(track.inactive == inactive, label).clicked() {
@@ -1262,7 +1317,7 @@ fn track_header(app: &mut SoundApp, ui: &mut Ui, track: &Track, head: Rect, sele
             soundcraft_model::AutomationMode::Latch => t.auto_latch,
             _ => t.text_dim,
         };
-        let aresp = header_selector(ui, at(63.0, 57.0, 59.0, 17.0), ui.id().with(("auto_mode", id.0)), mode.label(), col, true);
+        let aresp = header_selector(ui, at(64.0, 61.0, 59.0, 17.0), ui.id().with(("auto_mode", id.0)), mode.label(), col, true);
         egui::Popup::menu(&aresp).show(|ui| {
             for m in soundcraft_model::AutomationMode::ALL {
                 if ui.selectable_label(m == mode, m.label()).clicked() {
@@ -1271,9 +1326,9 @@ fn track_header(app: &mut SoundApp, ui: &mut Ui, track: &Track, head: Rect, sele
             }
         });
     }
-    if h >= 94.0 {
+    if show_advanced {
         if track.kind.has_playlist() {
-            let r = at(17.0, 75.0, 13.0, 17.0);
+            let r = at(18.0, 81.0, 13.0, 17.0);
             let resp = ui.interact(r, ui.id().with(("timebase", id.0)), Sense::click());
             raised_key(ui.painter(), r, t.slot_face, resp.hovered());
             let c = r.center();
@@ -1299,7 +1354,7 @@ fn track_header(app: &mut SoundApp, ui: &mut Ui, track: &Track, head: Rect, sele
                 }
             });
         }
-        let field = at(30.0, 75.0, 92.0, 17.0);
+        let field = at(31.0, 81.0, 92.0, 17.0);
         if matches!(track.kind, TrackKind::Audio | TrackKind::Instrument) {
             let resp = ui.interact(field, ui.id().with(("field", id.0)), Sense::click());
             ui.painter().rect_filled(field, 2.0, shade(head_bg, if resp.hovered() { -0.02 } else { -0.1 }));
@@ -1342,11 +1397,30 @@ fn arrow(p: &egui::Painter, c: Pos2, down: bool, color: Color32) {
     p.add(Shape::convex_polygon(pts, color, Stroke::NONE));
 }
 
+/// Compact neutral control painter; all actions remain in the existing egui
+/// responses. Only a thin border / text highlight indicates active state.
+fn compact_header_control(ui: &Ui, r: Rect, hovered: bool, active: bool, _label: &str) {
+    let light = crate::theme::is_light();
+    let fill = match (light, active, hovered) {
+        (true, true, _) => Color32::from_rgb(185, 198, 211),
+        (true, false, true) => Color32::from_rgb(208, 219, 226),
+        (true, false, false) => Color32::from_rgb(231, 236, 239),
+        (false, true, _) => Color32::from_rgb(90, 99, 107),
+        (false, false, true) => Color32::from_rgb(72, 80, 88),
+        (false, false, false) => Color32::from_rgb(48, 55, 62),
+    };
+    ui.painter().rect_filled(r, 2.0, fill);
+    ui.painter().rect_stroke(
+        r, 2.0, Stroke::new(1.0, if active { Tokens::current().text_dim } else { Tokens::current().border_light }),
+        StrokeKind::Inside,
+    );
+}
+
 /// A header selector (track view, automation mode…): the value centred, and for menus an arrow
 /// in the top-right corner.
 fn header_selector(ui: &Ui, r: Rect, id: egui::Id, text: &str, color: Color32, menu: bool) -> egui::Response {
     let resp = ui.interact(r, id, Sense::click());
-    raised_key(ui.painter(), r, Tokens::current().slot_face, resp.hovered());
+    compact_header_control(ui, r, resp.hovered(), false, "Selector");
     let tr = if menu { r.with_max_x(r.max.x - 7.0) } else { r };
     ui.painter().with_clip_rect(tr.shrink(1.0)).text(tr.center(), Align2::CENTER_CENTER, text, bold(10.0), color);
     if menu {
@@ -1377,34 +1451,18 @@ fn header_toggle(ui: &Ui, r: Rect, track: TrackId, key: HeaderKey, lit: bool, im
     let resp = ui.interact(r, ui.id().with((label, track.0)), Sense::click());
     resp.widget_info(|| egui::WidgetInfo::selected(egui::WidgetType::Button, ui.is_enabled(), lit, label));
     let rec = key == HeaderKey::Rec;
-    let (_tint, _k) = if lit {
-        (color, 0.85)
-    } else if implied {
-        (shade(color, -0.35), 0.55)
-    } else if rec {
-        (shade(color, -0.5), 0.35)
-    } else {
-        (color, 0.0)
-    };
-    // ORVIA v1: flat, legible state instead of a raised imitation hardware key.
-    let base = if crate::theme::is_light() {
-        Color32::from_rgb(225, 235, 241)
-    } else {
-        Color32::from_rgb(32, 45, 57)
-    };
-    let fill = if lit { color } else if implied { base.lerp_to_gamma(color, 0.22) }
-        else if resp.hovered() { base.lerp_to_gamma(color, 0.1) } else { base };
-    ui.painter().rect_filled(r, 4.0, fill);
-    ui.painter().rect_stroke(
-        r, 4.0, Stroke::new(1.0, if lit { color } else { t.border_light }), StrokeKind::Inside,
-    );
-    let ink = if lit {
-        t.text_dark
-    } else if implied {
-        t.text.lerp_to_gamma(color, 0.3)
-    } else {
-        t.text
-    };
+    // Restrained Cubase-like grey controls, with semantic status only when ON.
+    let neutral = if light { Color32::from_rgb(229, 234, 238) } else { Color32::from_rgb(46, 53, 59) };
+    let fill = if lit { color }
+        else if implied { neutral.lerp_to_gamma(color, 0.17) }
+        else if resp.hovered() { neutral.lerp_to_gamma(t.text_dim, 0.16) }
+        else { neutral };
+    ui.painter().rect_filled(r, 2.0, fill);
+    ui.painter().rect_stroke(r, 2.0, Stroke::new(1.0, if lit { color } else { t.border_light }), StrokeKind::Inside);
+    if resp.has_focus() {
+        ui.painter().rect_stroke(r.shrink(1.0), 2.0, Stroke::new(1.0, t.accent), StrokeKind::Inside);
+    }
+    let ink = if lit { t.text_dark } else if implied { t.text_dim } else { t.text };
     if rec {
         ui.painter().circle_filled(r.center(), 4.0, if lit { Color32::WHITE } else { t.text.lerp_to_gamma(color, 0.3) });
     } else {

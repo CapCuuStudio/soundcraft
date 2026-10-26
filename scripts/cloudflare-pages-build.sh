@@ -17,6 +17,8 @@ node tests/orvia-4b4-responsive-contract.mjs
 node tests/orvia-4c-desktop-readiness.mjs
 # 4C.2: source-only portable data and x64 QA staging guard; not Windows execution.
 node tests/orvia-4c2-portable-contract.mjs
+# Compact workstation Track Header controls: source regression, no audio engine modifications.
+node tests/orvia-track-header-compact-contract.mjs
 
 export CARGO_INCREMENTAL=0
 export CARGO_BUILD_JOBS="${CARGO_BUILD_JOBS:-2}"
