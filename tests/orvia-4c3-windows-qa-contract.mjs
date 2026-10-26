@@ -32,7 +32,7 @@ assert.ok(stage.indexOf("Assert-NoReparseAncestors $destinationPath") <
 check("evidence never launches an unverified binary", inspect, [
   "Assert-LocalSafePath", "ReparsePoint", "Get-FileHash -LiteralPath $binary -Algorithm SHA256",
   "ConvertFrom-Json", "ORVIA-QA-ONLY.json", "ReadUInt32()", "0x8664",
-  "0x00004550", "$manifest.binary_sha256", "'desktop_release'"]);
+  "0x00004550", "$manifest.binary_sha256", "desktop_release = 'HOLD'"]);
 check("plugin and audio are explicit HOLD until hands-on QA", inspect, [
   "native_cargo_tests = 'HOLD", "audio_asio = 'HOLD",
   "vst3_kontakt8_nki = 'HOLD", "system_drive_write_audit = 'HOLD",
