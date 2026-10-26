@@ -29,6 +29,9 @@ function Get-PeSignature([string] $Path) {
 }
 
 $exe = (Resolve-Path -LiteralPath $BinaryPath).ProviderPath
+if ($Destination -notmatch '^[EeFf]:[\\/]') {
+    throw 'Destination must be an absolute E:\\ or F:\\ directory. Drive-relative paths are refused.'
+}
 $destinationPath = [IO.Path]::GetFullPath($Destination)
 $root = [IO.Path]::GetPathRoot($destinationPath)
 # Owner constraint: only E:/F:. Reject system drive, UNC, relative, network.
@@ -63,6 +66,25 @@ if ($CliBinaryPath) {
         throw 'CLI executable must be x64 console subsystem.'
     }
 }
+
+# ORVIA 4C.3: refuse *existing* junctions and symlinks in the destination
+# ancestry. An apparent E:\\QA folder can otherwise redirect writes onto C:.
+# This is a staging safeguard, NOT a claim that third-party software avoids C:.
+function Assert-NoReparseAncestors([string] $Path) {
+    $cursor = Split-Path -Parent $Path
+    while (-not [string]::IsNullOrEmpty($cursor)) {
+        if (Test-Path -LiteralPath $cursor) {
+            $entry = Get-Item -LiteralPath $cursor -Force
+            if (($entry.Attributes -band [IO.FileAttributes]::ReparsePoint) -ne 0) {
+                throw 'Destination has a junction/symlink ancestor. Refusing redirected staging writes.'
+            }
+        }
+        $parent = Split-Path -Parent $cursor
+        if ($parent -eq $cursor) { break }
+        $cursor = $parent
+    }
+}
+Assert-NoReparseAncestors $destinationPath
 
 # No changes are made before integrity, disk-safety and non-overwrite checks.
 New-Item -ItemType Directory -Path $destinationPath -Force | Out-Null
