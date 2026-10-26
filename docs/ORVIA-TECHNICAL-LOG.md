@@ -436,3 +436,16 @@ Chủ dự án phản hồi “xong” sau khi xem bản Web 4B.2, ghi nhận **
 **Phạm vi đã chốt, không đổi code:** Track Header được sắp lại với M/S + tên ở hàng đầu, Record/Monitor/Edit/Automation hàng sau; nền xám đen, highlight Track trung tính và rail màu theo dữ liệu Track 5px; giữ TrackHeight/Timeline đồng bộ, nút thật, clip màu gốc, playlist, meters, engine/audio/MIDI/session và công việc 4C.2 Portable Desktop. Cloudflare PASS xác nhận xây dựng Web/code source checks thành công; **không thay thế** Rust native tests, browser full UAT hoặc Windows Kontakt/ASIO QA.
 
 **Hành động:** chỉ ghi nghiệm thu bằng commit tài liệu, giữ nguyên mã đã duyệt; PR #27 Draft và chưa merge Main/Production. Không tự khởi động thay đổi giao diện tiếp theo hay phát hành Desktop, không chạy manual GitHub Actions/TinyFish/phí/CMD Windows.
+
+
+## ORVIA 4C.3 — Windows Portable QA Safety & Evidence Gate (27/10/2026)
+
+**Owner direction:** “ok làm đi” after proposal 4C.3. Read central project technical log (Google Drive), this repository technical log, AGENTS.md, ROADMAP.md, docs/gaps.md, 4C/4C.2 QA matrix, 4C.1/4C.2 scripts and native config source before edits. Verified PR #27 head 5df209f87a29ea9c946b32804aadfcd35647cdca is open/Draft with owner-accepted Web Track Header code cf7b29d. No changes to original merged production.
+
+**Isolation:** branch feature/orvia-4c3-windows-qa-evidence from PR #27 docs-only head; Draft PR #28 https://github.com/CapCuuStudio/soundcraft/pull/28 base PR #27 branch; source code head `420b3b02e9fe55cb06485490755940f42ba879c2`.
+
+**Changes in scoped source:** staging PS1 scripts/orvia-4c2-stage-windows-qa.ps1 now rejects drive-relative destination and parent reparse-point folders (junction/symlink) before writing, supplementing Native config.rs canonicalize from 4C.2. Internal-only read-only scripts/orvia-4c3-inspect-windows-qa.ps1 verifies approved E/F path, QA marker and manifest, expected executable SHA256 and PE x64 GUI format; emits safe metadata / all hardware gates HOLD and does not launch executable or query third-party plugins. tests/orvia-4c3-windows-qa-contract.mjs source checks are hooked into existing Cloudflare build, and docs/ORVIA-STAGE4C3-WINDOWS-NATIVE-UAT.md defines G1–G10 native + GUI-only, ASIO/Kontakt 8/NKI/MIDI/export/soak/branding checks. Source compare verified intended five files.
+
+**Evidence/limitations:** GitHub confirmed PR #28 opened at code head and 4C.3 source file guards; Cloudflare Pages check-run #121769443058 was **in_progress**, not PASS, when inspected for commit 420b3b0. This container has no cargo/rustc or PowerShell, no authorized native Windows runner, binary, ASIO soundcard or licensed Kontakt test; therefore no Native Cargo, Windows PowerShell, VST3/Kontakt/ASIO, 20min soak, PE runtime or no-C-writes PASS is claimed. Static source review does not equal Node test execution. 4C.2 script and 4C.3 reader still cannot prove zero OS/driver/plugin C: writes. The MSI still uses upstream SoundCraft brand/publisher/icon. Windows Desktop RELEASE HOLD. No GitHub Actions manual run, TinyFish, paid runner, CMD on owner PC, publishing/merge.
+
+**Next single step:** verify Cloudflare check-run of reviewed code SHA and Web source contract, then collect real Windows native QA evidence through an approved branded Portable RC and owner GUI acceptance before considering release.
