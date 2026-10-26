@@ -37,6 +37,10 @@ fn drag(h: &mut Harness<'_, SoundApp>, from: egui::Pos2, to: egui::Pos2) {
 #[test]
 fn real_drag_float_close_reopen_reload_retains_transport_and_mixer_commands() {
     let mut h = harness(None, 1400.0, 1.0);
+    // The ORVIA Project view intentionally starts without the duplicate Tracks tab.
+    // This drag test opts in to that optional panel before requesting its tab geometry.
+    h.state_mut().run("ui.dock", json!({"operation":"open","panel":"tracks"})).unwrap();
+    h.run_steps(4);
     let source = h.get_by_role_and_label(egui::accesskit::Role::Tab, "Clips").rect().center();
     let target = h.get_by_role_and_label(egui::accesskit::Role::Tab, "Tracks and Groups").rect().center();
     drag(&mut h, source, target);
@@ -113,6 +117,7 @@ fn docking_renders_edit_and_mix_default_floating_and_redocked() {
                 h.state_mut().engine = soundcraft_engine::demo::demo_engine();
                 for state in ["default", "floating", "redocked"] {
                     if state == "floating" {
+                        h.state_mut().run("ui.dock", json!({"operation":"open","panel":"tracks"})).unwrap();
                         h.state_mut().run("ui.dock", json!({"operation":"float","panel":"tracks","rect":[100,80,260,500]})).unwrap();
                     } else if state == "redocked" {
                         h.state_mut().run("ui.dock", json!({"operation":"move","panel":"tracks","target":"canvas","zone":"left"})).unwrap();
@@ -141,6 +146,7 @@ fn reset_is_enabled_and_resolves_in_native_and_in_window_menu_trees() {
     let window = tree.iter().find(|node| node.label == "Window").unwrap();
     assert!(window.children.iter().any(|node| node.path == path));
     assert!(menus::item_state(&app, path, Some("ui.dock.reset")).0);
+    app.run("ui.dock", json!({"operation":"open","panel":"tracks"})).unwrap();
     app.run("ui.dock", json!({"operation":"float","panel":"tracks","rect":[50,60,260,420]})).unwrap();
     menus::invoke_menu(&mut app, "ui.dock.reset", path);
     assert!(!app.ui.docking.layout.floating.iter().any(|group| group.panels.contains(&Panel::Tracks)));

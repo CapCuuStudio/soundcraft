@@ -168,6 +168,11 @@ mod config_tests {
         let path = directory.join("ui.json");
         let _ = std::fs::remove_dir_all(&directory);
         let mut app = SoundApp::new(soundcraft_engine::Engine::default(), None, Services::default());
+        // ORVIA's default Project layout intentionally has no duplicate Tracks panel.
+        // Open the optional panel explicitly before testing floating/persistence.
+        assert!(!app.ui.docking.layout.contains(&soundcraft_ui_egui::docking::Panel::Tracks));
+        app.run("ui.dock", serde_json::json!({"operation":"open","panel":"tracks"})).unwrap();
+        assert!(app.ui.docking.layout.contains(&soundcraft_ui_egui::docking::Panel::Tracks));
         app.run("ui.dock", serde_json::json!({"operation":"float","panel":"tracks","rect":[80,90,260,400]})).unwrap();
         app.run("ui.dock", serde_json::json!({"operation":"close","panel":"tracks"})).unwrap();
         app.ui.theme = soundcraft_ui_egui::theme::ThemeMode::Light;
@@ -207,6 +212,11 @@ mod config_tests {
         std::fs::create_dir_all(&directory).unwrap();
         let path = directory.join("ui.json");
         let mut app = SoundApp::new(soundcraft_engine::Engine::default(), None, Services::default());
+        // ORVIA's default Project layout intentionally has no duplicate Tracks panel.
+        // Open the optional panel explicitly before testing floating/persistence.
+        assert!(!app.ui.docking.layout.contains(&soundcraft_ui_egui::docking::Panel::Tracks));
+        app.run("ui.dock", serde_json::json!({"operation":"open","panel":"tracks"})).unwrap();
+        assert!(app.ui.docking.layout.contains(&soundcraft_ui_egui::docking::Panel::Tracks));
         app.run("ui.dock", serde_json::json!({"operation":"float","panel":"tracks","rect":[80,90,260,400]})).unwrap();
         app.ui.theme = soundcraft_ui_egui::theme::ThemeMode::Light;
         app.ui.narrow_mix = true;
